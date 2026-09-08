@@ -1,0 +1,91 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // 1. Users collection (Features 1, 2, 4, 5, 19, 24)
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      // Server-managed fields (totalXp, currentStreak, longestStreak) cannot be tampered with by clients
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+      allow update: if isOwner(userId) 
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['totalXp', 'currentStreak', 'longestStreak']);
+      allow delete: if isOwner(userId);
+    }
+
+    // 2. Exercises collection (Feature 11)
+    match /exercises/{exerciseId} {
+      allow read: if isAuthenticated();
+      allow write: if false; // Admin / Function write only
+    }
+
+    // 3. Sports collection (Feature 3)
+    match /sports/{sportId} {
+      allow read: if isAuthenticated();
+      allow write: if false;
+    }
+
+    // 4. Workout Plans (Features 12, 13, 14)
+    match /workoutPlans/{planId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+
+    // 5. Workout Sessions (Features 15, 28)
+    match /workoutSessions/{sessionId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+
+    // 6. Activity Logs (Features 15, 16)
+    match /activityLogs/{activityId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if false; // Immutable logs
+    }
+
+    // 7. Challenges (Features 23, 27)
+    match /challenges/{challengeId} {
+      allow read: if isAuthenticated();
+      allow write: if false;
+    }
+
+    // 8. Multiplayer Lobbies (Features 7, 25, 26)
+    match /lobbies/{lobbyId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated();
+      allow delete: if isAuthenticated() && resource.data.hostUserId == request.auth.uid;
+    }
+
+    // 9. Leaderboards (Feature 27)
+    match /leaderboards/{leaderboardId} {
+      allow read: if isAuthenticated();
+      allow write: if false; // Written strictly by Cloud Functions
+    }
+
+    // 10. Bug Reports (Feature 30)
+    match /bugReports/{reportId} {
+      allow read: if false; // Developers/Admins only
+      allow create: if isAuthenticated();
+      allow update, delete: if false;
+    }
+
+    // 11. AI Coach Insights (Feature 22)
+    match /coachInsights/{insightId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow write: if false;
+    }
+  }
+}

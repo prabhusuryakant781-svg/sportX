@@ -1,0 +1,30 @@
+/* SportX Design System & Theme Tokens (Cyber-Athletic Dark Mode) */
+
+:root {
+  --bg-obsidian: #090d16;
+  --surface-card: #131b2e;
+  --surface-glass: rgba(19, 27, 46, 0.75);
+  --accent-lime: #10b981;
+  --accent-cyan: #06b6d4;
+  --accent-amber: #f59e0b;
+  --accent-coral: #ef4444;
+  --text-primary: #f8fafc;
+  --text-muted: #94a3b8;
+  --border-glow: rgba(6, 182, 212, 0.25);
+  --font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background-color: var(--bg-obsidian);
+  color: var(--text-primary);
+  font-family: var(--font-family);
+  min-height: 100vh;
+  overflow-x: hidden;
+}

@@ -1,0 +1,39 @@
+{
+  "exercises": [
+    {
+      "id": "squats",
+      "name": "Bodyweight Squats",
+      "target_area": "Lower Body / Legs",
+      "difficulty": "Beginner",
+      "ai_supported": true,
+      "description": "Keep back straight, hips drop below knee line."
+    },
+    {
+      "id": "pushups",
+      "name": "Standard Push-ups",
+      "target_area": "Chest, Shoulders & Triceps",
+      "difficulty": "Intermediate",
+      "ai_supported": true,
+      "description": "Lower chest to 90 degrees elbow flexion, maintain neutral spine."
+    },
+    {
+      "id": "bicep_curls",
+      "name": "Bicep Curls",
+      "target_area": "Arms / Biceps",
+      "difficulty": "Beginner",
+      "ai_supported": true,
+      "description": "Keep elbows locked near torso while curling upwards."
+    }
+  ],
+  "challenges": [
+    {
+      "id": "campus_squat_100",
+      "title": "Campus 100 Squats Challenge",
+      "description": "Complete 100 verified squats this week",
+      "target_metric": "reps",
+      "target_value": 100,
+      "participants_count": 48,
+      "badge_name": "Campus Titan"
+    }
+  ]
+}
