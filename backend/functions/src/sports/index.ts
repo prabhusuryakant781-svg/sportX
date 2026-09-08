@@ -1,50 +1,41 @@
+/**
+ * Sports Routes: GET /sports, POST /sports/select
+ * Core Feature: 3 (Sports Selection)
+ */
 import { Router, Response } from 'express';
-import { db } from '../config/firebase';
+import { users } from '../config/demoStore';
 import { verifyAuth, AuthenticatedRequest } from '../auth';
 
 export const sportsRouter = Router();
 
-// Default catalogue of campus sports
-const DEFAULT_SPORTS = [
+const SPORTS_CATALOGUE = [
   { id: 'badminton', name: 'Badminton', category: 'Racquet', icon: '🏸', caloriePerHour: 400 },
   { id: 'football', name: 'Football / Soccer', category: 'Team Sport', icon: '⚽', caloriePerHour: 550 },
   { id: 'cricket', name: 'Cricket', category: 'Team Sport', icon: '🏏', caloriePerHour: 350 },
   { id: 'basketball', name: 'Basketball', category: 'Team Sport', icon: '🏀', caloriePerHour: 600 },
   { id: 'running', name: 'Campus Running', category: 'Athletics', icon: '🏃', caloriePerHour: 500 },
-  { id: 'table_tennis', name: 'Table Tennis', category: 'Racquet', icon: '🏓', caloriePerHour: 300 }
+  { id: 'table_tennis', name: 'Table Tennis', category: 'Racquet', icon: '🏓', caloriePerHour: 300 },
 ];
 
 // GET /api/v1/sports
-sportsRouter.get('/', async (req, res) => {
-  try {
-    const snapshot = await db.collection('sports').get();
-    if (snapshot.empty) {
-      return res.status(200).json({ success: true, data: DEFAULT_SPORTS });
-    }
-    const sports = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    res.status(200).json({ success: true, data: sports });
-  } catch (error: any) {
-    res.status(200).json({ success: true, data: DEFAULT_SPORTS });
-  }
+sportsRouter.get('/', (_req, res) => {
+  res.status(200).json({ success: true, data: SPORTS_CATALOGUE });
 });
 
 // POST /api/v1/sports/select
-sportsRouter.post('/select', verifyAuth, async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const uid = req.user?.uid;
-    const { sports } = req.body; // e.g. ['badminton', 'football']
+sportsRouter.post('/select', verifyAuth, (req: AuthenticatedRequest, res: Response) => {
+  const uid = req.user!.uid;
+  const { sports } = req.body;
 
-    if (!Array.isArray(sports)) {
-      return res.status(400).json({ error: 'sports must be an array of sport IDs' });
-    }
-
-    await db.collection('users').doc(uid!).set(
-      { selectedSports: sports, updatedAt: new Date().toISOString() },
-      { merge: true }
-    );
-
-    res.status(200).json({ success: true, message: 'Sports updated successfully', sports });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+  if (!Array.isArray(sports)) {
+    return res.status(400).json({ error: 'sports must be an array of sport IDs' });
   }
+
+  const user = users.get(uid);
+  if (user) {
+    user.selectedSports = sports;
+    users.set(uid, user);
+  }
+
+  res.status(200).json({ success: true, message: 'Sports updated', sports });
 });

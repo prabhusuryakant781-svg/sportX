@@ -1,112 +1,89 @@
+/**
+ * Session Routes: POST /sessions/start, POST /sessions/:id/complete, POST /sessions/:id/cancel
+ * Core Features: 9 (Rep Counting), 15 (Activity Logging), 24 (XP), 28 (Stop/Pause)
+ */
 import { Router, Response } from 'express';
-import { db } from '../config/firebase';
+import { sessions, users, nextId, DemoSession } from '../config/demoStore';
 import { verifyAuth, AuthenticatedRequest } from '../auth';
-import { XPService } from '../gamification';
+import { calculateXP, updateStreak } from '../gamification';
 
 export const sessionsRouter = Router();
 
+const activeSessions: Map<string, any> = new Map();
+
 // POST /api/v1/sessions/start
-sessionsRouter.post('/start', verifyAuth, async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const uid = req.user?.uid;
-    const { planId, exerciseId } = req.body;
+sessionsRouter.post('/start', verifyAuth, (req: AuthenticatedRequest, res: Response) => {
+  const uid = req.user!.uid;
+  const { exerciseId = 'squat', planId = 'dorm_blast_20' } = req.body;
 
-    const newSession = {
-      userId: uid,
-      planId: planId || 'custom',
-      exerciseId: exerciseId || 'squat',
-      status: 'active',
-      startedAt: new Date().toISOString(),
-      completedAt: null,
-      totalReps: 0,
-      averageFormScore: 100,
-      caloriesBurned: 0,
-      xpAwarded: 0
-    };
+  const sessionId = nextId('session');
+  activeSessions.set(sessionId, {
+    id: sessionId,
+    userId: uid,
+    planId,
+    exerciseId,
+    status: 'active',
+    startedAt: new Date().toISOString(),
+  });
 
-    const docRef = await db.collection('workoutSessions').add(newSession);
-    res.status(201).json({
-      success: true,
-      data: { sessionId: docRef.id, ...newSession }
-    });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
+  res.status(201).json({
+    success: true,
+    message: 'Session started. Camera workout is live!',
+    data: { sessionId, exerciseId, planId, startedAt: new Date().toISOString() },
+  });
 });
 
 // POST /api/v1/sessions/:sessionId/complete
-sessionsRouter.post('/:sessionId/complete', verifyAuth, async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const uid = req.user?.uid;
-    const { sessionId } = req.params;
-    const { totalReps, averageFormScore, durationSeconds, errorsEncountered, exerciseId } = req.body;
+sessionsRouter.post('/:sessionId/complete', verifyAuth, (req: AuthenticatedRequest, res: Response) => {
+  const uid = req.user!.uid;
+  const { sessionId } = req.params;
+  const { totalReps = 0, averageFormScore = 85, durationSeconds = 60, exerciseId = 'squat' } = req.body;
 
-    const sessionRef = db.collection('workoutSessions').doc(sessionId);
-    const sessionDoc = await sessionRef.get();
+  const reps = Number(totalReps);
+  const score = Number(averageFormScore);
+  const duration = Number(durationSeconds);
+  const calories = Math.round((duration / 60) * 8.5);
 
-    const reps = Number(totalReps) || 0;
-    const formScore = Number(averageFormScore) || 0;
-    const duration = Number(durationSeconds) || 60;
-    const calories = Math.round((duration / 60) * 8.5); // Approx 8.5 kcal/min active bodyweight
+  // Server-side XP calculation (anti-cheat)
+  const xpEarned = calculateXP(reps, score, true);
 
-    // Calculate XP strictly on the server (anti-cheat)
-    const xpEarned = XPService.calculateWorkoutXP(reps, formScore, true);
+  const completedSession: DemoSession = {
+    id: sessionId || nextId('session'),
+    userId: uid,
+    exerciseId,
+    totalReps: reps,
+    averageFormScore: score,
+    durationSeconds: duration,
+    caloriesBurned: calories,
+    xpAwarded: xpEarned,
+    completedAt: new Date().toISOString(),
+  };
+  sessions.push(completedSession);
+  activeSessions.delete(sessionId);
 
-    const completionData = {
-      status: 'completed',
-      completedAt: new Date().toISOString(),
+  // Update user XP and streak
+  const { newXp, currentStreak, badgesUnlocked } = updateStreak(uid, xpEarned);
+
+  res.status(200).json({
+    success: true,
+    message: '🎉 Workout completed and saved!',
+    data: {
+      sessionId: completedSession.id,
+      exerciseId,
       totalReps: reps,
-      averageFormScore: formScore,
-      durationSeconds: duration,
+      averageFormScore: score,
       caloriesBurned: calories,
-      xpAwarded: xpEarned,
-      formErrors: errorsEncountered || []
-    };
-
-    await sessionRef.set(completionData, { merge: true });
-
-    // Also persist into immutable activityLogs
-    await db.collection('activityLogs').add({
-      userId: uid,
-      sessionId,
-      exerciseId: exerciseId || sessionDoc.data()?.exerciseId || 'squat',
-      reps,
-      durationSeconds: duration,
-      formScore,
-      calories,
-      timestamp: new Date().toISOString()
-    });
-
-    // Award XP and update user streaks
-    const { currentStreak, newXp, badgesUnlocked } = await XPService.awardUserXpAndStreak(uid!, xpEarned);
-
-    res.status(200).json({
-      success: true,
-      message: 'Workout successfully completed and recorded!',
-      data: {
-        sessionId,
-        xpEarned,
-        totalXp: newXp,
-        currentStreak,
-        caloriesBurned: calories,
-        badgesUnlocked
-      }
-    });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
+      xpEarned,
+      totalXp: newXp,
+      currentStreak,
+      badgesUnlocked,
+    },
+  });
 });
 
 // POST /api/v1/sessions/:sessionId/cancel
-sessionsRouter.post('/:sessionId/cancel', verifyAuth, async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const { sessionId } = req.params;
-    await db.collection('workoutSessions').doc(sessionId).set(
-      { status: 'cancelled', cancelledAt: new Date().toISOString() },
-      { merge: true }
-    );
-    res.status(200).json({ success: true, message: 'Session cancelled' });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
+sessionsRouter.post('/:sessionId/cancel', verifyAuth, (req: AuthenticatedRequest, res: Response) => {
+  const { sessionId } = req.params;
+  activeSessions.delete(sessionId);
+  res.status(200).json({ success: true, message: 'Session cancelled' });
 });

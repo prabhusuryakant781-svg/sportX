@@ -1,78 +1,44 @@
+/**
+ * SportX Auth Middleware (Demo Mode)
+ * Reads Bearer token from Authorization header.
+ * Falls back to the built-in demo user when no token is provided.
+ */
 import { Request, Response, NextFunction } from 'express';
-import { auth, db } from '../config/firebase';
+import { tokens, users } from '../config/demoStore';
 
 export interface AuthenticatedRequest extends Request {
-  user?: {
-    uid: string;
-    email?: string;
-    name?: string;
-  };
+  user?: { uid: string; email?: string; name?: string };
 }
 
-/**
- * Authentication middleware for Cloud Functions and Express endpoints.
- * Verifies Firebase ID Token from Authorization header.
- * Provides fallback mock user in local development mode.
- */
-export const verifyAuth = async (
+export const verifyAuth = (
   req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
-): Promise<void> => {
+): void => {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    // In local development, allow fallback demo user if no token provided
-    if (process.env.NODE_ENV !== 'production') {
-      req.user = {
-        uid: 'demo_student_01',
-        email: 'student@campus.edu',
-        name: 'Aarav Sharma'
-      };
-      return next();
-    }
-    res.status(401).json({ error: 'Unauthorized: Missing or invalid token' });
-    return;
+    // Default demo user — no token required in demo mode
+    req.user = { uid: 'demo_student_01', email: 'aarav@campus.edu', name: 'Aarav Sharma' };
+    return next();
   }
 
   const token = authHeader.split('Bearer ')[1];
-  try {
-    const decodedToken = await auth.verifyIdToken(token);
-    req.user = {
-      uid: decodedToken.uid,
-      email: decodedToken.email,
-      name: decodedToken.name
-    };
-    next();
-  } catch (error) {
-    res.status(401).json({ error: 'Unauthorized: Invalid Firebase token' });
-  }
-};
 
-/**
- * Triggered automatically when a new user signs up in Firebase Auth
- */
-export const handleUserSignup = async (userRecord: { uid: string; email?: string; displayName?: string }) => {
-  const userRef = db.collection('users').doc(userRecord.uid);
-  const existing = await userRef.get();
-
-  if (!existing.exists) {
-    await userRef.set({
-      name: userRecord.displayName || 'Student Athlete',
-      email: userRecord.email || '',
-      profileImage: '',
-      age: 20,
-      height: 172,
-      weight: 65,
-      fitnessLevel: 'beginner',
-      fitnessGoal: 'fitness',
-      availableTimeMinutes: 20,
-      selectedSports: ['badminton'],
-      totalXp: 0,
-      currentStreak: 0,
-      longestStreak: 0,
-      lastWorkoutDate: null,
-      createdAt: new Date().toISOString()
-    });
+  // Special demo bypass
+  if (token === 'demo' || token === 'demo123') {
+    req.user = { uid: 'demo_student_01', email: 'aarav@campus.edu', name: 'Aarav Sharma' };
+    return next();
   }
+
+  // Look up real token from demo store
+  const userId = tokens.get(token);
+  if (!userId) {
+    res.status(401).json({ error: 'Unauthorized: Invalid or expired token' });
+    return;
+  }
+
+  const user = users.get(userId);
+  req.user = { uid: userId, email: user?.email, name: user?.name };
+  next();
 };

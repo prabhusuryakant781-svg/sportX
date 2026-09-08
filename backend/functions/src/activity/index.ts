@@ -1,63 +1,40 @@
+/**
+ * Activity Log Routes: GET /activity/history
+ * Core Features: 15 (Activity Logging), 16 (Workout History)
+ */
 import { Router, Response } from 'express';
-import { db } from '../config/firebase';
+import { sessions } from '../config/demoStore';
 import { verifyAuth, AuthenticatedRequest } from '../auth';
 
 export const activityRouter = Router();
 
 // GET /api/v1/activity/history?period=today|7d|30d|all
-activityRouter.get('/history', verifyAuth, async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const uid = req.user?.uid;
-    const { period = '7d' } = req.query;
+activityRouter.get('/history', verifyAuth, (req: AuthenticatedRequest, res: Response) => {
+  const uid = req.user!.uid;
+  const { period = '7d' } = req.query;
 
-    let query: FirebaseFirestore.Query = db.collection('activityLogs')
-      .where('userId', '==', uid)
-      .orderBy('timestamp', 'desc');
+  const now = Date.now();
+  const filters: Record<string, number> = { today: 86400000, '7d': 7 * 86400000, '30d': 30 * 86400000 };
+  const cutoff = filters[String(period)];
 
-    const now = new Date();
-    if (period === 'today') {
-      const todayStart = new Date(now.setHours(0, 0, 0, 0)).toISOString();
-      query = query.where('timestamp', '>=', todayStart);
-    } else if (period === '7d') {
-      const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
-      query = query.where('timestamp', '>=', weekAgo);
-    } else if (period === '30d') {
-      const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
-      query = query.where('timestamp', '>=', monthAgo);
-    }
-
-    const snapshot = await query.limit(50).get();
-    const logs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-    // Fallback demo data if clean database
-    if (logs.length === 0) {
-      const demoLogs = [
-        {
-          id: 'demo_log_1',
-          exerciseId: 'squat',
-          exerciseName: 'Bodyweight Squats',
-          reps: 24,
-          durationSeconds: 180,
-          formScore: 92,
-          calories: 25,
-          timestamp: new Date().toISOString()
-        },
-        {
-          id: 'demo_log_2',
-          exerciseId: 'pushup',
-          exerciseName: 'Standard Push-ups',
-          reps: 15,
-          durationSeconds: 120,
-          formScore: 84,
-          calories: 18,
-          timestamp: new Date(Date.now() - 86400000).toISOString()
-        }
-      ];
-      return res.status(200).json({ success: true, period, count: demoLogs.length, data: demoLogs });
-    }
-
-    res.status(200).json({ success: true, period, count: logs.length, data: logs });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
+  let logs = sessions.filter(s => s.userId === uid);
+  if (cutoff) {
+    logs = logs.filter(s => new Date(s.completedAt).getTime() >= now - cutoff);
   }
+
+  res.status(200).json({
+    success: true,
+    period,
+    count: logs.length,
+    data: logs.map(s => ({
+      id: s.id,
+      exerciseId: s.exerciseId,
+      reps: s.totalReps,
+      durationSeconds: s.durationSeconds,
+      formScore: s.averageFormScore,
+      calories: s.caloriesBurned,
+      xpEarned: s.xpAwarded,
+      completedAt: s.completedAt,
+    })),
+  });
 });
