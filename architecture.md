@@ -147,4 +147,4 @@ Students can report false detections (e.g., missed squat reps, camera lighting g
 
 ---
 
-*Author: Team HACKPACK | Smart India Hackathon 2026 | PS 26196*
+*Author: Team HACKPACK | SportX Architecture*

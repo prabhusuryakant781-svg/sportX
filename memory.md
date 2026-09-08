@@ -1,7 +1,7 @@
 # 🧠 SportX — Project Memory & Context State
 
 > **Project:** SportX (AI-Powered Student Fitness & Sports Companion)  
-> **SIH Problem Statement:** PS 26196 — Student Innovation: Ideas that can boost fitness activities and assist in keeping fit  
+> **Theme / Category:** Student Fitness & Sports / Software  
 > **Team:** HACKPACK (6 Members • 3 Groups)  
 > **Active Scope:** Exactly 31 Official Core Features  
 > **Last Updated:** 2026-09-08

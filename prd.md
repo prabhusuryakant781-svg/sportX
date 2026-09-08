@@ -1,8 +1,7 @@
 # 📋 SportX — Product Requirements Document (PRD)
 
 > **Project:** SportX (AI-Powered Student Fitness & Sports Companion)  
-> **SIH Problem Statement:** PS 26196 — Student Innovation: Ideas that can boost fitness activities and assist in keeping fit  
-> **Theme / Category:** Fitness & Sports / Software  
+> **Theme / Category:** Student Fitness & Sports / Software  
 > **Team:** HACKPACK  
 > **Version:** 2.1.0 (Aligned to 31 Official Core Features)  
 > **Status:** Approved Core Specification
@@ -201,4 +200,4 @@ SportX is built strictly around the **31 Core Features** defined in the team blu
 
 ---
 
-*Author: Team HACKPACK | Smart India Hackathon 2026 | PS 26196*
+*Author: Team HACKPACK | SportX Engineering*

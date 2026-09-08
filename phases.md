@@ -1,7 +1,7 @@
 # 🚀 SportX — Implementation Phases (31 Core Features)
 
 > **Project:** SportX (AI-Powered Student Fitness & Sports Companion)  
-> **Target:** SIH 2026 (PS 26196) Prototype & Production Roadmap  
+> **Target:** Core Prototype & Production Roadmap  
 > **Scope:** Organized strictly around the 31 Official Core Features  
 > **Version:** 2.1.0  
 > **Date:** 2026-09-08
@@ -40,7 +40,7 @@ Phase 1: Solo AI Core (P0 Must-Haves)       ──►  Phase 2: Multiplayer Lobb
 
 ---
 
-## Phase 1 — Solo AI Fitness Loop (SIH P0 Target)
+## Phase 1 — Solo AI Fitness Loop (Core MVP Target)
 *Objective: Build the core personal fitness loop where a student can onboard, get an adaptive plan, work out with the camera, get reps/form tracked, and maintain their streak.*
 
 ### Deliverables:
@@ -54,7 +54,7 @@ Phase 1: Solo AI Core (P0 Must-Haves)       ──►  Phase 2: Multiplayer Lobb
 
 ---
 
-## Phase 2 — Multiplayer Workout Lobby & Social Competition (SIH P1 Target)
+## Phase 2 — Multiplayer Workout Lobby & Social Competition (Advanced Scope)
 *Objective: Bring the excitement of multiplayer gaming into campus workouts.*
 
 ### Deliverables:
@@ -68,7 +68,7 @@ Phase 1: Solo AI Core (P0 Must-Haves)       ──►  Phase 2: Multiplayer Lobb
 
 ---
 
-## 🎬 Updated 3-Minute SIH Demonstration Flow
+## 🎬 Updated 3-Minute Product Demonstration Flow
 
 1. **Minute 1 — Personalization:** Student logs in (F1, F29), shows hostel room profile, picks 20 mins (F2, F4), and views today's plan (F6, F14).
 2. **Minute 2 — AI Camera Workout:** Student performs squats on camera (F7, F8). App counts reps out loud (F9), flags a shallow squat with "Squat lower!" (F10), tests pause/resume (F28), and completes the set.

@@ -1,8 +1,7 @@
 # ⚡ SportX — AI-Powered Student Fitness & Sports Companion
 
-> **SIH 2026 Problem Statement:** PS 26196 — Student Innovation: Ideas that can boost fitness activities and assist in keeping fit  
+> **Product:** AI-Powered Student Fitness & Sports Companion  
 > **Team:** HACKPACK (6 Members • 3 Groups)  
-> **Scope:** Exactly 31 Official Core Features  
 > **Core Loop:** LOGIN → PERSONALIZE → WORKOUT / LOBBY MATCH → AI ANALYZE → CORRECT → SCORE → SAVE → PROGRESS → REWARD → CHALLENGE
 
 ---
@@ -38,7 +37,7 @@ SPORTX/
 ├── techstack.md          # 31 Features Tech Stack Mapping
 ├── design.md             # UI/UX Design System & Screen Wireframes
 ├── rules.md              # Engineering & Anti-Cheat Rules
-├── phases.md             # Phased Rollout Plan & 3-Minute SIH Pitch
+├── phases.md             # Phased Rollout Plan & 3-Minute Product Pitch
 └── memory.md             # Continuous Project State
 ```
 
