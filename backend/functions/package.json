@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "SportX Backend Intelligence Layer — Firebase Cloud Functions 2nd Gen",
   "scripts": {
+    "dev": "npx ts-node --transpile-only src/localServer.ts",
     "build": "tsc",
     "build:watch": "tsc --watch",
     "serve": "npm run build && firebase emulators:start --only functions,firestore",
@@ -27,6 +28,7 @@
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
     "@types/node": "^20.14.10",
+    "ts-node": "^10.9.2",
     "typescript": "^5.5.3"
   },
   "private": true
