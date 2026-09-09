@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api } from '../services/api.js';
+import CompetitiveLobby from '../components/CompetitiveLobby.jsx';
 
 const EXERCISES = ['squat', 'pushup', 'bicep_curl', 'plank', 'jumping_jacks'];
 const SAMPLE_OPPONENTS = [
@@ -9,6 +10,7 @@ const SAMPLE_OPPONENTS = [
 ];
 
 export default function ChallengesPage() {
+  const [activeTab, setActiveTab] = useState('lobby'); // 'lobby' | 'async'
   const [challenges, setChallenges] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
@@ -52,82 +54,133 @@ export default function ChallengesPage() {
 
   return (
     <div className="section">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1>Challenges ⚡</h1>
-          <p style={{ fontSize: 14, marginTop: 4 }}>Challenge friends to workout battles!</p>
-        </div>
-        <button className="btn btn-primary btn-sm" onClick={() => setShowCreate(s => !s)}>
-          {showCreate ? '✕ Close' : '+ Challenge'}
+      {/* Tab Selector Header */}
+      <div style={{
+        display: 'flex',
+        background: 'rgba(255,255,255,0.04)',
+        padding: 4,
+        borderRadius: 12,
+        border: '1px solid rgba(255,255,255,0.08)',
+        marginBottom: 16
+      }}>
+        <button
+          onClick={() => setActiveTab('lobby')}
+          style={{
+            flex: 1,
+            padding: '10px',
+            borderRadius: 8,
+            border: 'none',
+            fontWeight: 700,
+            fontSize: 13,
+            background: activeTab === 'lobby' ? '#6C63FF' : 'transparent',
+            color: activeTab === 'lobby' ? '#FFFFFF' : 'var(--text-muted)',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease'
+          }}
+        >
+          ⚔️ Live Duel Lobby
+        </button>
+        <button
+          onClick={() => setActiveTab('async')}
+          style={{
+            flex: 1,
+            padding: '10px',
+            borderRadius: 8,
+            border: 'none',
+            fontWeight: 700,
+            fontSize: 13,
+            background: activeTab === 'async' ? '#6C63FF' : 'transparent',
+            color: activeTab === 'async' ? '#FFFFFF' : 'var(--text-muted)',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease'
+          }}
+        >
+          ⚡ Peer Challenges
         </button>
       </div>
 
-      {/* Create Form */}
-      {showCreate && (
-        <div className="card scale-in" style={{ border: '1px solid rgba(108,99,255,0.4)' }}>
-          <h4 style={{ marginBottom: 12 }}>⚔️ New Challenge</h4>
-          <form onSubmit={createChallenge} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <div className="form-group">
-              <label>Challenge</label>
-              <select className="input" value={form.challengeeId} onChange={e => setForm(f => ({ ...f, challengeeId: e.target.value }))}>
-                {SAMPLE_OPPONENTS.map(o => <option key={o.userId} value={o.userId}>{o.name}</option>)}
-              </select>
+      {activeTab === 'lobby' ? (
+        <CompetitiveLobby />
+      ) : (
+        <>
+          <div className="flex justify-between items-center">
+            <div>
+              <h1>Peer Challenges ⚡</h1>
+              <p style={{ fontSize: 14, marginTop: 4 }}>Send async workout challenges to friends!</p>
             </div>
-            <div className="form-group">
-              <label>Exercise</label>
-              <select className="input" value={form.exerciseId} onChange={e => setForm(f => ({ ...f, exerciseId: e.target.value }))}>
-                {EXERCISES.map(ex => <option key={ex} value={ex}>{ex.replace(/_/g, ' ')}</option>)}
-              </select>
-            </div>
-            <div className="form-group">
-              <label>Target Reps: {form.targetReps}</label>
-              <input type="range" min="5" max="50" step="5" value={form.targetReps}
-                onChange={e => setForm(f => ({ ...f, targetReps: e.target.value }))}
-                style={{ width: '100%', accentColor: 'var(--accent)' }} />
-            </div>
-            <button type="submit" className="btn btn-primary btn-full" disabled={creating}>
-              {creating ? <span className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }} /> : '⚡ Send Challenge!'}
+            <button className="btn btn-primary btn-sm" onClick={() => setShowCreate(s => !s)}>
+              {showCreate ? '✕ Close' : '+ Challenge'}
             </button>
-          </form>
-        </div>
-      )}
-
-      {/* Challenge List */}
-      {loading ? (
-        [...Array(2)].map((_, i) => <div key={i} className="skeleton" style={{ height: 100 }} />)
-      ) : challenges.length === 0 ? (
-        <div className="empty-state">
-          <div className="empty-icon">⚡</div>
-          <h3>No challenges yet</h3>
-          <p>Challenge a friend to see who can do more reps!</p>
-          <button className="btn btn-primary" onClick={() => setShowCreate(true)}>Start a Challenge</button>
-        </div>
-      ) : challenges.map(c => {
-        const s = STATUS_STYLE[c.status] || STATUS_STYLE.pending;
-        return (
-          <div key={c.id} className="card">
-            <div className="flex justify-between items-center" style={{ marginBottom: 8 }}>
-              <div style={{ fontWeight: 700, fontSize: 15 }}>
-                vs. {c.challengeeName || 'Opponent'}
-              </div>
-              <span style={{ fontSize: 11, fontWeight: 700, color: s.color, background: s.bg, padding: '3px 8px', borderRadius: 100 }}>
-                {c.status}
-              </span>
-            </div>
-            <div className="flex gap-8" style={{ marginBottom: c.status === 'pending' ? 12 : 0, flexWrap: 'wrap' }}>
-              <span className="stat-pill" style={{ fontSize: 12 }}>💪 {c.exerciseId?.replace(/_/g,' ')}</span>
-              <span className="stat-pill" style={{ fontSize: 12 }}>🎯 {c.targetReps} reps</span>
-              <span className="stat-pill" style={{ fontSize: 12 }}>📅 Expires {new Date(c.expiresAt).toLocaleDateString()}</span>
-            </div>
-            {c.status === 'pending' && c.challengeeId !== 'demo_student_01' && (
-              <div className="flex gap-8">
-                <button className="btn btn-secondary btn-sm" style={{ flex: 1 }} onClick={() => respond(c.id, 'decline')}>✕ Decline</button>
-                <button className="btn btn-primary btn-sm" style={{ flex: 1 }} onClick={() => respond(c.id, 'accept')}>✓ Accept</button>
-              </div>
-            )}
           </div>
-        );
-      })}
+
+          {/* Create Form */}
+          {showCreate && (
+            <div className="card scale-in" style={{ border: '1px solid rgba(108,99,255,0.4)', marginTop: 12 }}>
+              <h4 style={{ marginBottom: 12 }}>⚔️ New Challenge</h4>
+              <form onSubmit={createChallenge} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div className="form-group">
+                  <label>Challenge</label>
+                  <select className="input" value={form.challengeeId} onChange={e => setForm(f => ({ ...f, challengeeId: e.target.value }))}>
+                    {SAMPLE_OPPONENTS.map(o => <option key={o.userId} value={o.userId}>{o.name}</option>)}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Exercise</label>
+                  <select className="input" value={form.exerciseId} onChange={e => setForm(f => ({ ...f, exerciseId: e.target.value }))}>
+                    {EXERCISES.map(ex => <option key={ex} value={ex}>{ex.replace(/_/g, ' ')}</option>)}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Target Reps: {form.targetReps}</label>
+                  <input type="range" min="5" max="50" step="5" value={form.targetReps}
+                    onChange={e => setForm(f => ({ ...f, targetReps: e.target.value }))}
+                    style={{ width: '100%', accentColor: 'var(--accent)' }} />
+                </div>
+                <button type="submit" className="btn btn-primary btn-full" disabled={creating}>
+                  {creating ? <span className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }} /> : '⚡ Send Challenge!'}
+                </button>
+              </form>
+            </div>
+          )}
+
+          {/* Challenge List */}
+          {loading ? (
+            [...Array(2)].map((_, i) => <div key={i} className="skeleton" style={{ height: 100, marginTop: 12 }} />)
+          ) : challenges.length === 0 ? (
+            <div className="empty-state">
+              <div className="empty-icon">⚡</div>
+              <h3>No challenges yet</h3>
+              <p>Challenge a friend to see who can do more reps!</p>
+              <button className="btn btn-primary" onClick={() => setShowCreate(true)}>Start a Challenge</button>
+            </div>
+          ) : challenges.map(c => {
+            const s = STATUS_STYLE[c.status] || STATUS_STYLE.pending;
+            return (
+              <div key={c.id} className="card" style={{ marginTop: 12 }}>
+                <div className="flex justify-between items-center" style={{ marginBottom: 8 }}>
+                  <div style={{ fontWeight: 700, fontSize: 15 }}>
+                    vs. {c.challengeeName || 'Opponent'}
+                  </div>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: s.color, background: s.bg, padding: '3px 8px', borderRadius: 100 }}>
+                    {c.status}
+                  </span>
+                </div>
+                <div className="flex gap-8" style={{ marginBottom: c.status === 'pending' ? 12 : 0, flexWrap: 'wrap' }}>
+                  <span className="stat-pill" style={{ fontSize: 12 }}>💪 {c.exerciseId?.replace(/_/g,' ')}</span>
+                  <span className="stat-pill" style={{ fontSize: 12 }}>🎯 {c.targetReps} reps</span>
+                  <span className="stat-pill" style={{ fontSize: 12 }}>📅 Expires {new Date(c.expiresAt).toLocaleDateString()}</span>
+                </div>
+                {c.status === 'pending' && c.challengeeId !== 'demo_student_01' && (
+                  <div className="flex gap-8">
+                    <button className="btn btn-secondary btn-sm" style={{ flex: 1 }} onClick={() => respond(c.id, 'decline')}>✕ Decline</button>
+                    <button className="btn btn-primary btn-sm" style={{ flex: 1 }} onClick={() => respond(c.id, 'accept')}>✓ Accept</button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </>
+      )}
 
       {toast && <div className={`toast ${toast.type}`}>{toast.msg}</div>}
     </div>
