@@ -67,6 +67,51 @@ export default function DashboardPage() {
         <StatCard icon="🏅" label="Badges" value={badges.length} accent="var(--accent)" />
       </div>
 
+      {/* AI Coach Banner Card */}
+      <div style={{ padding: '0 20px 16px' }}>
+        <div
+          className="card"
+          onClick={() => navigate('/ai-coach')}
+          style={{
+            cursor: 'pointer',
+            background: 'linear-gradient(135deg, rgba(108,99,255,0.22) 0%, rgba(255,107,107,0.12) 100%)',
+            border: '1px solid rgba(108,99,255,0.4)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '16px 18px',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div
+              style={{
+                width: 46,
+                height: 46,
+                borderRadius: '50%',
+                background: 'var(--gradient-hero)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 22,
+                boxShadow: '0 4px 14px var(--accent-glow)',
+                flexShrink: 0,
+              }}
+            >
+              🤖
+            </div>
+            <div>
+              <div style={{ fontWeight: 800, fontSize: 16, color: 'var(--text-primary)' }}>
+                AI Coach
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
+                Get personalized sports guidance & feedback
+              </div>
+            </div>
+          </div>
+          <span style={{ fontSize: 20, color: 'var(--accent)', fontWeight: 'bold' }}>➔</span>
+        </div>
+      </div>
+
       {/* Today's Plan */}
       <div className="section" style={{ paddingTop: 0 }}>
         <h3>Today's Workout</h3>

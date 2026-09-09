@@ -1,6 +1,10 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
+if (!process.env.GEMINI_API_KEY && !process.env.AI_API_KEY) {
+  process.env.LOCAL_TEST = 'true';
+}
+
 import { app } from './index';
 
 const PORT = process.env.PORT || 3001;

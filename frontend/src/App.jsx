@@ -9,6 +9,7 @@ import SessionResultPage from './pages/SessionResultPage.jsx';
 import ProgressPage from './pages/ProgressPage.jsx';
 import ChallengesPage from './pages/ChallengesPage.jsx';
 import ProfilePage from './pages/ProfilePage.jsx';
+import AICoachPage from './pages/AICoachPage.jsx';
 
 function ProtectedRoute({ children }) {
   const { token, loading } = useAuth();
@@ -73,6 +74,7 @@ export default function App() {
         <Route path="/progress" element={<ProtectedRoute><AppShell><ProgressPage /></AppShell></ProtectedRoute>} />
         <Route path="/challenges" element={<ProtectedRoute><AppShell><ChallengesPage /></AppShell></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><AppShell><ProfilePage /></AppShell></ProtectedRoute>} />
+        <Route path="/ai-coach" element={<ProtectedRoute><AppShell><AICoachPage /></AppShell></ProtectedRoute>} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </BrowserRouter>

@@ -66,6 +66,7 @@ export const api = {
   getCollegeLeaderboard: () => request('GET', '/leaderboard/college'),
 
   // ── AI Coach ───────────────────────────────────────────────────────────────
+  askCoach: (body) => request('POST', '/ai/ask-coach', body),
   analyzeForm: (body) => request('POST', '/ai/analyze-form', body),
   getCoachingTip: (exerciseId) => request('GET', `/ai/coaching-tip?exerciseId=${exerciseId}`),
 
