@@ -23,6 +23,7 @@ import { aiCoachRouter } from './aiCoach';
 import { challengesRouter } from './challenges';
 import { lobbiesRouter } from './lobbies';
 import { bugsRouter } from './bugs';
+import { askCoachHandler } from './ai';
 
 export const app = express();
 
@@ -108,6 +109,7 @@ v1.use('/activity', activityRouter);   // CF15: Activity Log | CF16: History
 v1.use('/gamification', gamificationRouter); // CF19: Streak | CF21: Milestones | CF24: XP | CF27: Badges
 v1.use('/leaderboard', leaderboardRouter);   // CF20: Leaderboard | CF22: Social Comparison
 v1.use('/ai', aiCoachRouter);          // CF6-CF10: AI Pose, Form, Feedback, Coach
+v1.post('/ai/ask-coach', askCoachHandler); // Phase 2: AI Coach consultation
 v1.use('/challenges', challengesRouter); // CF25: Peer Challenges
 v1.use('/lobbies', lobbiesRouter);     // CF23: Multiplayer Workout Mode
 v1.use('/bugs', bugsRouter);           // CF30: Bug Reporting
@@ -230,3 +232,10 @@ export const healthCheck = onRequest({ cors: true }, async (req: Request, res: R
     });
   }
 });
+
+/**
+ * Dedicated 2nd Gen Cloud Function: SportX AI Coach
+ * Flow: Flutter/Client Request -> Authentication -> contextBuilder -> Firestore -> AI API -> Validator -> Structured JSON Response
+ */
+export const askCoach = onRequest({ cors: true }, askCoachHandler);
+
