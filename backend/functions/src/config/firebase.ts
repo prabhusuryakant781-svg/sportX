@@ -1,14 +1,17 @@
 import * as admin from 'firebase-admin';
 
-// Initialize Firebase Admin SDK (safely prevents multiple initializations)
+// In local development/testing without production credentials, default to local Firestore emulator
+if (!process.env.FIRESTORE_EMULATOR_HOST && process.env.NODE_ENV !== 'production' && !process.env.K_SERVICE) {
+  process.env.FIRESTORE_EMULATOR_HOST = '127.0.0.1:8080';
+}
+
+const projectId = process.env.GCLOUD_PROJECT || process.env.FIREBASE_PROJECT_ID || 'demo-sportx';
+
+// Initialize Firebase Admin SDK with project ID
 if (!admin.apps.length) {
-  try {
-    admin.initializeApp();
-  } catch (error) {
-    admin.initializeApp({
-      projectId: process.env.GCLOUD_PROJECT || 'sportx-app'
-    });
-  }
+  admin.initializeApp({
+    projectId: projectId
+  });
 }
 
 export const db = admin.firestore();

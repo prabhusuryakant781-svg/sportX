@@ -17,6 +17,7 @@ __pycache__/
 # Build Outputs
 dist/
 build/
+lib/
 *.egg-info/
 
 # IDE & OS

@@ -1,14 +1,13 @@
 /**
- * SportX API – Main Router
- * All 31 core feature endpoints registered here.
- *
- * Runs as a local Express server in demo mode (no Firebase required).
- * Switch to Cloud Functions by replacing localServer.ts with functions.https.onRequest().
+ * SportX API – Firebase Cloud Functions 2nd Gen Master Router
+ * Person 2: Backend Intelligence Layer Foundation
  */
 import express, { Request, Response } from 'express';
 import cors from 'cors';
-import helmet from 'helmet';
-import morgan from 'morgan';
+import { onRequest } from 'firebase-functions/v2/https';
+import * as logger from 'firebase-functions/logger';
+import * as admin from 'firebase-admin';
+import { db } from './config/firebase';
 
 // Route modules
 import { authRouter } from './auth/authRouter';
@@ -28,26 +27,72 @@ import { bugsRouter } from './bugs';
 export const app = express();
 
 // ── Middleware ─────────────────────────────────────────────────────────────────
-app.use(cors({ origin: '*' }));
-app.use(helmet({ contentSecurityPolicy: false }));
-app.use(morgan('[:date[iso]] :method :url :status :response-time ms'));
+app.use(cors({ origin: true }));
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: false }));
 
-// ── Health ─────────────────────────────────────────────────────────────────────
+// Lightweight request logging
+app.use((req: Request, _res: Response, next) => {
+  logger.info(`[SportX API] ${req.method} ${req.path}`, {
+    query: req.query,
+    ip: req.ip
+  });
+  next();
+});
+
+// ── Core Health & Status ───────────────────────────────────────────────────────
 app.get('/', (_req: Request, res: Response) => {
   res.status(200).json({
-    service: 'SportX API',
-    version: '1.0.0',
-    mode: 'DEMO (in-memory, no Firebase)',
+    service: 'SportX Backend Intelligence Layer',
+    version: '2.0.0 (Cloud Functions 2nd Gen)',
     status: '🟢 Running',
-    docsUrl: 'http://localhost:3001/api/v1',
+    docsUrl: '/api/v1',
     timestamp: new Date().toISOString(),
   });
 });
 
-app.get('/health', (_req: Request, res: Response) => {
-  res.status(200).json({ status: 'ok', uptime: process.uptime().toFixed(1) + 's' });
+/**
+ * Health & Firestore Connectivity Endpoint
+ * Flow: Flutter/Client Request -> Cloud Function -> Firestore (Write & Read) -> JSON Response
+ */
+app.get('/health', async (_req: Request, res: Response) => {
+  try {
+    const testDocRef = db.collection('systemChecks').doc('backendFoundation');
+    const writeData = {
+      service: 'SportX Intelligence Layer',
+      phase: 'Phase 1 — Backend Foundation',
+      status: 'operational',
+      updatedAt: new Date().toISOString(),
+      verifiedBy: 'Cloud Functions 2nd Gen'
+    };
+
+    await testDocRef.set(writeData, { merge: true });
+    const snapshot = await testDocRef.get();
+
+    res.status(200).json({
+      status: 'ok',
+      service: 'SportX Backend Intelligence Layer',
+      runtime: 'Node.js + Firebase Cloud Functions 2nd Gen',
+      uptime: `${process.uptime().toFixed(1)}s`,
+      firestore: {
+        connected: true,
+        testWrite: 'success',
+        testRead: 'success',
+        persistedData: snapshot.data()
+      },
+      timestamp: new Date().toISOString()
+    });
+  } catch (error: any) {
+    logger.error('Firestore connection check failed:', error);
+    res.status(500).json({
+      status: 'error',
+      firestore: {
+        connected: false,
+        error: error.message
+      },
+      timestamp: new Date().toISOString()
+    });
+  }
 });
 
 // ── API Routes ─────────────────────────────────────────────────────────────────
@@ -67,11 +112,42 @@ v1.use('/challenges', challengesRouter); // CF25: Peer Challenges
 v1.use('/lobbies', lobbiesRouter);     // CF23: Multiplayer Workout Mode
 v1.use('/bugs', bugsRouter);           // CF30: Bug Reporting
 
+// Dedicated Firestore connectivity verification route
+v1.get('/system/firestore-check', async (req: Request, res: Response) => {
+  try {
+    const testDocRef = db.collection('systemChecks').doc('firestoreTest');
+    const testPayload = {
+      pingId: `ping_${Date.now()}`,
+      clientTimestamp: req.query.timestamp || new Date().toISOString(),
+      serverTimestamp: admin.firestore.FieldValue.serverTimestamp(),
+      platform: req.headers['user-agent'] || 'Flutter/HTTP Client'
+    };
+
+    await testDocRef.set(testPayload, { merge: true });
+    const snapshot = await testDocRef.get();
+
+    res.status(200).json({
+      success: true,
+      message: 'Firestore connection test passed successfully',
+      data: snapshot.data()
+    });
+  } catch (error: any) {
+    logger.error('Firestore check error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 // Index — list all registered routes
 v1.get('/', (_req, res) => {
   res.status(200).json({
-    message: 'SportX API v1 — 31 Core Feature Endpoints',
+    message: 'SportX API v1 — Backend Intelligence Layer',
+    firestoreStatus: '/api/v1/system/firestore-check',
     routes: [
+      'GET  /health',
+      'GET  /api/v1/system/firestore-check',
       'POST /api/v1/auth/signup', 'POST /api/v1/auth/login',
       'GET  /api/v1/users/profile', 'PUT  /api/v1/users/profile',
       'GET  /api/v1/sports', 'POST /api/v1/sports/select',
@@ -98,4 +174,59 @@ app.use((req: Request, res: Response) => {
     path: req.path,
     hint: 'Visit GET /api/v1 for all available endpoints',
   });
+});
+
+// ===============================================================================
+// FIREBASE CLOUD FUNCTIONS 2ND GEN EXPORTS
+// ===============================================================================
+
+/**
+ * Main Cloud Function 2nd Gen API gateway
+ * Mounts the complete Express router under Cloud Function HTTPS handling.
+ */
+export const api = onRequest({ cors: true }, app);
+
+/**
+ * Dedicated 2nd Gen Cloud Function: Direct Health Check & Firestore Connectivity
+ * Flow: Flutter/Client Request -> Cloud Function -> Firestore (Write & Read) -> JSON Response
+ */
+export const healthCheck = onRequest({ cors: true }, async (req: Request, res: Response) => {
+  try {
+    logger.info('Received healthCheck Cloud Function call', { method: req.method, ip: req.ip });
+
+    const testDocRef = db.collection('systemChecks').doc('backendFoundation');
+    const checkPayload = {
+      service: 'SportX Intelligence Layer',
+      phase: 'Phase 1 — Backend Foundation',
+      status: 'operational',
+      clientTimestamp: req.query.timestamp || new Date().toISOString(),
+      verifiedAt: new Date().toISOString()
+    };
+
+    await testDocRef.set(checkPayload, { merge: true });
+    const snapshot = await testDocRef.get();
+
+    res.status(200).json({
+      success: true,
+      message: 'Cloud Function 2nd Gen and Firestore are connected and fully operational!',
+      cloudFunction: {
+        gen: '2nd Gen',
+        region: process.env.FUNCTION_REGION || 'us-central1'
+      },
+      firestore: {
+        connected: true,
+        collection: 'systemChecks',
+        documentId: 'backendFoundation',
+        data: snapshot.data()
+      },
+      timestamp: new Date().toISOString()
+    });
+  } catch (error: any) {
+    logger.error('Error in healthCheck Cloud Function:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Firestore communication error',
+      timestamp: new Date().toISOString()
+    });
+  }
 });
