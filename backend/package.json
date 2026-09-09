@@ -1,0 +1,10 @@
+{
+  "name": "sportx-backend-root",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "npm --prefix functions run dev",
+    "build": "npm --prefix functions run build",
+    "start": "npm --prefix functions start"
+  }
+}
