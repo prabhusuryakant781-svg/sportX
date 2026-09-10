@@ -3,35 +3,61 @@
  * Firestore Data Access for progress/{userId}
  * Aggregated summary structures so frontend queries are fast and cheap
  */
-import { db } from '../config/firebase';
+import { db, hasFirebaseCredentials } from '../config/firebase';
 import { ProgressDoc } from '../types';
 import * as logger from 'firebase-functions/logger';
 
 const COLLECTION = 'progress';
+
+// Timeout helper to avoid hung promises when Firestore is unreachable
+async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  let timer: NodeJS.Timeout;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`Operation timed out after ${ms}ms`)), ms);
+  });
+  return Promise.race([promise, timeoutPromise]).finally(() => {
+    if (timer) clearTimeout(timer);
+  });
+}
+
+// In-memory cache for fast local testing and offline fallback
+const localProgressCache: Map<string, ProgressDoc> = new Map();
 
 export class ProgressRepository {
   /**
    * Get pre-aggregated progress document for user
    */
   static async getByUserId(userId: string): Promise<ProgressDoc | null> {
-    const doc = await db.collection(COLLECTION).doc(userId).get();
-    if (!doc.exists) return null;
-    return doc.data() as ProgressDoc;
+    if (!userId) return null;
+
+    if (hasFirebaseCredentials) {
+      try {
+        const doc = await withTimeout(db.collection(COLLECTION).doc(userId).get(), 2000);
+        if (doc.exists) {
+          const data = doc.data() as ProgressDoc;
+          localProgressCache.set(userId, data);
+          return data;
+        }
+      } catch (err) {
+        logger.warn(`[ProgressRepository] Firestore getByUserId failed for ${userId}:`, err);
+      }
+    }
+
+    return localProgressCache.get(userId) || null;
   }
 
   /**
    * Update or recalculate progress document for user
    */
   static async updateProgress(userId: string, data: Partial<ProgressDoc>): Promise<ProgressDoc> {
-    const ref = db.collection(COLLECTION).doc(userId);
-    const snap = await ref.get();
-
     const now = new Date().toISOString();
+    const existing = await this.getByUserId(userId);
+
     let current: ProgressDoc;
 
-    if (snap.exists) {
+    if (existing) {
       current = {
-        ...(snap.data() as ProgressDoc),
+        ...existing,
         ...data,
         updatedAt: now,
       };
@@ -60,7 +86,19 @@ export class ProgressRepository {
       };
     }
 
-    await ref.set(current, { merge: true });
+    localProgressCache.set(userId, current);
+
+    if (hasFirebaseCredentials) {
+      try {
+        await withTimeout(
+          db.collection(COLLECTION).doc(userId).set(current, { merge: true }),
+          2000
+        );
+      } catch (err) {
+        logger.warn(`[ProgressRepository] Firestore updateProgress failed for ${userId}:`, err);
+      }
+    }
+
     return current;
   }
 

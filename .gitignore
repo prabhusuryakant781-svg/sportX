@@ -9,15 +9,22 @@ __pycache__/
 
 # Environment Variables & Secrets
 .env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.*
+!.env.example
+!.env.*.example
+*.pem
+*.key
+serviceAccountKey.json
+*-adminsdk-*.json
+firebase-adminsdk*.json
+credentials.json
+client_secret*.json
 
 # Build Outputs
 dist/
 build/
-lib/
+backend/functions/lib/
+!mobile/lib/
 *.egg-info/
 
 # IDE & OS

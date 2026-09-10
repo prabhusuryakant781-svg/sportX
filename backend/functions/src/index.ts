@@ -26,7 +26,7 @@ import { bugsRouter } from './bugs';
 import { notificationsRouter } from './notifications';
 import { progressRouter } from './progress';
 import { verifyAppCheck } from './middleware/appCheck';
-import { askCoachHandler, generateWorkoutHandler, progressAnalysisHandler, consistencyInsightHandler } from './ai';
+import { askCoachHandler, generateWorkoutHandler, progressAnalysisHandler, consistencyInsightHandler, sessionAnalysisHandler } from './ai';
 import { visionRouter } from './vision';
 
 // Background Cloud Functions
@@ -126,6 +126,7 @@ v1.post('/ai/ask-coach', askCoachHandler); // Phase 2: AI Coach consultation
 v1.post('/ai/generate-workout', generateWorkoutHandler); // Phase 4: AI Personalized Workout Generator
 v1.get('/ai/progress', progressAnalysisHandler);         // Phase 4: AI Progress Analysis
 v1.get('/ai/consistency', consistencyInsightHandler);   // Phase 4: AI Consistency Insights
+v1.post('/ai/session-analysis', sessionAnalysisHandler); // Priority 2: Grounded post-workout session analysis
 v1.use('/challenges', challengesRouter); // CF25: Peer Challenges
 v1.use('/lobbies', lobbiesRouter);     // CF23: Multiplayer Workout Mode
 v1.use('/bugs', bugsRouter);           // CF30: Bug Reporting
@@ -207,12 +208,12 @@ v1.get('/', (_req, res) => {
       'POST /api/v1/exercises/search',
       'GET  /api/v1/workouts', 'GET  /api/v1/workouts/today', 'GET  /api/v1/workouts/:id',
       'POST /api/v1/workouts',
-      'POST /api/v1/sessions/start', 'POST /api/v1/sessions/:id/complete', 'POST /api/v1/sessions/:id/cancel',
+      'GET  /api/v1/sessions', 'POST /api/v1/sessions/start', 'POST /api/v1/sessions/:id/complete', 'POST /api/v1/sessions/:id/cancel',
       'GET  /api/v1/activity/history',
       'GET  /api/v1/gamification/badges', 'GET  /api/v1/gamification/status',
       'GET  /api/v1/leaderboard/global', 'GET  /api/v1/leaderboard/college',
       'POST /api/v1/ai/analyze-form', 'GET  /api/v1/ai/coaching-tip',
-      'POST /api/v1/ai/ask-coach', 'POST /api/v1/ai/generate-workout', 'GET  /api/v1/ai/progress', 'GET  /api/v1/ai/consistency',
+      'POST /api/v1/ai/ask-coach', 'POST /api/v1/ai/generate-workout', 'GET  /api/v1/ai/progress', 'GET  /api/v1/ai/consistency', 'POST /api/v1/ai/session-analysis',
       'GET  /api/v1/notifications', 'GET  /api/v1/progress/summary',
       'POST /api/v1/challenges', 'GET  /api/v1/challenges', 'PATCH /api/v1/challenges/:id/respond',
       'POST /api/v1/lobbies', 'POST /api/v1/lobbies/:id/join', 'GET  /api/v1/lobbies/:id', 'POST /api/v1/lobbies/:id/start',

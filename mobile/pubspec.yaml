@@ -1,0 +1,36 @@
+name: sportx_mobile
+description: "SportX — AI-Powered Mobile Fitness & Athlete Companion"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  # Firebase Services (strictly sportx-ab5f)
+  firebase_core: ^3.3.0
+  firebase_auth: ^5.1.2
+  cloud_firestore: ^5.2.0
+  firebase_storage: ^12.1.1
+  firebase_messaging: ^15.1.0
+  firebase_analytics: ^11.2.0
+  firebase_crashlytics: ^4.1.0
+  firebase_app_check: ^0.3.0+2
+
+  # Networking & State Management
+  http: ^1.2.2
+  provider: ^6.1.2
+  shared_preferences: ^2.3.2
+
+  # Icons & UI
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true

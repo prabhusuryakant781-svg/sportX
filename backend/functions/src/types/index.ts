@@ -180,10 +180,16 @@ export interface WorkoutSessionDoc {
   caloriesBurned: number;
   heartRateAverage: number | null;
   exerciseLogs: ExerciseSessionLog[];
-  sessionResults?: any;
+  exerciseId?: string;
+  exerciseName?: string;
+  visionResultId?: string;
+  formErrors?: string[];
+  metrics?: Record<string, any>;
+  aiAnalysis?: any;
   xpEarned: number;
   status: SessionStatus;
   createdAt: string | Timestamp | FieldValue;
+  updatedAt?: string | Timestamp | FieldValue;
   processedByTrigger?: boolean;
 }
 
@@ -307,6 +313,25 @@ export interface ProgressDoc {
   personalRecords: Record<string, number>; // e.g. { 'squat_max_reps': 45 }
   formScoreTrends: Array<{ date: string; score: number }>;
   updatedAt: string | Timestamp | FieldValue;
+}
+
+// ── 12b. Coach Insights (coachInsights/{insightId}) ─────────────────────────
+export type CoachInsightType = 'post_workout_analysis' | 'weekly_summary' | 'form_correction' | 'chat_advice';
+
+export interface CoachInsightDoc {
+  insightId: string;
+  userId: string;
+  type: CoachInsightType;
+  sourceSessionId?: string;
+  exerciseId?: string;
+  summary: string;
+  doneWell: string[];
+  areasToImprove: string[];
+  actionableCues: string[];
+  nextFocus: string;
+  confidence?: number;
+  recommendations?: string[];
+  createdAt: string | Timestamp | FieldValue;
 }
 
 // ── 13. Analytics Models ─────────────────────────────────────────────────────

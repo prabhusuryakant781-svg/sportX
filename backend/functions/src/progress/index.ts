@@ -12,8 +12,8 @@ import * as logger from 'firebase-functions/logger';
 
 export const progressRouter = Router();
 
-// GET /api/v1/progress/summary
-progressRouter.get('/summary', verifyAuth, async (req: AuthenticatedRequest, res: Response) => {
+// Handler function for progress summary
+const getProgressSummaryHandler = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const uid = req.user!.uid;
 
@@ -78,4 +78,9 @@ progressRouter.get('/summary', verifyAuth, async (req: AuthenticatedRequest, res
     logger.error('Error fetching progress summary:', error);
     return res.status(500).json({ success: false, error: error.message });
   }
-});
+};
+
+// GET /api/v1/progress and GET /api/v1/progress/summary
+progressRouter.get('/', verifyAuth, getProgressSummaryHandler);
+progressRouter.get('/summary', verifyAuth, getProgressSummaryHandler);
+

@@ -1,0 +1,227 @@
+# 🗄️ SportX — Cloud Firestore Database Schema Specification
+
+**Primary Database:** Cloud Firestore  
+**Firebase Project:** `sportx-ab5f`  
+**Security Rules:** `backend/firestore.rules`  
+**Composite Indexes:** `backend/firestore.indexes.json`  
+
+---
+
+## 1. Schema Design Principles
+
+1. **Single Source of Truth:** All application data (profiles, workouts, sessions, vision telemetry, streaks, challenges) resides exclusively in Cloud Firestore.
+2. **Server-Authoritative Gamification:** Sensitive fields (`xp`, `level`, `currentStreak`, `longestStreak`, `badges`) cannot be modified directly by clients. They are managed exclusively through Cloud Functions backend services.
+3. **Optimized Read/Write Access:** Sub-collections vs top-level collections are chosen to enable efficient compound queries, realtime listeners, and security partitioning.
+4. **Auditability:** Telemetry and XP awards are backed by immutable event logs (`activityLogs`, `xpTransactions`).
+
+---
+
+## 2. Core Collections
+
+### 2.1 `users`
+Represents an athlete's primary profile and persistent gamification stats.
+
+- **Document ID:** `{userId}` (matches Firebase Auth UID)
+- **Ownership:** User owns document (`request.auth.uid == userId`)
+- **Fields:**
+  | Field | Type | Description | Mutability |
+  |---|---|---|---|
+  | `userId` | `string` | Firebase Auth UID | Immutable |
+  | `name` | `string` | Display name / Athlete name | User editable |
+  | `email` | `string` | Primary email address | Immutable |
+  | `collegeName` | `string` | College / University name | User editable |
+  | `department` | `string` | Academic department | User editable |
+  | `fitnessLevel` | `string` | `'beginner'` \| `'intermediate'` \| `'advanced'` | User editable |
+  | `fitnessGoal` | `string` | `'strength'` \| `'endurance'` \| `'weight_loss'` \| `'general'` | User editable |
+  | `selectedSports` | `string[]` | IDs of sports athlete plays (e.g. `['badminton', 'football']`) | User editable |
+  | `profileImage` | `string` | Storage URL to avatar image | User editable |
+  | `totalXp` / `xp` | `number` | Total lifetime experience points | **Server Only** |
+  | `level` | `number` | Current athlete tier (1–50) | **Server Only** |
+  | `currentStreak` | `number` | Consecutive daily workouts | **Server Only** |
+  | `longestStreak` | `number` | All-time highest streak record | **Server Only** |
+  | `badges` | `string[]` | Array of unlocked badge IDs | **Server Only** |
+  | `role` | `string` | `'user'` \| `'coach'` \| `'admin'` | **Server Only** |
+  | `createdAt` | `string (ISO)` | Account creation timestamp | Immutable |
+  | `updatedAt` | `string (ISO)` | Last profile modification timestamp | Server / User |
+- **Security Rule:** Authenticated read. User update allowed only on non-restricted fields.
+
+---
+
+### 2.2 `exercises`
+Master catalog of supported fitness movements with biomechanical rules and AI metadata.
+
+- **Document ID:** `{exerciseId}` (e.g., `squat`, `pushup`, `bicep_curl`, `plank`)
+- **Ownership:** System / Admin managed
+- **Fields:**
+  | Field | Type | Description |
+  |---|---|---|
+  | `exerciseId` | `string` | Unique movement identifier |
+  | `name` | `string` | Descriptive title (e.g. "Bodyweight Squats") |
+  | `sportId` | `string` | Associated sport or `'general'` |
+  | `description` | `string` | Movement breakdown and focus |
+  | `targetMuscles` | `string[]` | Primary muscle groups |
+  | `secondaryMuscles` | `string[]` | Stabilizers and secondary targets |
+  | `equipmentNeeded` | `string[]` | e.g. `['none']`, `['dumbbells']` |
+  | `difficulty` | `string` | `'beginner'` \| `'intermediate'` \| `'advanced'` |
+  | `instructions` | `string[]` | Step-by-step performance guide |
+  | `commonErrors` | `string[]` | Frequent form flaws to monitor |
+  | `formRules` | `object` | Biomechanical thresholds (angles, cadence, posture) |
+  | `baseRepXP` | `number` | Experience points per valid rep |
+  | `calorieFactor` | `number` | Calorie estimate multiplier per rep |
+  | `aiSupported` | `boolean` | Flag indicating Vision / MediaPipe support |
+  | `isActive` | `boolean` | Availability status |
+- **Security Rule:** Authenticated read. Write restricted to Admin.
+
+---
+
+### 2.3 `workoutPlans` & `workouts`
+Workout routines combining exercises, target sets, reps, and durations.
+
+- **Document ID:** `{workoutId}` / `{planId}` (e.g., `dorm_blast_20`, `core_ignite_15`)
+- **Fields:**
+  | Field | Type | Description |
+  |---|---|---|
+  | `workoutId` | `string` | Plan identifier |
+  | `title` | `string` | Workout name |
+  | `description` | `string` | Overview of session purpose |
+  | `durationMinutes` | `number` | Estimated duration in minutes |
+  | `difficulty` | `string` | Difficulty level |
+  | `targetGoal` | `string` | Target athletic goal |
+  | `exercises` | `array` | List of exercise objects `{ exerciseId, sets, reps, restSeconds }` |
+  | `estimatedCalories` | `number` | Estimated burn |
+  | `creatorId` | `string` | `'system'` or user UID |
+  | `isAIGenerated` | `boolean` | Generated by Gemini AI Coach |
+
+---
+
+### 2.4 `workoutSessions`
+Recorded execution of a workout by a user.
+
+- **Document ID:** `{sessionId}` (e.g., `sess_1725984000_abc`)
+- **Ownership:** Belongs to `userId`
+- **Fields:**
+  | Field | Type | Description |
+  |---|---|---|
+  | `sessionId` | `string` | Unique session record ID |
+  | `userId` | `string` | Firebase Auth UID |
+  | `workoutId` | `string` | Linked workout plan ID |
+  | `exerciseId` | `string` | Active exercise |
+  | `status` | `string` | `'active'` \| `'completed'` \| `'cancelled'` |
+  | `totalReps` | `number` | Count of total reps tracked |
+  | `validReps` | `number` | Count of validated form reps |
+  | `averageFormScore` | `number` | Biomechanical form average (0–100) |
+  | `durationSeconds` | `number` | Active workout elapsed seconds |
+  | `caloriesBurned` | `number` | Estimated total calories |
+  | `xpEarned` | `number` | Server-calculated XP award |
+  | `completedAt` | `string (ISO)` | Completion timestamp |
+  | `visionResultId` | `string` | Optional reference to linked `visionResults` document |
+- **Indexes:**
+  - `userId` (ASC), `createdAt` (DESC)
+  - `userId` (ASC), `status` (ASC), `createdAt` (DESC)
+
+---
+
+### 2.5 `visionResults`
+Structured biomechanical telemetry produced by the Computer Vision pipeline.
+
+- **Document ID:** `{resultId}` (e.g., `vis_sess_123_456`)
+- **Ownership:** Belongs to `userId`
+- **Fields:**
+  | Field | Type | Description |
+  |---|---|---|
+  | `id` | `string` | Vision result record ID |
+  | `userId` | `string` | Authenticated user UID |
+  | `sessionId` | `string` | Linked workout session ID |
+  | `exerciseId` | `string` | Movement tracked |
+  | `reps` | `number` | Raw detected repetitions |
+  | `validFormReps` | `number` | Reps adhering to depth and posture rules |
+  | `formScore` | `number` | Overall form accuracy percentage (0–100) |
+  | `confidence` | `number` | Pose detection confidence score (0.0–1.0) |
+  | `detectedIssues` | `string[]` | Specific detected errors (e.g. `['knee_valgus', 'shallow_depth']`) |
+  | `feedbackLog` | `array` | Timestamped cues and corrections |
+  | `tempoPacing` | `string` | Average rep pacing cadence |
+  | `createdAt` | `string (ISO)` | Recording timestamp |
+- **Security Rule:** Authenticated user can read own documents (`resource.data.userId == request.auth.uid`). Write restricted to Cloud Functions backend (`allow write: if false`).
+- **Indexes:**
+  - `userId` (ASC), `createdAt` (DESC)
+
+---
+
+### 2.6 `streaks`
+Server-authoritative streak tracking for user workout consistency.
+
+- **Document ID:** `{userId}`
+- **Fields:**
+  | Field | Type | Description |
+  |---|---|---|
+  | `userId` | `string` | User UID |
+  | `currentStreak` | `number` | Current streak count in days |
+  | `longestStreak` | `number` | All-time highest streak |
+  | `lastActiveDate` | `string (YYYY-MM-DD)` | Date of last completed workout |
+  | `history` | `array` | Daily records `{ date, sessionCount, xpEarned }` |
+- **Security Rule:** User read allowed; write strictly forbidden for clients (`allow write: if false`).
+
+---
+
+### 2.7 `challenges` & `lobbies`
+Peer challenges, duels, and multiplayer workout rooms.
+
+- **`challenges/{challengeId}`:**
+  - Fields: `title`, `description`, `exerciseId`, `targetMetric`, `targetValue`, `creatorId`, `opponentId`, `status` (`'pending'` \| `'active'` \| `'completed'`), `creatorProgress`, `opponentProgress`, `winnerId`, `xpReward`, `createdAt`, `expiresAt`.
+- **`lobbies/{lobbyId}`:**
+  - Fields: `roomCode`, `hostUserId`, `exerciseId`, `targetReps`, `status` (`'waiting'` \| `'in_progress'` \| `'completed'`), `participants` (map of participant UIDs to `{ name, currentReps, formScore, isReady }`), `createdAt`.
+
+---
+
+### 2.8 `progress`
+Pre-aggregated athletic milestones, personal records (PRs), and multi-week trendlines. Enables instant mobile dashboard rendering without expensive full-history document scans.
+
+- **Document ID:** `{userId}` (matches Firebase Auth UID)
+- **Ownership:** Belongs to `userId`
+- **Fields:**
+  | Field | Type | Description |
+  |---|---|---|
+  | `userId` | `string` | Athlete UID |
+  | `totalReps` | `number` | Cumulative all-time repetitions across all exercises |
+  | `totalWorkoutDurationMinutes` | `number` | Cumulative active minutes |
+  | `totalCalories` | `number` | Cumulative estimated calorie expenditure |
+  | `weeklyProgress` | `object` | `{ targetDays, daysCompleted, completionPercentage }` |
+  | `monthlyProgress` | `object` | `{ targetWorkouts, workoutsCompleted, completionPercentage }` |
+  | `goalCompletionPercentage` | `number` | Overall goal pacing percentage (0–100) |
+  | `personalRecords` | `map` | PR mapping (e.g. `{"squat_max_reps": 20, "pushup_max_reps": 30}`) |
+  | `formScoreTrends` | `array` | Rolling 14-session timeline of `{ date, score }` |
+  | `updatedAt` | `string (ISO)` | Last aggregation timestamp |
+- **Security Rule:** Authenticated read for owner. Write restricted to Cloud Functions backend.
+
+---
+
+### 2.9 `coachInsights`
+Authoritative AI Coach post-workout debriefs and biomechanical recommendations generated via Google Gemini.
+
+- **Document ID:** `{insightId}` (e.g., `ci_sess_123_456`)
+- **Ownership:** Belongs to `userId`
+- **Fields:**
+  | Field | Type | Description |
+  |---|---|---|
+  | `insightId` | `string` | Unique insight identifier |
+  | `userId` | `string` | Authenticated athlete UID |
+  | `sourceSessionId` | `string` | Linked workout session ID (enforces idempotency) |
+  | `type` | `string` | `'post_workout_analysis'` \| `'weekly_summary'` \| `'form_correction'` |
+  | `exerciseId` | `string` | Movement analyzed |
+  | `summary` | `string` | Concise biomechanical assessment |
+  | `doneWell` | `string[]` | List of strengths observed during workout |
+  | `areasToImprove` | `string[]` | Technical deviations flagged |
+  | `actionableCues` | `string[]` | Specific, grounded coaching instructions for next session |
+  | `nextFocus` | `string` | Single prioritized improvement target |
+  | `recommendations`| `string[]` | Training adaptation guidance |
+  | `createdAt` | `string (ISO)` | Generation timestamp |
+- **Security Rule:** Authenticated read for owner (`resource.data.userId == request.auth.uid`). Write restricted to Cloud Functions backend.
+
+---
+
+### 2.10 Supporting Collections
+- **`activityLogs/{activityId}`:** Immutable telemetry event records.
+- **`xpTransactions/{txId}`:** Immutable ledger of every XP award with reason (`workout`, `streak`, `challenge`, `badge`).
+- **`badges/{badgeId}`:** System master list of trophies with unlock requirements.
+- **`notifications/{notificationId}`:** User in-app notifications (`type`, `title`, `body`, `read`, `createdAt`).
+- **`bugReports/{reportId}`:** Student-submitted feedback on AI pose inaccuracies or UI bugs.

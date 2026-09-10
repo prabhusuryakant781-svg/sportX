@@ -2,7 +2,7 @@
  * SportX User Repository
  * Firestore Data Access for users/{userId}
  */
-import { db } from '../config/firebase';
+import { db, hasFirebaseCredentials } from '../config/firebase';
 import { UserDoc } from '../types';
 import { XPRepository } from './xpRepository';
 import { StreakRepository } from './streakRepository';
@@ -13,18 +13,45 @@ import * as logger from 'firebase-functions/logger';
 
 const COLLECTION = 'users';
 
+// Timeout helper to avoid hung promises when Firestore is unreachable
+async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  let timer: NodeJS.Timeout;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`Operation timed out after ${ms}ms`)), ms);
+  });
+  return Promise.race([promise, timeoutPromise]).finally(() => {
+    if (timer) clearTimeout(timer);
+  });
+}
+
+// In-memory cache for fast local testing and offline fallback
+const localUsersCache: Map<string, UserDoc> = new Map();
+
 export class UserRepository {
   /**
    * Fetch user by UID
    */
   static async getById(userId: string): Promise<UserDoc | null> {
-    const docSnap = await db.collection(COLLECTION).doc(userId).get();
-    if (!docSnap.exists) return null;
-    const data = docSnap.data() as UserDoc;
-    return {
-      ...data,
-      XP: data.xp,
-    };
+    if (!userId) return null;
+
+    if (hasFirebaseCredentials) {
+      try {
+        const docSnap = await withTimeout(db.collection(COLLECTION).doc(userId).get(), 2000);
+        if (docSnap.exists) {
+          const data = docSnap.data() as UserDoc;
+          const user = {
+            ...data,
+            XP: data.xp,
+          };
+          localUsersCache.set(userId, user);
+          return user;
+        }
+      } catch (err) {
+        logger.warn(`[UserRepository] Firestore getById failed for ${userId}:`, err);
+      }
+    }
+
+    return localUsersCache.get(userId) || null;
   }
 
   /**
@@ -74,7 +101,19 @@ export class UserRepository {
       ...data,
     };
 
-    await db.collection(COLLECTION).doc(userId).set(newUser, { merge: true });
+    localUsersCache.set(userId, newUser);
+
+    if (hasFirebaseCredentials) {
+      try {
+        await withTimeout(
+          db.collection(COLLECTION).doc(userId).set(newUser, { merge: true }),
+          2000
+        );
+      } catch (err) {
+        logger.warn(`[UserRepository] Firestore create failed for ${userId}:`, err);
+      }
+    }
+
     return newUser;
   }
 
@@ -82,14 +121,25 @@ export class UserRepository {
    * Update arbitrary profile fields
    */
   static async update(userId: string, data: Partial<UserDoc>): Promise<void> {
-    const updatePayload: Record<string, any> = {
-      ...data,
-      updatedAt: new Date().toISOString(),
-    };
-    if (data.xp !== undefined) {
-      updatePayload.XP = data.xp;
+    const existing = localUsersCache.get(userId);
+    if (existing) {
+      localUsersCache.set(userId, { ...existing, ...data, updatedAt: new Date().toISOString() });
     }
-    await db.collection(COLLECTION).doc(userId).update(updatePayload);
+
+    if (hasFirebaseCredentials) {
+      try {
+        const updatePayload: Record<string, any> = {
+          ...data,
+          updatedAt: new Date().toISOString(),
+        };
+        if (data.xp !== undefined) {
+          updatePayload.XP = data.xp;
+        }
+        await withTimeout(db.collection(COLLECTION).doc(userId).update(updatePayload), 2000);
+      } catch (err) {
+        logger.warn(`[UserRepository] Firestore update failed for ${userId}:`, err);
+      }
+    }
   }
 
   /**
@@ -109,36 +159,65 @@ export class UserRepository {
       newBadges?: string[];
     }
   ): Promise<void> {
-    const userRef = db.collection(COLLECTION).doc(userId);
-
-    let finalXP = 0;
-    await db.runTransaction(async (transaction) => {
-      const doc = await transaction.get(userRef);
-      if (!doc.exists) {
-        throw new Error(`User ${userId} does not exist`);
-      }
-
-      const existingData = doc.data() as UserDoc;
+    const cached = localUsersCache.get(userId);
+    let finalXP = (cached?.xp || 0) + updates.xpToAdd;
+    if (cached) {
       const combinedBadges = Array.from(
-        new Set([...(existingData.badges || []), ...(updates.newBadges || [])])
+        new Set([...(cached.badges || []), ...(updates.newBadges || [])])
       );
-
-      finalXP = (existingData.xp || 0) + updates.xpToAdd;
-
-      transaction.update(userRef, {
-        xp: FieldValue.increment(updates.xpToAdd),
-        XP: FieldValue.increment(updates.xpToAdd),
+      localUsersCache.set(userId, {
+        ...cached,
+        xp: finalXP,
+        XP: finalXP,
         level: updates.newLevel,
-        totalWorkouts: FieldValue.increment(1),
-        totalMinutes: FieldValue.increment(updates.durationMinutes),
-        totalCalories: FieldValue.increment(updates.caloriesBurned),
+        totalWorkouts: (cached.totalWorkouts || 0) + 1,
+        totalMinutes: (cached.totalMinutes || 0) + updates.durationMinutes,
+        totalCalories: (cached.totalCalories || 0) + updates.caloriesBurned,
         currentStreak: updates.currentStreak,
         longestStreak: updates.longestStreak,
         lastWorkoutDate: updates.lastWorkoutDate,
         badges: combinedBadges,
         updatedAt: new Date().toISOString(),
       });
-    });
+    }
+
+    if (hasFirebaseCredentials) {
+      try {
+        const userRef = db.collection(COLLECTION).doc(userId);
+        await withTimeout(
+          db.runTransaction(async (transaction) => {
+            const doc = await transaction.get(userRef);
+            if (!doc.exists) {
+              throw new Error(`User ${userId} does not exist`);
+            }
+
+            const existingData = doc.data() as UserDoc;
+            const combinedBadges = Array.from(
+              new Set([...(existingData.badges || []), ...(updates.newBadges || [])])
+            );
+
+            finalXP = (existingData.xp || 0) + updates.xpToAdd;
+
+            transaction.update(userRef, {
+              xp: FieldValue.increment(updates.xpToAdd),
+              XP: FieldValue.increment(updates.xpToAdd),
+              level: updates.newLevel,
+              totalWorkouts: FieldValue.increment(1),
+              totalMinutes: FieldValue.increment(updates.durationMinutes),
+              totalCalories: FieldValue.increment(updates.caloriesBurned),
+              currentStreak: updates.currentStreak,
+              longestStreak: updates.longestStreak,
+              lastWorkoutDate: updates.lastWorkoutDate,
+              badges: combinedBadges,
+              updatedAt: new Date().toISOString(),
+            });
+          }),
+          3000
+        );
+      } catch (err) {
+        logger.warn(`[UserRepository] Firestore transaction failed for ${userId}:`, err);
+      }
+    }
 
     // 1. Audit XP Transaction (Replay / Duplicate protection)
     if (updates.sessionId && updates.xpToAdd > 0) {

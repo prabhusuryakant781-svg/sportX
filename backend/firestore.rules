@@ -156,5 +156,11 @@ service cloud.firestore {
       allow create: if isAuthenticated();
       allow update, delete: if false;
     }
+
+    // ── 17. Computer Vision Results (Server-authoritative ingestion) ────────────
+    match /visionResults/{resultId} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow write: if false; // Ingested strictly via Cloud Functions backend
+    }
   }
 }
