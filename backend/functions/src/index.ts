@@ -24,6 +24,7 @@ import { challengesRouter } from './challenges';
 import { lobbiesRouter } from './lobbies';
 import { bugsRouter } from './bugs';
 import { askCoachHandler } from './ai';
+import { visionRouter } from './vision';
 
 export const app = express();
 
@@ -113,6 +114,7 @@ v1.post('/ai/ask-coach', askCoachHandler); // Phase 2: AI Coach consultation
 v1.use('/challenges', challengesRouter); // CF25: Peer Challenges
 v1.use('/lobbies', lobbiesRouter);     // CF23: Multiplayer Workout Mode
 v1.use('/bugs', bugsRouter);           // CF30: Bug Reporting
+v1.use('/vision', visionRouter);       // Phase 3: Computer Vision Integration & Form Feedback
 
 // Dedicated Firestore connectivity verification route
 v1.get('/system/firestore-check', async (req: Request, res: Response) => {
@@ -163,6 +165,7 @@ v1.get('/', (_req, res) => {
       'POST /api/v1/challenges', 'GET  /api/v1/challenges', 'PATCH /api/v1/challenges/:id/respond',
       'POST /api/v1/lobbies', 'POST /api/v1/lobbies/:id/join', 'GET  /api/v1/lobbies/:id', 'POST /api/v1/lobbies/:id/start',
       'POST /api/v1/bugs', 'GET  /api/v1/bugs',
+      'POST /api/v1/vision/results', 'GET  /api/v1/vision/results', 'GET  /api/v1/vision/results/:sessionId', 'POST /api/v1/vision/feedback',
     ],
   });
 });

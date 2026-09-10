@@ -12,7 +12,8 @@
     "deploy": "firebase deploy --only functions",
     "logs": "firebase functions:log",
     "test:local": "npm run build && node lib/testLocal.js",
-    "test:coach": "npm run build && node lib/testCoach.js"
+    "test:coach": "npm run build && node lib/testCoach.js",
+    "test:vision": "npm run build && node lib/testVision.js"
   },
   "engines": {
     "node": ">=18"

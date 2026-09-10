@@ -96,8 +96,36 @@ export const sessions: DemoSession[] = [
   },
 ];
 
-// ── Lobbies ───────────────────────────────────────────────────────────────────
 export const lobbies: Map<string, any> = new Map();
+
+// ── Vision Results (Phase 3) ──────────────────────────────────────────────────
+export interface DemoVisionResult {
+  id: string;
+  userId: string;
+  sessionId: string;
+  exerciseId: string;
+  reps: number;
+  formScore: number;
+  confidence: number;
+  errors: { code: string; severity: 'low' | 'medium' | 'high'; description?: string }[];
+  timestamp: string;
+  validatedAt: string;
+}
+
+export const demoVisionResults: DemoVisionResult[] = [
+  {
+    id: 'vis_001',
+    userId: 'demo_student_01',
+    sessionId: 'sess_001',
+    exerciseId: 'squat',
+    reps: 24,
+    formScore: 92,
+    confidence: 0.94,
+    errors: [],
+    timestamp: new Date(Date.now() - 86400000).toISOString(),
+    validatedAt: new Date(Date.now() - 86400000).toISOString(),
+  }
+];
 
 // ── Bug Reports ───────────────────────────────────────────────────────────────
 export const bugReports: DemoBugReport[] = [];

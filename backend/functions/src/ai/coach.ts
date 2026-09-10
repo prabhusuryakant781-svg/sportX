@@ -12,7 +12,8 @@
  */
 
 import { buildCoachContext, CoachUserContext } from './contextBuilder';
-import { validateCoachResponse, AICoachResponse } from './validators';
+import { validateCoachResponse, AICoachResponse, validateFormFeedbackResponse, AIFormFeedbackResponse } from './validators';
+import { VisionResultPayload, validateVisionResult } from '../vision/validators';
 import * as logger from 'firebase-functions/logger';
 
 export interface CoachGenerationOptions {
@@ -61,7 +62,8 @@ async function callGeminiApi(
   apiKey: string,
   prompt: string,
   requestedModel = 'gemini-2.5-flash',
-  timeoutMs = 10000
+  timeoutMs = 10000,
+  systemInstructionText = SYSTEM_INSTRUCTION
 ): Promise<string> {
   const cleanKey = apiKey.trim();
   const cleanRequested = (requestedModel || 'gemini-2.5-flash').trim().replace(/^models\//, '');
@@ -80,7 +82,7 @@ async function callGeminiApi(
 
     const requestBody = {
       systemInstruction: {
-        parts: [{ text: SYSTEM_INSTRUCTION }]
+        parts: [{ text: systemInstructionText }]
       },
       contents: [
         {
@@ -374,4 +376,190 @@ export async function askCoachHandler(req: any, res: any): Promise<void> {
     });
   }
 }
+
+// ── Phase 3: AI Form Feedback ──────────────────────────────────────────────────
+
+const FORM_FEEDBACK_SYSTEM_INSTRUCTION = `You are the SportX AI Biomechanics Coach.
+You provide post-set exercise form feedback to student athletes based SOLELY on Computer Vision analysis data provided to you.
+
+MANDATORY RULES:
+1. GROUNDING ON VISION DATA: Evaluate performance based strictly on the provided exercise, rep count, form score, and detected errors.
+2. ABSOLUTE TRUTHFULNESS — NEVER HALLUCINATE ERRORS:
+   - You must ONLY discuss movement errors that are explicitly listed in the Vision data errors array.
+   - If the errors array is empty, celebrate their clean form and do NOT invent any biomechanical flaws.
+   - NEVER claim that you "watched" them through a camera yourself; attribute the detection to the SportX Computer Vision pose engine.
+3. CLEAR RECOVERY & CUES:
+   - Explain what was done well (based on reps, consistency, form score).
+   - For each detected error, explain what went wrong and provide 1-2 actionable biomechanical cues to correct it.
+4. STRICT JSON SCHEMA: You MUST output ONLY valid JSON matching this schema:
+{
+  "summary": "1-2 sentence overall evaluation of the set",
+  "doneWell": ["1-2 positive points about reps, tempo, or form score"],
+  "areasToImprove": ["Specific issues detected by Computer Vision, or 'None detected' if flawless"],
+  "actionableCues": ["1-3 direct cues to fix the detected error(s)"],
+  "nextFocus": "Key cue or focus for the next set"
+}
+No markdown backticks, no code block delimiters, only raw valid JSON.`;
+
+/**
+ * Standard athletic cues for common biomechanical errors
+ */
+function getActionableCue(exerciseId: string, errorCode: string): string {
+  const code = errorCode.toLowerCase();
+  if (code.includes('knees_inward')) return 'Drive your knees outward over your second toe during both descent and ascent.';
+  if (code.includes('shallow_depth')) return 'Descend until thighs are at least parallel to the floor before driving up.';
+  if (code.includes('hip_sag')) return 'Brace your abdominal wall and squeeze glutes to keep hips in a straight line.';
+  if (code.includes('elbow_flare')) return 'Tuck elbows to roughly 45 degrees from your torso to protect the shoulder capsule.';
+  if (code.includes('chest_collapse')) return 'Keep chest lifted and shoulders retracted throughout the rep.';
+  if (code.includes('heels_lifting')) return 'Root all three points of your foot into the ground, distributing weight into midfoot and heel.';
+  if (code.includes('elbow_sway')) return 'Pin elbows securely to your ribs; eliminate torso momentum.';
+  return `Focus on controlled tempo and form alignment for ${exerciseId.replace(/_/g, ' ')}.`;
+}
+
+function generateLocalFormFeedback(visionData: VisionResultPayload): AIFormFeedbackResponse {
+  const errorCodes = (visionData.errors || []).map(e => (typeof e === 'string' ? e : e.code));
+  const hasErrors = errorCodes.length > 0;
+
+  return {
+    summary: hasErrors
+      ? `Completed ${visionData.reps} reps of ${visionData.exerciseId} with a form score of ${visionData.formScore}%. Targeted corrections will elevate your efficiency.`
+      : `Outstanding form! Completed ${visionData.reps} clean reps of ${visionData.exerciseId} with a ${visionData.formScore}% form score.`,
+    doneWell: [
+      `Completed all ${visionData.reps} repetitions with consistent rhythm.`,
+      visionData.formScore >= 80 ? 'Maintained strong overall alignment.' : 'Finished the full target set with determination.'
+    ],
+    areasToImprove: hasErrors
+      ? errorCodes.map(c => `Detected ${c.replace(/_/g, ' ')} during movement execution.`)
+      : ['No significant form breakdown detected during this set.'],
+    actionableCues: hasErrors
+      ? errorCodes.map(c => getActionableCue(visionData.exerciseId, c))
+      : ['Continue maintaining smooth eccentric control on each repetition.'],
+    nextFocus: hasErrors ? errorCodes[0].replace(/_/g, ' ') : 'tempo control'
+  };
+}
+
+/**
+ * Generates structured AI form feedback from a validated Vision Result.
+ */
+export async function generateFormFeedback(
+  visionData: VisionResultPayload,
+  options?: CoachGenerationOptions
+): Promise<AIFormFeedbackResponse> {
+  const validation = validateVisionResult(visionData);
+  if (!validation.isValid || !validation.data) {
+    const err: any = new Error(`Invalid vision data for feedback: ${validation.errors.join('; ')}`);
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const cleanData = validation.data;
+  const prompt = `=== COMPUTER VISION ANALYSIS RESULT ===
+Exercise: ${cleanData.exerciseId}
+Reps Counted: ${cleanData.reps}
+Form Score: ${cleanData.formScore}%
+Confidence: ${cleanData.confidence}
+Detected Errors: ${JSON.stringify(cleanData.errors, null, 2)}
+
+Generate structured form feedback following the strict JSON schema. Remember: ONLY mention the errors explicitly listed above.`;
+
+  const apiKey = options?.apiKey || process.env.GEMINI_API_KEY || process.env.AI_API_KEY || process.env.GOOGLE_API_KEY;
+
+  if (!apiKey) {
+    if (process.env.NODE_ENV === 'test' || process.env.LOCAL_TEST === 'true') {
+      logger.info('[AI Form Feedback] Running in local test mode with simulated AI feedback');
+      const localFeedback = generateLocalFormFeedback(cleanData);
+      const val = validateFormFeedbackResponse(localFeedback);
+      if (val.isValid && val.data) return val.data;
+    }
+    const configErr: any = new Error('SportX AI Form Feedback is temporarily unavailable: GEMINI_API_KEY is not configured.');
+    configErr.statusCode = 503;
+    throw configErr;
+  }
+
+  const model = options?.model || process.env.AI_MODEL || 'gemini-2.5-flash';
+  const timeoutMs = options?.timeoutMs || 10000;
+
+  const rawText = await callGeminiApi(apiKey, prompt, model, timeoutMs, FORM_FEEDBACK_SYSTEM_INSTRUCTION);
+
+  let parsed: any;
+  try {
+    const cleanJson = rawText.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
+    parsed = JSON.parse(cleanJson);
+  } catch (pErr) {
+    logger.error('[AI Form Feedback] Failed to parse AI JSON response:', rawText);
+    const malformedErr: any = new Error('AI service returned a malformed form feedback response');
+    malformedErr.statusCode = 502;
+    throw malformedErr;
+  }
+
+  const result = validateFormFeedbackResponse(parsed);
+  if (!result.isValid || !result.data) {
+    logger.error('[AI Form Feedback] Validation failed on AI response:', result.errors);
+    const valErr: any = new Error('AI form feedback response failed safety and quality validation');
+    valErr.statusCode = 502;
+    throw valErr;
+  }
+
+  return result.data;
+}
+
+/**
+ * Cloud Function / Express Handler for POST /api/v1/vision/feedback
+ */
+export async function generateFormFeedbackHandler(req: any, res: any): Promise<void> {
+  if (req.method !== 'POST') {
+    res.status(405).json({ success: false, error: 'Method Not Allowed. Please use POST.' });
+    return;
+  }
+
+  try {
+    const { authenticateRequest } = await import('../auth');
+    const user = await authenticateRequest(req);
+    if (!user || !user.uid) {
+      res.status(401).json({ success: false, error: 'Unauthorized: Authentication required.' });
+      return;
+    }
+
+    let payload = req.body;
+    if (typeof payload === 'string') {
+      try {
+        payload = JSON.parse(payload);
+      } catch (e) {}
+    }
+
+    // Support either providing a direct vision payload or a sessionId to look up
+    let visionData: VisionResultPayload | null = null;
+
+    if (payload?.sessionId && !payload?.exerciseId) {
+      const { getVisionResultBySession } = await import('../vision/visionResult');
+      visionData = await getVisionResultBySession(payload.sessionId);
+      if (!visionData) {
+        res.status(404).json({ success: false, error: `No vision result found for sessionId "${payload.sessionId}"` });
+        return;
+      }
+    } else {
+      visionData = payload;
+    }
+
+    if (!visionData) {
+      res.status(400).json({ success: false, error: 'Vision result payload or valid sessionId is required' });
+      return;
+    }
+
+    const feedback = await generateFormFeedback(visionData);
+
+    res.status(200).json({
+      success: true,
+      data: feedback,
+      timestamp: new Date().toISOString()
+    });
+  } catch (err: any) {
+    logger.error('[AI Form Feedback] Handler error:', err?.message || err);
+    res.status(err?.statusCode || 500).json({
+      success: false,
+      error: err?.message || 'Failed to generate form feedback'
+    });
+  }
+}
+
 

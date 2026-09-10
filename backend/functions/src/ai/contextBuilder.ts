@@ -128,6 +128,25 @@ export async function buildCoachContext(userId: string): Promise<CoachUserContex
     }
   }
 
+  // 3b. Incorporate recent Vision Results (Phase 3)
+  let visionDocsData: any[] = [];
+  try {
+    const { getVisionResults } = await import('../vision/visionResult');
+    visionDocsData = await getVisionResults(userId, 3);
+    for (const v of visionDocsData) {
+      if (Array.isArray(v.errors)) {
+        for (const err of v.errors) {
+          const code = typeof err === 'string' ? err : err?.code;
+          if (code) {
+            errorFrequency[code] = (errorFrequency[code] || 0) + 2; // higher weight for CV detected flaws
+          }
+        }
+      }
+    }
+  } catch (visionErr) {
+    // Non-fatal fallback
+  }
+
   const averagePerformance = scoreCount > 0 ? Math.round(scoreSum / scoreCount) : 0;
   const recentWorkouts = sessionDocsData.length;
   const currentStreak = Number(userData.currentStreak || 0);
@@ -149,9 +168,17 @@ export async function buildCoachContext(userId: string): Promise<CoachUserContex
     recentIssues.push(`error_${sortedErrors[0]}`);
   }
 
-  // 4. Extract latest session feedback if available
+  // 4. Extract latest session feedback if available (prioritizing direct Computer Vision data)
   let latestSessionFeedback: CoachUserContext['latestSessionFeedback'] = undefined;
-  if (sessionDocsData.length > 0) {
+  if (visionDocsData.length > 0) {
+    const latestV = visionDocsData[0];
+    latestSessionFeedback = {
+      exercise: String(latestV.exerciseId || 'exercise'),
+      reps: Number(latestV.reps || 0),
+      formScore: Number(latestV.formScore || 0),
+      errors: (latestV.errors || []).map((e: any) => (typeof e === 'string' ? e : e.code)).filter(Boolean),
+    };
+  } else if (sessionDocsData.length > 0) {
     const latest = sessionDocsData[0];
     const errorsList = Array.isArray(latest.formErrors)
       ? latest.formErrors.map((e: any) => (typeof e === 'string' ? e : e?.errorType)).filter(Boolean)
