@@ -130,6 +130,9 @@ export const demoVisionResults: DemoVisionResult[] = [
 // ── Bug Reports ───────────────────────────────────────────────────────────────
 export const bugReports: DemoBugReport[] = [];
 
+// ── Workout Plans (Phase 4) ───────────────────────────────────────────────────
+export const demoWorkoutPlans: any[] = [];
+
 // ── Token Helpers ─────────────────────────────────────────────────────────────
 export function generateToken(userId: string): string {
   const token = `demo_token_${userId}_${Date.now()}`;

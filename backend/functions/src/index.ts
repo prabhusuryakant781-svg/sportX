@@ -23,7 +23,7 @@ import { aiCoachRouter } from './aiCoach';
 import { challengesRouter } from './challenges';
 import { lobbiesRouter } from './lobbies';
 import { bugsRouter } from './bugs';
-import { askCoachHandler } from './ai';
+import { askCoachHandler, generateWorkoutHandler, progressAnalysisHandler, consistencyInsightHandler } from './ai';
 import { visionRouter } from './vision';
 
 export const app = express();
@@ -111,6 +111,9 @@ v1.use('/gamification', gamificationRouter); // CF19: Streak | CF21: Milestones 
 v1.use('/leaderboard', leaderboardRouter);   // CF20: Leaderboard | CF22: Social Comparison
 v1.use('/ai', aiCoachRouter);          // CF6-CF10: AI Pose, Form, Feedback, Coach
 v1.post('/ai/ask-coach', askCoachHandler); // Phase 2: AI Coach consultation
+v1.post('/ai/generate-workout', generateWorkoutHandler); // Phase 4: AI Personalized Workout Generator
+v1.get('/ai/progress', progressAnalysisHandler);         // Phase 4: AI Progress Analysis
+v1.get('/ai/consistency', consistencyInsightHandler);   // Phase 4: AI Consistency Insights
 v1.use('/challenges', challengesRouter); // CF25: Peer Challenges
 v1.use('/lobbies', lobbiesRouter);     // CF23: Multiplayer Workout Mode
 v1.use('/bugs', bugsRouter);           // CF30: Bug Reporting
@@ -162,6 +165,7 @@ v1.get('/', (_req, res) => {
       'GET  /api/v1/gamification/badges',
       'GET  /api/v1/leaderboard/global', 'GET  /api/v1/leaderboard/college',
       'POST /api/v1/ai/analyze-form', 'GET  /api/v1/ai/coaching-tip',
+      'POST /api/v1/ai/ask-coach', 'POST /api/v1/ai/generate-workout', 'GET  /api/v1/ai/progress', 'GET  /api/v1/ai/consistency',
       'POST /api/v1/challenges', 'GET  /api/v1/challenges', 'PATCH /api/v1/challenges/:id/respond',
       'POST /api/v1/lobbies', 'POST /api/v1/lobbies/:id/join', 'GET  /api/v1/lobbies/:id', 'POST /api/v1/lobbies/:id/start',
       'POST /api/v1/bugs', 'GET  /api/v1/bugs',

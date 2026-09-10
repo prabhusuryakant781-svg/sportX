@@ -58,7 +58,7 @@ Provide your structured coaching response following the strict JSON schema.`;
  * Calls the Google Gemini AI API via secure server-side REST endpoint.
  * Supports auto-fallback across candidate models if Google returns HTTP 404 (model retired/unsupported).
  */
-async function callGeminiApi(
+export async function callGeminiApi(
   apiKey: string,
   prompt: string,
   requestedModel = 'gemini-2.5-flash',
@@ -281,7 +281,80 @@ export async function generateCoachResponse(
 function generateLocalTestResponse(context: CoachUserContext, question: string): AICoachResponse {
   const isConsistencyIssue = context.performance.currentStreak < 3 || context.recentIssues.includes('low_consistency');
   const userGoal = context.user.goal || 'fitness';
+  const sport = context.user.sport || 'general_fitness';
+  const formIssue = context.recentIssues.find(i => i.startsWith('error_'));
+  const qLower = question.toLowerCase();
 
+  // 1. Performance decreasing
+  if (qLower.includes('decreas') || qLower.includes('drop') || qLower.includes('worse') || qLower.includes('tired')) {
+    return {
+      summary: `A temporary dip in performance often stems from accumulated fatigue or inadequate recovery. Your current average is ${context.performance.averagePerformance}%.`,
+      strengths: [
+        `You have stayed engaged with ${context.performance.recentWorkouts} recent sessions.`,
+        `Maintaining a ${context.performance.currentStreak}-day streak demonstrates determination.`
+      ],
+      recommendations: [
+        'Prioritize 7-8 hours of sleep and adequate hydration between hard training sessions.',
+        'Incorporate a light mobility or active recovery day before your next intense workout.',
+        'Focus on controlled tempo and form precision rather than pushing max volume.'
+      ],
+      nextFocus: 'recovery & form control'
+    };
+  }
+
+  // 2. What should I focus on
+  if (qLower.includes('focus') || qLower.includes('priority')) {
+    const focusTarget = formIssue
+      ? formIssue.replace('error_', '').replace(/_/g, ' ')
+      : (isConsistencyIssue ? 'workout consistency' : 'progressive overload');
+
+    return {
+      summary: `Based on your recent performance, your highest-leverage focus area is ${focusTarget}.`,
+      strengths: [
+        `You have built momentum toward your ${userGoal} goal.`,
+        context.performance.averagePerformance >= 80 ? 'Solid baseline movement technique.' : 'Committed to athletic growth.'
+      ],
+      recommendations: [
+        formIssue ? `Address ${focusTarget} during warmups and working sets.` : 'Target 3 structured sessions per week.',
+        `Tailor movement patterns to support your athletic progress in ${sport}.`
+      ],
+      nextFocus: focusTarget
+    };
+  }
+
+  // 3. What should I do today
+  if (qLower.includes('today') || qLower.includes('now') || qLower.includes('plan')) {
+    return {
+      summary: `For today, an adaptive ${sport}-focused ${userGoal} session targeting 20-30 minutes is optimal.`,
+      strengths: [
+        `Active streak: ${context.performance.currentStreak} days.`,
+        `Recent workouts logged: ${context.performance.recentWorkouts}.`
+      ],
+      recommendations: [
+        `Perform 3 sets of compound movements (squats, push-ups) tailored for ${sport}.`,
+        'Keep rest intervals between 30-45 seconds to elevate cardiovascular conditioning.'
+      ],
+      nextFocus: 'session completion'
+    };
+  }
+
+  // 4. How should I train
+  if (qLower.includes('train') || qLower.includes('schedule')) {
+    return {
+      summary: `For a ${context.user.fitnessLevel} athlete targeting ${userGoal} in ${sport}, structured undulating periodization works best.`,
+      strengths: [
+        `Clear commitment to ${userGoal}.`,
+        `Current streak is active at ${context.performance.currentStreak} days.`
+      ],
+      recommendations: [
+        'Train 3-4 days per week alternating between strength and sports-specific conditioning.',
+        'Always include 3-5 minutes of dynamic joint warmup prior to heavy movement.'
+      ],
+      nextFocus: 'training split structure'
+    };
+  }
+
+  // 5. Default "How can I improve?"
   return {
     summary: isConsistencyIssue
       ? `Your consistency is improving, but maintaining regular sessions will accelerate your ${userGoal} progress.`
@@ -293,7 +366,8 @@ function generateLocalTestResponse(context: CoachUserContext, question: string):
     ],
     recommendations: [
       'Maintain a consistent workout schedule tailored to your daily routine.',
-      `Prioritize proper warmup and recovery for ${context.user.sport}.`
+      `Prioritize proper warmup and recovery for ${sport}.`,
+      formIssue ? `Keep working on correcting ${formIssue.replace('error_', '').replace(/_/g, ' ')}.` : 'Gradually increase rep volume across sets.'
     ],
     nextFocus: isConsistencyIssue ? 'consistency' : 'progressive overload'
   };

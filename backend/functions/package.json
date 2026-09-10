@@ -13,7 +13,8 @@
     "logs": "firebase functions:log",
     "test:local": "npm run build && node lib/testLocal.js",
     "test:coach": "npm run build && node lib/testCoach.js",
-    "test:vision": "npm run build && node lib/testVision.js"
+    "test:vision": "npm run build && node lib/testVision.js",
+    "test:personalization": "npm run build && node lib/testPersonalization.js"
   },
   "engines": {
     "node": ">=18"
