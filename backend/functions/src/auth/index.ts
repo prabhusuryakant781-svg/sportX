@@ -55,8 +55,8 @@ export async function authenticateRequest(req: Request): Promise<AuthenticatedUs
       role: (decodedToken.role as string) || 'user',
     };
   } catch (err: any) {
-    // If client sent a custom token or direct uid in test mode
-    if (process.env.NODE_ENV !== 'production' && token.length > 5 && !token.includes('.')) {
+    // If client sent an explicit test user prefix in non-production
+    if (process.env.NODE_ENV !== 'production' && (token.startsWith('test_user_') || token.startsWith('user_'))) {
       return { uid: token, role: 'user' };
     }
     return null;

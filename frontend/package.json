@@ -6,14 +6,18 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "node tests/testVisionPipeline.js && node tests/testPriority2Flow.js",
+    "test:p2": "node tests/testPriority2Flow.js"
   },
   "dependencies": {
+    "@mediapipe/tasks-vision": "^1.0.1",
+    "canvas-confetti": "^1.9.3",
+    "firebase": "^12.19.0",
+    "lucide-react": "^0.441.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-router-dom": "^6.26.2",
-    "lucide-react": "^0.441.0",
-    "canvas-confetti": "^1.9.3"
+    "react-router-dom": "^6.26.2"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.1",

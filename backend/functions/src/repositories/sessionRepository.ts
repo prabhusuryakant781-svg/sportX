@@ -1,19 +1,47 @@
 /**
  * SportX Session Repository
  * Firestore Data Access for workoutSessions/{sessionId}
+ * Supports real Firestore operations with in-memory fallback for local offline testing.
  */
-import { db } from '../config/firebase';
+import { db, hasFirebaseCredentials } from '../config/firebase';
+import { sessions as demoSessions } from '../config/demoStore';
 import { WorkoutSessionDoc } from '../types';
 import * as logger from 'firebase-functions/logger';
 
 const COLLECTION = 'workoutSessions';
 
+function withTimeout<T>(promise: Promise<T>, ms = 2000): Promise<T> {
+  let timer: NodeJS.Timeout | undefined;
+  const timeoutPromise = new Promise<T>((_, reject) => {
+    timer = setTimeout(() => reject(new Error('Firestore session operation timeout')), ms);
+  });
+  promise.catch(() => {});
+  return Promise.race([promise, timeoutPromise]).finally(() => {
+    if (timer) clearTimeout(timer);
+  });
+}
+
+// In-memory cache to support session testing without network/emulator dependency
+const localSessionsCache: Map<string, WorkoutSessionDoc> = new Map();
+
 export class SessionRepository {
   /**
-   * Create new session log (e.g. status: in-progress)
+   * Create new session log (e.g. status: in-progress or completed)
    */
   static async create(session: WorkoutSessionDoc): Promise<WorkoutSessionDoc> {
-    await db.collection(COLLECTION).doc(session.sessionId).set(session);
+    localSessionsCache.set(session.sessionId, session);
+
+    if (hasFirebaseCredentials) {
+      try {
+        await withTimeout(
+          db.collection(COLLECTION).doc(session.sessionId).set(session, { merge: true }),
+          2500
+        );
+      } catch (err) {
+        logger.warn('[Session] Firestore create failed, stored in local cache:', err);
+      }
+    }
+
     return session;
   }
 
@@ -21,16 +49,73 @@ export class SessionRepository {
    * Get session by ID
    */
   static async getById(sessionId: string): Promise<WorkoutSessionDoc | null> {
-    const doc = await db.collection(COLLECTION).doc(sessionId).get();
-    if (!doc.exists) return null;
-    return doc.data() as WorkoutSessionDoc;
+    if (!sessionId) return null;
+
+    if (hasFirebaseCredentials) {
+      try {
+        const doc = await withTimeout(
+          db.collection(COLLECTION).doc(sessionId).get(),
+          2000
+        );
+        if (doc.exists) {
+          return doc.data() as WorkoutSessionDoc;
+        }
+      } catch (err) {
+        logger.warn(`[Session] Firestore getById(${sessionId}) failed, checking local cache:`, err);
+      }
+    }
+
+    if (localSessionsCache.has(sessionId)) {
+      return localSessionsCache.get(sessionId)!;
+    }
+
+    const demoMatch = demoSessions.find(s => s.id === sessionId);
+    if (demoMatch) {
+      return {
+        sessionId: demoMatch.id,
+        userId: demoMatch.userId,
+        workoutId: 'workout_standard',
+        sportId: 'general',
+        startTime: demoMatch.completedAt,
+        completionTime: demoMatch.completedAt,
+        endTime: demoMatch.completedAt,
+        durationMinutes: Math.round(demoMatch.durationSeconds / 60),
+        durationSeconds: demoMatch.durationSeconds,
+        totalReps: demoMatch.totalReps,
+        formAccuracyAverage: demoMatch.averageFormScore,
+        caloriesBurned: demoMatch.caloriesBurned,
+        heartRateAverage: null,
+        exerciseLogs: [],
+        exerciseId: demoMatch.exerciseId,
+        xpEarned: demoMatch.xpAwarded,
+        status: 'completed',
+        createdAt: demoMatch.completedAt,
+      };
+    }
+
+    return null;
   }
 
   /**
    * Update session status or metrics
    */
   static async update(sessionId: string, updates: Partial<WorkoutSessionDoc>): Promise<void> {
-    await db.collection(COLLECTION).doc(sessionId).update(updates);
+    const existing = await this.getById(sessionId);
+    if (existing) {
+      const merged = { ...existing, ...updates, updatedAt: new Date().toISOString() };
+      localSessionsCache.set(sessionId, merged);
+    }
+
+    if (hasFirebaseCredentials) {
+      try {
+        await withTimeout(
+          db.collection(COLLECTION).doc(sessionId).update(updates),
+          2000
+        );
+      } catch (err) {
+        logger.warn(`[Session] Firestore update(${sessionId}) failed:`, err);
+      }
+    }
   }
 
   /**
@@ -40,27 +125,48 @@ export class SessionRepository {
     userId: string,
     options?: { limit?: number; status?: string }
   ): Promise<WorkoutSessionDoc[]> {
-    try {
-      let query: FirebaseFirestore.Query = db
-        .collection(COLLECTION)
-        .where('userId', '==', userId);
+    const maxLimit = options?.limit || 50;
 
-      if (options?.status) {
-        query = query.where('status', '==', options.status);
+    if (hasFirebaseCredentials) {
+      try {
+        let query: FirebaseFirestore.Query = db
+          .collection(COLLECTION)
+          .where('userId', '==', userId);
+
+        if (options?.status) {
+          query = query.where('status', '==', options.status);
+        }
+
+        const snapshot = await withTimeout(query.limit(maxLimit).get(), 2500);
+        if (!snapshot.empty) {
+          const sessions = snapshot.docs.map((d) => d.data() as WorkoutSessionDoc);
+          return sessions.sort((a, b) => {
+            const timeA = new Date(a.createdAt as string).getTime() || 0;
+            const timeB = new Date(b.createdAt as string).getTime() || 0;
+            return timeB - timeA;
+          });
+        }
+      } catch (err) {
+        logger.warn(`[Session] Firestore query user sessions failed for ${userId}:`, err);
       }
+    }
 
-      const snapshot = await query.get();
-      const sessions = snapshot.docs.map((d) => d.data() as WorkoutSessionDoc);
+    // Fallback: search local cache and demo store
+    const results: WorkoutSessionDoc[] = [];
+    for (const session of localSessionsCache.values()) {
+      if (session.userId === userId) {
+        if (!options?.status || session.status === options.status) {
+          results.push(session);
+        }
+      }
+    }
 
-      // Sort in memory by createdAt descending
-      return sessions.sort((a, b) => {
+    return results
+      .sort((a, b) => {
         const timeA = new Date(a.createdAt as string).getTime() || 0;
         const timeB = new Date(b.createdAt as string).getTime() || 0;
         return timeB - timeA;
-      }).slice(0, options?.limit || 50);
-    } catch (err) {
-      logger.error(`Error querying user sessions for ${userId}:`, err);
-      return [];
-    }
+      })
+      .slice(0, maxLimit);
   }
 }

@@ -10,8 +10,8 @@
 
 import { Challenge } from './types';
 import { getChallengeById, saveChallenge } from './joinChallenge';
-import { updateStreak } from '../gamification';
 import { db, hasFirebaseCredentials } from '../config/firebase';
+import { users as demoUsers } from '../config/demoStore';
 import * as admin from 'firebase-admin';
 import * as logger from 'firebase-functions/logger';
 
@@ -82,7 +82,12 @@ function withTimeout<T>(promise: Promise<T>, ms = 2000): Promise<T> {
 
   // Update user profile with awarded XP and streak
   try {
-    updateStreak(userId, xpAwarded);
+    const demoUser = demoUsers.get(userId);
+    if (demoUser) {
+      demoUser.totalXp = (demoUser.totalXp || 0) + xpAwarded;
+      demoUser.lastWorkoutDate = now.split('T')[0];
+    }
+
     if (hasFirebaseCredentials) {
       const userRef = db.collection('users').doc(userId);
       await withTimeout(

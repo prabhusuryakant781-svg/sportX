@@ -1,11 +1,7 @@
 import * as admin from 'firebase-admin';
 
-// In local development/testing without production credentials, default to local Firestore emulator
-if (!process.env.FIRESTORE_EMULATOR_HOST && process.env.NODE_ENV !== 'production' && !process.env.K_SERVICE) {
-  process.env.FIRESTORE_EMULATOR_HOST = '127.0.0.1:8080';
-}
-
-const projectId = process.env.GCLOUD_PROJECT || process.env.FIREBASE_PROJECT_ID || 'demo-sportx';
+// Only respect FIRESTORE_EMULATOR_HOST if explicitly configured externally
+const projectId = process.env.GCLOUD_PROJECT || process.env.FIREBASE_PROJECT_ID || 'sportx-ab5f';
 
 // Detect and parse optional Firebase credentials for production/serverless
 let credential: admin.credential.Credential | undefined = undefined;

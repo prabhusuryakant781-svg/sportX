@@ -221,3 +221,96 @@ export async function buildCoachContext(userId: string): Promise<CoachUserContex
 }
 
 export const buildAICoachContext = buildCoachContext;
+
+export interface SessionAnalysisContext {
+  userId: string;
+  sessionId: string;
+  exerciseId: string;
+  exerciseName: string;
+  reps: number;
+  durationSeconds: number;
+  formScore: number;
+  detectedErrors: string[];
+  metrics: Record<string, any>;
+  personalRecordReps: number;
+  previousAverageFormScore: number;
+  userGoal: string;
+  fitnessLevel: string;
+  sport: string;
+}
+
+/**
+ * Builds a targeted, authoritative context for analyzing a specific completed workout session.
+ */
+export async function buildSessionAnalysisContext(
+  userId: string,
+  sessionId: string
+): Promise<SessionAnalysisContext> {
+  // 1. Fetch authoritative session
+  const session = await SessionRepository.getById(sessionId);
+  if (!session) {
+    const err: any = new Error(`Session "${sessionId}" not found`);
+    err.statusCode = 404;
+    throw err;
+  }
+
+  if (session.userId !== userId) {
+    const err: any = new Error('Access denied: You do not own this session');
+    err.statusCode = 403;
+    throw err;
+  }
+
+  // 2. Fetch linked Vision result if available
+  const { getVisionResultBySession } = await import('../vision/visionResult');
+  const visionRecord = await getVisionResultBySession(sessionId).catch(() => null);
+
+  // 3. Fetch user profile & progress
+  const user = await UserRepository.getById(userId).catch(() => null);
+  const { ProgressRepository } = await import('../repositories/progressRepository');
+  const progress = await ProgressRepository.getByUserId(userId).catch(() => null);
+
+  const exerciseId = session.exerciseId || visionRecord?.exerciseId || session.exerciseLogs?.[0]?.exerciseId || 'squat';
+  const exerciseName = session.exerciseName || visionRecord?.exerciseId || exerciseId;
+  const reps = session.totalReps ?? visionRecord?.reps ?? 0;
+  const formScore = session.formAccuracyAverage ?? visionRecord?.formScore ?? 80;
+  const durationSeconds = session.durationSeconds ?? (session.durationMinutes ? session.durationMinutes * 60 : 60);
+
+  // Extract errors from vision record and session logs
+  const detectedErrors: string[] = [];
+  if (visionRecord && Array.isArray(visionRecord.errors)) {
+    for (const e of visionRecord.errors) {
+      const code = typeof e === 'string' ? e : e?.code;
+      if (code && !detectedErrors.includes(code)) detectedErrors.push(code);
+    }
+  }
+  if (session.formErrors && Array.isArray(session.formErrors)) {
+    for (const code of session.formErrors) {
+      if (code && !detectedErrors.includes(code)) detectedErrors.push(code);
+    }
+  }
+
+  const prKey = `${exerciseId}_max_reps`;
+  const personalRecordReps = progress?.personalRecords?.[prKey] || reps;
+  const trends = progress?.formScoreTrends || [];
+  const previousAverageFormScore = trends.length > 0
+    ? Math.round(trends.reduce((a, b) => a + b.score, 0) / trends.length)
+    : formScore;
+
+  return {
+    userId,
+    sessionId,
+    exerciseId,
+    exerciseName,
+    reps,
+    durationSeconds,
+    formScore,
+    detectedErrors,
+    metrics: session.metrics || {},
+    personalRecordReps,
+    previousAverageFormScore,
+    userGoal: String(Array.isArray(user?.goals) ? user.goals[0] : (user?.goals || 'fitness')),
+    fitnessLevel: String(user?.fitnessLevel || 'intermediate'),
+    sport: String(Array.isArray(user?.selectedSports) ? user.selectedSports[0] : 'general'),
+  };
+}
+

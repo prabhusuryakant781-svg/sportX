@@ -17,7 +17,8 @@
     "test:coach": "npm run build && node lib/testCoach.js",
     "test:vision": "npm run build && node lib/testVision.js",
     "test:personalization": "npm run build && node lib/testPersonalization.js",
-    "test:challenges": "npm run build && node lib/testChallenges.js"
+    "test:challenges": "npm run build && node lib/testChallenges.js",
+    "test:p2": "npm run build && node lib/testPriority2.js"
   },
   "engines": {
     "node": ">=18"

@@ -1,6 +1,17 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { calculateAngle, validateCameraPositioning } from '../utils/poseMath.js';
 import { RepCounterFSM } from '../utils/repCounterFSM.js';
+import {
+  initializePoseLandmarker,
+  detectPose,
+  isPoseLandmarkerReady
+} from '../services/poseLandmarker.js';
+import {
+  mapPoseLandmarksToSportX,
+  applyPoseSmoothing,
+  filterOutliers,
+  validatePoseConfidence
+} from '../utils/mediapipeLandmarks.js';
 
 const BONES = [
   ['head', 'shoulder_l'], ['head', 'shoulder_r'], ['shoulder_l', 'shoulder_r'],
@@ -11,8 +22,12 @@ const BONES = [
   ['knee_l', 'ankle_l'], ['knee_r', 'ankle_r'],
 ];
 
+// Inference throttle interval in milliseconds (~25-30 FPS)
+const INFERENCE_INTERVAL_MS = 35;
+
 export default function CameraWorkout({
   exerciseId = 'squat',
+  onStartWorkout = null,
   onFinishWorkout = null,
   isDuelMode = false,
   onTelemetryUpdate = null
@@ -22,26 +37,42 @@ export default function CameraWorkout({
   const animFrameRef = useRef(null);
   const fsmRef = useRef(null);
 
+  // Vision Pipeline State Refs (avoid unnecessary re-renders in render loop)
+  const lastInferenceTimeRef = useRef(0);
+  const inferenceBusyRef = useRef(false);
+  const prevKpMapRef = useRef(null);
+  const consecutiveLostFramesRef = useRef(0);
+  const isComponentMountedRef = useRef(true);
+
+  // Component UI States
   const [streamActive, setStreamActive] = useState(false);
+  const [isModelLoading, setIsModelLoading] = useState(false);
+  const [modelError, setModelError] = useState(null);
   const [cameraError, setCameraError] = useState(null);
-  const [positioning, setPositioning] = useState({ isPositioned: false, issue: 'Initializing Camera…' });
+  const [positioning, setPositioning] = useState({
+    isPositioned: false,
+    issue: 'Initializing Camera & AI Model…'
+  });
+
   const [hudState, setHudState] = useState({
     reps: 0,
+    validFormReps: 0,
     formScore: 100,
-    state: 'UP',
+    state: exerciseId === 'pushup' ? 'PLANK' : exerciseId === 'jumping_jacks' ? 'NEUTRAL' : 'UP',
     currentStreak: 0,
     avgTempoPacing: '0.0',
     feedbackLog: [],
   });
+
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [isWorkoutActive, setIsWorkoutActive] = useState(false);
 
-  // Initialize FSM instance
+  // Initialize FSM instance when exercise changes
   useEffect(() => {
     fsmRef.current = new RepCounterFSM(exerciseId);
   }, [exerciseId]);
 
-  // Timer loop
+  // Workout duration timer
   useEffect(() => {
     let timer = null;
     if (isWorkoutActive) {
@@ -50,144 +81,269 @@ export default function CameraWorkout({
     return () => clearInterval(timer);
   }, [isWorkoutActive]);
 
-  // MediaStream camera initialization
+  // Component unmount lifecycle guard
+  useEffect(() => {
+    isComponentMountedRef.current = true;
+    return () => {
+      isComponentMountedRef.current = false;
+      stopCamera();
+    };
+  }, []);
+
+  /**
+   * Initializes webcam stream and preloads MediaPipe PoseLandmarker model
+   */
   const startCamera = async () => {
     setCameraError(null);
+    setModelError(null);
+
+    // 1. Initialize user camera stream
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' },
+        video: {
+          width: { ideal: 640 },
+          height: { ideal: 480 },
+          facingMode: 'user'
+        },
         audio: false
       });
-      if (videoRef.current) {
+
+      if (videoRef.current && isComponentMountedRef.current) {
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
         setStreamActive(true);
       }
     } catch (err) {
-      console.warn('Camera access denied or unavailable, switching to Interactive Engine:', err);
-      setCameraError('Camera access required or unavailable. Running in Simulated Vision Mode.');
-      setStreamActive(true); // Fallback engine
+      console.error('Camera access error:', err);
+      setCameraError(
+        'Camera permission was denied or camera is unavailable. Please grant camera access to track your workout.'
+      );
+      setPositioning({
+        isPositioned: false,
+        issue: '🚫 Camera unavailable. Enable permissions to continue.'
+      });
+      return;
+    }
+
+    // 2. Pre-load MediaPipe PoseLandmarker model if not already cached
+    if (!isPoseLandmarkerReady()) {
+      setIsModelLoading(true);
+      try {
+        await initializePoseLandmarker();
+      } catch (err) {
+        console.error('MediaPipe Model Loading Error:', err);
+        setModelError('Failed to load MediaPipe AI Vision model. Check internet connection.');
+        setPositioning({
+          isPositioned: false,
+          issue: '⚠️ AI Vision model failed to load.'
+        });
+      } finally {
+        if (isComponentMountedRef.current) {
+          setIsModelLoading(false);
+        }
+      }
     }
   };
 
+  /**
+   * Stops camera stream and cleans up resources
+   */
   const stopCamera = useCallback(() => {
     if (videoRef.current && videoRef.current.srcObject) {
-      const tracks = videoRef.current.srcObject.getTracks();
+      const stream = videoRef.current.srcObject;
+      const tracks = stream.getTracks();
       tracks.forEach(t => t.stop());
+      videoRef.current.srcObject = null;
     }
+
     if (animFrameRef.current) {
       cancelAnimationFrame(animFrameRef.current);
+      animFrameRef.current = null;
     }
+
+    inferenceBusyRef.current = false;
+    prevKpMapRef.current = null;
+    consecutiveLostFramesRef.current = 0;
     setStreamActive(false);
   }, []);
 
-  // Main Detection Loop & Rendering Engine
+  /**
+   * Main Real-Time Inference & Rendering Animation Loop
+   */
   useEffect(() => {
     if (!streamActive) return;
 
-    let simCycle = 0;
+    let isSubscribed = true;
 
-    const renderLoop = () => {
-      simCycle++;
+    const renderLoop = (currentTimestamp) => {
+      if (!isSubscribed) return;
+
+      const video = videoRef.current;
       const canvas = canvasRef.current;
-      if (!canvas) return;
+
+      if (!video || !canvas) {
+        animFrameRef.current = requestAnimationFrame(renderLoop);
+        return;
+      }
+
+      // Check that video metadata is loaded and frames are flowing
+      if (video.readyState < 2 || video.videoWidth === 0) {
+        animFrameRef.current = requestAnimationFrame(renderLoop);
+        return;
+      }
+
       const ctx = canvas.getContext('2d');
       const width = canvas.width = 640;
       const height = canvas.height = 480;
 
-      ctx.clearRect(0, 0, width, height);
+      // Coordinate reflection helper:
+      // Video is mirrored via CSS scaleX(-1) for a natural user reflection.
+      // Canvas text remains readable (not reversed) by drawing on un-mirrored canvas
+      // and translating x coordinates: toScreenX(x) = width - x.
+      const toScreenX = (x) => width - x;
 
-      // Generate dynamic pose landmarks (combines real-time motion and posture curves)
-      const currentPhase = fsmRef.current?.state || 'UP';
-      const offset = (currentPhase === 'DESCENDING' || currentPhase === 'BOTTOM' || currentPhase === 'INFLECTION') ? 45 : 0;
-      const wave = Math.sin(simCycle * 0.08) * 5;
+      // 1. Throttled MediaPipe Pose Inference
+      const timeSinceLastInference = currentTimestamp - lastInferenceTimeRef.current;
 
-      const keypoints = [
-        { name: 'head', x: 320, y: 80 + wave, score: 0.98 },
-        { name: 'shoulder_l', x: 250, y: 150 + wave, score: 0.95 },
-        { name: 'shoulder_r', x: 390, y: 150 + wave, score: 0.95 },
-        { name: 'elbow_l', x: 200, y: 220 + wave, score: 0.92 },
-        { name: 'elbow_r', x: 440, y: 220 + wave, score: 0.92 },
-        { name: 'wrist_l', x: 170, y: 290 + wave, score: 0.90 },
-        { name: 'wrist_r', x: 470, y: 290 + wave, score: 0.90 },
-        { name: 'hip_l', x: 270, y: 280 + wave + offset * 0.4, score: 0.94 },
-        { name: 'hip_r', x: 370, y: 280 + wave + offset * 0.4, score: 0.94 },
-        { name: 'knee_l', x: 260 - (offset > 20 ? 15 : 0), y: 370 + wave - offset * 0.3, score: 0.93 },
-        { name: 'knee_r', x: 380 + (offset > 20 ? 15 : 0), y: 370 + wave - offset * 0.3, score: 0.93 },
-        { name: 'ankle_l', x: 250, y: 440, score: 0.91 },
-        { name: 'ankle_r', x: 390, y: 440, score: 0.91 },
-      ];
+      if (timeSinceLastInference >= INFERENCE_INTERVAL_MS && !inferenceBusyRef.current) {
+        inferenceBusyRef.current = true;
+        lastInferenceTimeRef.current = currentTimestamp;
 
-      // Validate Positioning
-      const posCheck = validateCameraPositioning(keypoints, width, height);
-      setPositioning(posCheck);
+        try {
+          const rawLandmarks = detectPose(video, currentTimestamp);
 
-      // Process Frame through FSM
-      if (isWorkoutActive && fsmRef.current) {
-        const kpMap = Object.fromEntries(keypoints.map(k => [k.name, k]));
-        const updated = fsmRef.current.processFrame(kpMap);
-        setHudState(updated);
+          if (rawLandmarks && rawLandmarks.length > 0) {
+            // Map 33 MediaPipe landmarks to SportX anatomical joints
+            const rawKpMap = mapPoseLandmarksToSportX(rawLandmarks, width, height);
 
-        // Broadcast telemetry to multiplayer room if in duel mode
-        if (isDuelMode && onTelemetryUpdate) {
-          onTelemetryUpdate({
-            currentReps: updated.reps,
-            formScore: updated.formScore,
-            currentStreak: updated.currentStreak,
-          });
+            if (rawKpMap) {
+              // Apply physical jump rejection and temporal EMA smoothing
+              const filteredMap = filterOutliers(rawKpMap, prevKpMapRef.current, width, height);
+              const smoothedMap = applyPoseSmoothing(filteredMap, prevKpMapRef.current);
+
+              prevKpMapRef.current = smoothedMap;
+              consecutiveLostFramesRef.current = 0;
+
+              // Validate camera positioning using real landmarks
+              const keypointList = Object.values(smoothedMap);
+              const posCheck = validateCameraPositioning(keypointList, width, height);
+              setPositioning(posCheck);
+
+              // Validate pose confidence for active exercise
+              const confidence = validatePoseConfidence(smoothedMap, exerciseId, 0.45);
+
+              // Process frame through FSM if workout active and joints visible
+              if (isWorkoutActive && fsmRef.current && confidence.isValid) {
+                const updated = fsmRef.current.processFrame(smoothedMap);
+                setHudState(updated);
+
+                // Broadcast telemetry to multiplayer duel lobby
+                if (isDuelMode && onTelemetryUpdate) {
+                  onTelemetryUpdate({
+                    currentReps: updated.reps,
+                    formScore: updated.formScore,
+                    currentStreak: updated.currentStreak,
+                  });
+                }
+              }
+            }
+          } else {
+            // No pose detected in this frame
+            consecutiveLostFramesRef.current += 1;
+            if (consecutiveLostFramesRef.current > 8) {
+              // After ~250ms of missing pose, alert user and clear stale skeleton
+              prevKpMapRef.current = null;
+              setPositioning({
+                isPositioned: false,
+                issue: '🔍 Searching for body in camera view…'
+              });
+            }
+          }
+        } catch (err) {
+          console.warn('Inference error in render loop:', err);
+        } finally {
+          inferenceBusyRef.current = false;
         }
       }
 
-      // Draw Skeleton on Overlay Canvas
-      const kpMap = Object.fromEntries(keypoints.map(k => [k.name, k]));
-      const isGoodForm = hudState.formScore >= 80;
+      // 2. Clear canvas overlay
+      ctx.clearRect(0, 0, width, height);
 
-      // Draw Bounding Box
-      const xs = keypoints.map(k => k.x);
-      const ys = keypoints.map(k => k.y);
-      const minX = Math.min(...xs) - 25, maxX = Math.max(...xs) + 25;
-      const minY = Math.min(...ys) - 20, maxY = Math.max(...ys) + 20;
+      // 3. Render Real Skeleton Overlay from latest valid landmarks
+      const currentKpMap = prevKpMapRef.current;
 
-      ctx.strokeStyle = isGoodForm ? 'rgba(107,203,119,0.7)' : 'rgba(255,107,107,0.7)';
-      ctx.lineWidth = 2;
-      ctx.setLineDash([6, 6]);
-      ctx.strokeRect(minX, minY, maxX - minX, maxY - minY);
-      ctx.setLineDash([]);
+      if (currentKpMap) {
+        const isGoodForm = hudState.formScore >= 80;
+        const validKeypoints = Object.values(currentKpMap).filter(k => k.score >= 0.4);
 
-      // Draw Skeleton Bones
-      BONES.forEach(([a, b]) => {
-        const kpA = kpMap[a], kpB = kpMap[b];
-        if (kpA && kpB) {
-          ctx.beginPath();
-          ctx.moveTo(kpA.x, kpA.y);
-          ctx.lineTo(kpB.x, kpB.y);
-          ctx.strokeStyle = isGoodForm ? 'rgb(108, 99, 255)' : 'rgb(255, 107, 107)';
-          ctx.lineWidth = 4;
-          ctx.stroke();
+        if (validKeypoints.length >= 4) {
+          // Bounding Box over detected person (using mirrored screen coordinates)
+          const screenXs = validKeypoints.map(k => toScreenX(k.x));
+          const screenYs = validKeypoints.map(k => k.y);
+          const minX = Math.max(0, Math.min(...screenXs) - 20);
+          const maxX = Math.min(width, Math.max(...screenXs) + 20);
+          const minY = Math.max(0, Math.min(...screenYs) - 20);
+          const maxY = Math.min(height, Math.max(...screenYs) + 20);
+
+          ctx.strokeStyle = isGoodForm ? 'rgba(107,203,119,0.5)' : 'rgba(255,107,107,0.5)';
+          ctx.lineWidth = 1.5;
+          ctx.setLineDash([5, 5]);
+          ctx.strokeRect(minX, minY, maxX - minX, maxY - minY);
+          ctx.setLineDash([]);
+
+          // Draw Skeleton Bones
+          BONES.forEach(([a, b]) => {
+            const kpA = currentKpMap[a];
+            const kpB = currentKpMap[b];
+
+            if (kpA && kpB && kpA.score >= 0.4 && kpB.score >= 0.4) {
+              ctx.beginPath();
+              ctx.moveTo(toScreenX(kpA.x), kpA.y);
+              ctx.lineTo(toScreenX(kpB.x), kpB.y);
+              ctx.strokeStyle = isGoodForm ? 'rgb(108, 99, 255)' : 'rgb(255, 107, 107)';
+              ctx.lineWidth = 4;
+              ctx.lineCap = 'round';
+              ctx.stroke();
+            }
+          });
+
+          // Draw Joint Dots
+          validKeypoints.forEach(k => {
+            const sx = toScreenX(k.x);
+            ctx.beginPath();
+            ctx.arc(sx, k.y, 5, 0, 2 * Math.PI);
+            ctx.fillStyle = k.name.includes('knee') || k.name.includes('elbow')
+              ? '#FFD93D'
+              : '#FFFFFF';
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.7)';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+          });
+
+          // Draw Biomechanical Angle Badge (Squat Knee or Pushup Elbow)
+          if (exerciseId === 'squat' && currentKpMap['hip_l'] && currentKpMap['knee_l'] && currentKpMap['ankle_l']) {
+            const kneeAngle = calculateAngle(currentKpMap['hip_l'], currentKpMap['knee_l'], currentKpMap['ankle_l']);
+            const badgeX = toScreenX(currentKpMap['knee_l'].x);
+            const badgeY = currentKpMap['knee_l'].y;
+
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+            ctx.fillRect(badgeX + 8, badgeY - 12, 44, 20);
+            ctx.fillStyle = isGoodForm ? '#6BCB77' : '#FFD93D';
+            ctx.font = 'bold 12px sans-serif';
+            ctx.fillText(`${Math.round(kneeAngle)}°`, badgeX + 12, badgeY + 2);
+          } else if (exerciseId === 'pushup' && currentKpMap['shoulder_l'] && currentKpMap['elbow_l'] && currentKpMap['wrist_l']) {
+            const elbowAngle = calculateAngle(currentKpMap['shoulder_l'], currentKpMap['elbow_l'], currentKpMap['wrist_l']);
+            const badgeX = toScreenX(currentKpMap['elbow_l'].x);
+            const badgeY = currentKpMap['elbow_l'].y;
+
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+            ctx.fillRect(badgeX + 8, badgeY - 12, 44, 20);
+            ctx.fillStyle = isGoodForm ? '#6BCB77' : '#FFD93D';
+            ctx.font = 'bold 12px sans-serif';
+            ctx.fillText(`${Math.round(elbowAngle)}°`, badgeX + 12, badgeY + 2);
+          }
         }
-      });
-
-      // Draw Joint Indicators & Angle Badges
-      keypoints.forEach(k => {
-        ctx.beginPath();
-        ctx.arc(k.x, k.y, 6, 0, 2 * Math.PI);
-        ctx.fillStyle = k.name.includes('knee') || k.name.includes('elbow')
-          ? 'rgb(255, 217, 61)'
-          : 'rgb(255, 255, 255)';
-        ctx.fill();
-        ctx.strokeStyle = 'rgba(0,0,0,0.8)';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-      });
-
-      // Draw Knee Angle Badge
-      if (kpMap['hip_l'] && kpMap['knee_l'] && kpMap['ankle_l']) {
-        const angle = calculateAngle(kpMap['hip_l'], kpMap['knee_l'], kpMap['ankle_l']);
-        ctx.fillStyle = 'rgba(0,0,0,0.75)';
-        ctx.fillRect(kpMap['knee_l'].x + 10, kpMap['knee_l'].y - 12, 45, 20);
-        ctx.fillStyle = '#6C63FF';
-        ctx.font = 'bold 12px sans-serif';
-        ctx.fillText(`${Math.round(angle)}°`, kpMap['knee_l'].x + 14, kpMap['knee_l'].y + 2);
       }
 
       animFrameRef.current = requestAnimationFrame(renderLoop);
@@ -196,15 +352,28 @@ export default function CameraWorkout({
     animFrameRef.current = requestAnimationFrame(renderLoop);
 
     return () => {
-      if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+      isSubscribed = false;
+      if (animFrameRef.current) {
+        cancelAnimationFrame(animFrameRef.current);
+        animFrameRef.current = null;
+      }
     };
   }, [streamActive, isWorkoutActive, exerciseId, isDuelMode, hudState.formScore, onTelemetryUpdate]);
 
-  const handleStartWorkout = () => {
-    if (!streamActive) startCamera();
+  const handleStartWorkout = async () => {
+    if (!streamActive) {
+      await startCamera();
+    }
     setIsWorkoutActive(true);
     if (fsmRef.current) {
       fsmRef.current = new RepCounterFSM(exerciseId);
+    }
+    if (onStartWorkout) {
+      try {
+        await onStartWorkout();
+      } catch (err) {
+        console.warn('onStartWorkout notification warning:', err);
+      }
     }
   };
 
@@ -234,6 +403,38 @@ export default function CameraWorkout({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {/* Camera / Model Error Banner */}
+      {(cameraError || modelError) && (
+        <div style={{
+          background: 'rgba(255,107,107,0.12)',
+          border: '1px solid rgba(255,107,107,0.4)',
+          borderRadius: 12,
+          padding: '12px 16px',
+          color: '#FF6B6B',
+          fontSize: 13
+        }}>
+          <strong>⚠️ {cameraError ? 'Camera Error' : 'AI Model Error'}:</strong> {cameraError || modelError}
+        </div>
+      )}
+
+      {/* Model Loading State Banner */}
+      {isModelLoading && (
+        <div style={{
+          background: 'rgba(108,99,255,0.12)',
+          border: '1px solid rgba(108,99,255,0.4)',
+          borderRadius: 12,
+          padding: '10px 16px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          fontSize: 13,
+          color: '#E0E0E0'
+        }}>
+          <span style={{ animation: 'spin 1s linear infinite' }}>⏳</span>
+          <span>Loading MediaPipe Pose Landmarker AI model (browser-edge inference)…</span>
+        </div>
+      )}
+
       {/* Positioning Alert Banner */}
       <div style={{
         background: positioning.isPositioned ? 'rgba(107,203,119,0.12)' : 'rgba(255,217,61,0.12)',
@@ -242,7 +443,7 @@ export default function CameraWorkout({
         padding: '10px 16px',
         display: 'flex',
         alignItems: 'center',
-        justify: 'space-between',
+        justifyContent: 'space-between',
         fontSize: 13,
         color: 'var(--text-primary)'
       }}>
@@ -265,13 +466,27 @@ export default function CameraWorkout({
       }}>
         <video
           ref={videoRef}
+          autoPlay
           playsInline
           muted
-          style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scaleX(-1)', opacity: cameraError ? 0.2 : 0.85 }}
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            transform: 'scaleX(-1)', // Mirrored for natural user reflection
+            opacity: cameraError ? 0.2 : 0.9
+          }}
         />
         <canvas
           ref={canvasRef}
-          style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none' }}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            pointerEvents: 'none'
+          }}
         />
 
         {/* Live HUD Header */}
@@ -282,10 +497,17 @@ export default function CameraWorkout({
             left: 14,
             right: 14,
             display: 'flex',
-            justify: 'space-between',
-            alignItems: 'flex-start'
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
+            zIndex: 10
           }}>
-            <div style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)', borderRadius: 12, padding: '8px 14px', border: '1px solid rgba(255,255,255,0.1)' }}>
+            <div style={{
+              background: 'rgba(0,0,0,0.75)',
+              backdropFilter: 'blur(8px)',
+              borderRadius: 12,
+              padding: '8px 14px',
+              border: '1px solid rgba(255,255,255,0.1)'
+            }}>
               <div style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>FSM Phase</div>
               <div style={{ fontWeight: 800, fontSize: 14, color: '#6C63FF' }}>{hudState.state}</div>
             </div>
@@ -310,7 +532,7 @@ export default function CameraWorkout({
 
         {/* Live Rep Counter Display */}
         {isWorkoutActive ? (
-          <div style={{ position: 'absolute', bottom: 16, textAlign: 'center' }}>
+          <div style={{ position: 'absolute', bottom: 16, textAlign: 'center', zIndex: 10 }}>
             <div style={{ fontSize: 64, fontWeight: 900, color: '#FFFFFF', textShadow: '0 0 30px rgba(108,99,255,0.8)' }}>
               {hudState.reps}
             </div>
@@ -321,9 +543,9 @@ export default function CameraWorkout({
         ) : (
           <div style={{ textAlign: 'center', zIndex: 2 }}>
             <div style={{ fontSize: 56, marginBottom: 8 }}>📸</div>
-            <div style={{ fontWeight: 700, fontSize: 16 }}>Camera AI Vision Ready</div>
+            <div style={{ fontWeight: 700, fontSize: 16 }}>MediaPipe Pose AI Vision Ready</div>
             <div style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>
-              Position device 2-3m away for auto rep counting & form coaching
+              Stand 2-3m away with your full body in view for automated rep counting & form feedback
             </div>
           </div>
         )}

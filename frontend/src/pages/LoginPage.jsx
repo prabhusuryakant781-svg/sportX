@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 
 export default function LoginPage() {
-  const { login, signup } = useAuth();
+  const { login, signup, resetPassword } = useAuth();
   const navigate = useNavigate();
   const [tab, setTab] = useState('login'); // 'login' | 'signup'
   const [form, setForm] = useState({ name: '', email: '', password: '', collegeName: '', department: '' });
@@ -84,7 +84,33 @@ export default function LoginPage() {
             <input className="input" type="email" value={form.email} onChange={set('email')} placeholder="you@college.edu" required />
           </div>
           <div className="form-group">
-            <label>Password</label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <label>Password</label>
+              {tab === 'login' && (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!form.email) {
+                      setError('Please enter your email above to reset password');
+                      return;
+                    }
+                    try {
+                      setLoading(true);
+                      await resetPassword(form.email);
+                      setError('');
+                      alert('Password reset email sent to ' + form.email);
+                    } catch (e) {
+                      setError(e.message || 'Failed to send reset email');
+                    } finally {
+                      setLoading(false);
+                    }
+                  }}
+                  style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: 12 }}
+                >
+                  Forgot password?
+                </button>
+              )}
+            </div>
             <input className="input" type="password" value={form.password} onChange={set('password')} placeholder="••••••••" required />
           </div>
 

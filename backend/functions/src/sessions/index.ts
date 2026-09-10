@@ -28,6 +28,21 @@ import * as logger from 'firebase-functions/logger';
 
 export const sessionsRouter = Router();
 
+// GET /api/v1/sessions - List authenticated user's workout sessions
+sessionsRouter.get('/', verifyAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const uid = req.user!.uid;
+    const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 20));
+    const status = req.query.status as string | undefined;
+
+    const sessions = await SessionRepository.getUserSessions(uid, { limit, status });
+    return res.status(200).json({ success: true, count: sessions.length, data: sessions });
+  } catch (err: any) {
+    logger.error('Error fetching user sessions:', err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // GET /api/v1/sessions/:sessionId
 sessionsRouter.get('/:sessionId', verifyAuth, async (req: AuthenticatedRequest, res: Response) => {
   try {
@@ -54,7 +69,7 @@ sessionsRouter.get('/:sessionId', verifyAuth, async (req: AuthenticatedRequest, 
 sessionsRouter.post('/start', verifyAuth, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const uid = req.user!.uid;
-    const { exerciseId = 'squat', planId = 'dorm_blast_20', sportId = 'general' } = req.body;
+    const { exerciseId = 'squat', planId = 'dorm_blast_20', sportId = 'general', exerciseName = null } = req.body;
 
     const sessionId = `sess_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
     const now = new Date().toISOString();
@@ -64,6 +79,8 @@ sessionsRouter.post('/start', verifyAuth, async (req: AuthenticatedRequest, res:
       userId: uid,
       workoutId: planId,
       sportId,
+      exerciseId,
+      exerciseName: exerciseName || exerciseId,
       startTime: now,
       pauseTimes: [],
       resumeTimes: [],

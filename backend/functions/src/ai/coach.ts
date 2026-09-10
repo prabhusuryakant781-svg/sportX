@@ -11,9 +11,12 @@
  * 5. Handle timeouts, network failures, and parsing errors safely.
  */
 
-import { buildCoachContext, CoachUserContext } from './contextBuilder';
+import { buildCoachContext, CoachUserContext, buildSessionAnalysisContext, SessionAnalysisContext } from './contextBuilder';
 import { validateCoachResponse, AICoachResponse, validateFormFeedbackResponse, AIFormFeedbackResponse } from './validators';
 import { VisionResultPayload, validateVisionResult } from '../vision/validators';
+import { CoachInsightRepository } from '../repositories/coachInsightRepository';
+import { SessionRepository } from '../repositories/sessionRepository';
+import { CoachInsightDoc } from '../types';
 import * as logger from 'firebase-functions/logger';
 
 export interface CoachGenerationOptions {
@@ -635,5 +638,192 @@ export async function generateFormFeedbackHandler(req: any, res: any): Promise<v
     });
   }
 }
+
+// ── Phase 2: Post-Workout Session Analysis ─────────────────────────────────────
+
+const POST_WORKOUT_SYSTEM_INSTRUCTION = `You are the SportX Senior Athletic Performance AI Coach.
+You provide post-workout evaluations to student athletes based STRICTLY on authoritative session telemetry and Computer Vision data.
+
+MANDATORY RULES:
+1. GROUNDING: Base your evaluation strictly on the provided workout metrics (exercise, reps, form score, duration, detected errors, personal records).
+2. TRUTHFULNESS: NEVER fabricate facts or pretend to have watched video frames. Acknowledge the SportX Vision pose engine for detected movement metrics.
+3. CONSTRUCTIVE & ACTIONABLE: Highlight what was done well (volume, consistency, form score), clearly address any detected errors with concrete biomechanical cues, and define a single primary next focus.
+4. STRICT JSON SCHEMA: You MUST respond ONLY with valid JSON matching this schema:
+{
+  "summary": "1-2 sentence overall evaluation of completed workout session",
+  "doneWell": ["1-2 positive points about reps, tempo, form score, or personal records"],
+  "areasToImprove": ["Specific biomechanical issues detected or 'Clean form throughout'"],
+  "actionableCues": ["1-3 direct cues to improve in subsequent sessions"],
+  "nextFocus": "Primary focus keyword"
+}
+No markdown backticks, no code block fences, only valid raw JSON.`;
+
+/**
+ * Analyzes a completed workout session with Gemini, using authoritative Firestore session and vision data.
+ * Saves result in coachInsights collection and links back to the workout session.
+ */
+export async function analyzeSessionWithAI(
+  userId: string,
+  sessionId: string,
+  options?: CoachGenerationOptions
+): Promise<CoachInsightDoc> {
+  if (!sessionId || typeof sessionId !== 'string') {
+    const err: any = new Error('Field "sessionId" is required');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  // 1. Check if insight already generated for this session (idempotency)
+  const existingInsight = await CoachInsightRepository.getBySessionId(sessionId);
+  if (existingInsight && existingInsight.userId === userId) {
+    logger.info(`[AI Session Analysis] Returning cached insight for session ${sessionId}`);
+    return existingInsight;
+  }
+
+  // 2. Build authoritative session context
+  const context = await buildSessionAnalysisContext(userId, sessionId);
+
+  // 3. Assemble prompt
+  const prompt = `=== AUTHORITATIVE WORKOUT SESSION DATA ===
+Exercise: ${context.exerciseName} (${context.exerciseId})
+Total Reps: ${context.reps}
+Duration: ${context.durationSeconds} seconds
+Average Form Score: ${context.formScore}%
+Detected Errors: ${JSON.stringify(context.detectedErrors)}
+Personal Record for Exercise: ${context.personalRecordReps} reps
+Previous Average Form Score: ${context.previousAverageFormScore}%
+User Goal: ${context.userGoal}
+Sport: ${context.sport}
+Fitness Level: ${context.fitnessLevel}
+
+Evaluate this completed session. Highlight what was done well, address detected errors with actionable biomechanical cues, and provide a clear next focus. Follow the strict JSON schema.`;
+
+  const apiKey = options?.apiKey || process.env.GEMINI_API_KEY || process.env.AI_API_KEY || process.env.GOOGLE_API_KEY;
+
+  let feedback: AIFormFeedbackResponse;
+
+  if (!apiKey || process.env.NODE_ENV === 'test' || process.env.LOCAL_TEST === 'true') {
+    // Local deterministic generator
+    const hasErrors = context.detectedErrors.length > 0;
+    const isPR = context.reps >= context.personalRecordReps && context.reps > 0;
+
+    feedback = {
+      summary: hasErrors
+        ? `Completed ${context.reps} reps of ${context.exerciseName} with an average form score of ${context.formScore}%. Targeted biomechanical adjustments will improve your movement efficiency.`
+        : `Outstanding workout! Completed ${context.reps} reps of ${context.exerciseName} with strong ${context.formScore}% form consistency.`,
+      doneWell: [
+        isPR ? `Hit a personal record of ${context.reps} reps!` : `Completed all ${context.reps} reps with dedicated effort.`,
+        context.formScore >= 80 ? 'Maintained solid postural alignment throughout the session.' : 'Pushed through the working set with determination.'
+      ],
+      areasToImprove: hasErrors
+        ? context.detectedErrors.map(e => `Detected ${e.replace(/_/g, ' ')} during movement execution.`)
+        : ['Maintained consistent form through the entire set.'],
+      actionableCues: hasErrors
+        ? context.detectedErrors.map(e => getActionableCue(context.exerciseId, e))
+        : ['Continue progressive overload by gradually increasing tempo control or reps.'],
+      nextFocus: hasErrors ? context.detectedErrors[0].replace(/_/g, ' ') : 'progressive overload'
+    };
+  } else {
+    const model = options?.model || process.env.AI_MODEL || 'gemini-2.5-flash';
+    const timeoutMs = options?.timeoutMs || 10000;
+
+    const rawText = await callGeminiApi(apiKey, prompt, model, timeoutMs, POST_WORKOUT_SYSTEM_INSTRUCTION);
+    const cleanJson = rawText.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
+    let parsed: any;
+    try {
+      parsed = JSON.parse(cleanJson);
+    } catch (parseErr) {
+      logger.error('[AI Session Analysis] Malformed JSON from Gemini:', rawText);
+      const malformedErr: any = new Error('AI service returned a malformed response');
+      malformedErr.statusCode = 502;
+      throw malformedErr;
+    }
+
+    const validation = validateFormFeedbackResponse(parsed);
+    if (!validation.isValid || !validation.data) {
+      logger.error('[AI Session Analysis] Validation failed on Gemini response:', validation.errors);
+      const valErr: any = new Error('AI session analysis response failed validation');
+      valErr.statusCode = 502;
+      throw valErr;
+    }
+    feedback = validation.data;
+  }
+
+  // 4. Save to coachInsights collection
+  const insightId = `insight_${sessionId}_${Date.now()}`;
+  const insightDoc: CoachInsightDoc = {
+    insightId,
+    userId,
+    type: 'post_workout_analysis',
+    sourceSessionId: sessionId,
+    exerciseId: context.exerciseId,
+    summary: feedback.summary,
+    doneWell: feedback.doneWell,
+    areasToImprove: feedback.areasToImprove,
+    actionableCues: feedback.actionableCues,
+    nextFocus: feedback.nextFocus,
+    confidence: 0.95,
+    createdAt: new Date().toISOString()
+  };
+
+  await CoachInsightRepository.create(insightDoc);
+
+  // 5. Enrich workoutSessions/{sessionId} with aiAnalysis
+  await SessionRepository.update(sessionId, {
+    aiAnalysis: {
+      insightId,
+      summary: feedback.summary,
+      nextFocus: feedback.nextFocus,
+      analyzedAt: new Date().toISOString()
+    }
+  }).catch(() => {});
+
+  return insightDoc;
+}
+
+/**
+ * Cloud Function / Express Handler for POST /api/v1/ai/session-analysis
+ */
+export async function sessionAnalysisHandler(req: any, res: any): Promise<void> {
+  if (req.method !== 'POST') {
+    res.status(405).json({ success: false, error: 'Method Not Allowed. Please use POST.' });
+    return;
+  }
+
+  try {
+    const { authenticateRequest } = await import('../auth');
+    const user = await authenticateRequest(req);
+    if (!user || !user.uid) {
+      res.status(401).json({ success: false, error: 'Unauthorized: Valid authentication required.' });
+      return;
+    }
+
+    let body = req.body;
+    if (typeof body === 'string') {
+      try { body = JSON.parse(body); } catch (_) {}
+    }
+
+    const sessionId = body?.sessionId || req.params?.sessionId;
+    if (!sessionId || typeof sessionId !== 'string') {
+      res.status(400).json({ success: false, error: 'Field "sessionId" is required' });
+      return;
+    }
+
+    const insight = await analyzeSessionWithAI(user.uid, sessionId);
+
+    res.status(200).json({
+      success: true,
+      data: insight,
+      timestamp: new Date().toISOString()
+    });
+  } catch (err: any) {
+    logger.error('[AI Session Analysis] Handler error:', err?.message || err);
+    res.status(err?.statusCode || 500).json({
+      success: false,
+      error: err?.message || 'Failed to generate session analysis'
+    });
+  }
+}
+
 
 
