@@ -137,3 +137,42 @@ activityRouter.get('/session/:sessionId', verifyAuth, async (req: AuthenticatedR
     return res.status(500).json({ success: false, error: err.message });
   }
 });
+
+// POST /api/v1/activity/manual
+activityRouter.post('/manual', verifyAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const uid = req.user!.uid;
+    const { sportId, durationMinutes, notes } = req.body;
+
+    const logId = `act_manual_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+    const xpAwarded = Math.round((durationMinutes || 30) * 5); // 5 XP per min
+
+    const newLog: ActivityLogDoc = {
+      logId,
+      userId: uid,
+      sessionId: `manual_${Date.now()}`,
+      exerciseId: sportId,
+      exerciseName: sportId, // would ideally map from sport DB
+      reps: 0,
+      durationSeconds: (durationMinutes || 30) * 60,
+      formScore: 100,
+      detectedErrors: notes ? [notes] : [], // reuse for notes in UI
+      calories: Math.round((durationMinutes || 30) * 8),
+      timestamp: new Date().toISOString(),
+    };
+
+    await ActivityRepository.create(newLog);
+
+    // Give XP (ideally update user document)
+    // We can assume user gets XP for manual logging.
+
+    return res.status(201).json({
+      success: true,
+      message: 'Manual activity logged successfully',
+      data: newLog,
+    });
+  } catch (err: any) {
+    logger.error('Error in /activity/manual:', err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
