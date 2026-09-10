@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "buildCommand": "npm install && cd backend/functions && npm install && cd ../../frontend && npm install && npm run build",
+  "buildCommand": "npm install && cd backend/functions && npm install && npm run build && cd ../../frontend && npm install && npm run build",
   "outputDirectory": "frontend/dist",
   "functions": {
     "api/index.ts": {
@@ -21,4 +21,13 @@
       "destination": "/index.html"
     }
   ]
+  ,
+  "env": {
+    "FIREBASE_PROJECT_ID": "demo-sportx",
+    "GCLOUD_PROJECT": "demo-sportx",
+    "FIRESTORE_EMULATOR_HOST": "",
+    "FIREBASE_STORAGE_EMULATOR_HOST": "",
+    "PORT": "3001",
+    "NODE_ENV": "development"
+  }
 }

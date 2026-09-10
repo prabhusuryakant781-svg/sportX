@@ -3,3 +3,4 @@ mediapipe>=0.10.14
 numpy>=1.26.0
 pydantic>=2.8.0
 pytest>=8.3.0
+
