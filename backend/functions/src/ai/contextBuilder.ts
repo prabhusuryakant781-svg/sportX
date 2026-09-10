@@ -9,7 +9,7 @@
  * 4. Handle missing data gracefully.
  */
 
-import { db } from '../config/firebase';
+import { db, hasFirebaseCredentials } from '../config/firebase';
 import { users as demoUsers, sessions as demoSessions } from '../config/demoStore';
 
 export interface CoachUserContext {
@@ -33,10 +33,15 @@ export interface CoachUserContext {
 }
 
 function withTimeout<T>(promise: Promise<T>, ms = 1500): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<T>((_, reject) => setTimeout(() => reject(new Error('Firestore operation timeout')), ms))
-  ]);
+  let timer: NodeJS.Timeout | undefined;
+  const timeoutPromise = new Promise<T>((_, reject) => {
+    timer = setTimeout(() => reject(new Error('Firestore operation timeout')), ms);
+  });
+  // Prevent unhandled promise rejection if the query rejects after the timeout fires
+  promise.catch(() => {});
+  return Promise.race([promise, timeoutPromise]).finally(() => {
+    if (timer) clearTimeout(timer);
+  });
 }
 
 /**
@@ -47,52 +52,53 @@ export async function buildCoachContext(userId: string): Promise<CoachUserContex
   let userData: Record<string, any> = {};
   let sessionDocsData: any[] = [];
 
-  // 1. Fetch user profile from Firestore users/{userId}
-  try {
-    const userDoc = await withTimeout(db.collection('users').doc(userId).get(), 1500);
-    if (userDoc.exists) {
-      userData = userDoc.data() || {};
-    } else {
-      // Graceful fallback to demoStore if available (e.g. during local tests)
+  // 1 & 2. Fetch from Firestore if credentials are configured, or fast-fallback to demoStore
+  if (hasFirebaseCredentials) {
+    try {
+      const userDoc = await withTimeout(db.collection('users').doc(userId).get(), 1500);
+      if (userDoc.exists) {
+        userData = userDoc.data() || {};
+      } else {
+        const demoUser = demoUsers.get(userId);
+        if (demoUser) {
+          userData = demoUser;
+        }
+      }
+    } catch (err) {
       const demoUser = demoUsers.get(userId);
       if (demoUser) {
-        userData = {
-          fitnessLevel: demoUser.fitnessLevel,
-          fitnessGoal: demoUser.fitnessGoal,
-          selectedSports: demoUser.selectedSports,
-          currentStreak: demoUser.currentStreak,
-        };
+        userData = demoUser;
       }
     }
-  } catch (err) {
-    // Gracefully handle Firestore connection, timeout, or permission issues
-    const demoUser = demoUsers.get(userId);
-    if (demoUser) {
-      userData = demoUser;
-    }
-  }
 
-  // 2. Fetch recent workout sessions from Firestore workoutSessions
-  try {
-    const sessionsSnapshot = await withTimeout(
-      db.collection('workoutSessions')
-        .where('userId', '==', userId)
-        .limit(5)
-        .get(),
-      1500
-    );
+    try {
+      const sessionsSnapshot = await withTimeout(
+        db.collection('workoutSessions')
+          .where('userId', '==', userId)
+          .limit(5)
+          .get(),
+        1500
+      );
 
-    if (!sessionsSnapshot.empty) {
-      sessionDocsData = sessionsSnapshot.docs.map(d => d.data());
-    } else {
-      // Fallback to demoSessions for this user if Firestore has no sessions
+      if (!sessionsSnapshot.empty) {
+        sessionDocsData = sessionsSnapshot.docs.map(d => d.data());
+      } else {
+        const matchedDemoSessions = demoSessions.filter(s => s.userId === userId);
+        if (matchedDemoSessions.length > 0) {
+          sessionDocsData = matchedDemoSessions;
+        }
+      }
+    } catch (err) {
       const matchedDemoSessions = demoSessions.filter(s => s.userId === userId);
       if (matchedDemoSessions.length > 0) {
         sessionDocsData = matchedDemoSessions;
       }
     }
-  } catch (err) {
-    console.warn(`[contextBuilder] Notice: Could not query workoutSessions for ${userId}:`, (err as Error).message);
+  } else {
+    const demoUser = demoUsers.get(userId);
+    if (demoUser) {
+      userData = demoUser;
+    }
     const matchedDemoSessions = demoSessions.filter(s => s.userId === userId);
     if (matchedDemoSessions.length > 0) {
       sessionDocsData = matchedDemoSessions;

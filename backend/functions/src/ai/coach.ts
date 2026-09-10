@@ -60,9 +60,9 @@ async function callGeminiApi(
   apiKey: string,
   prompt: string,
   model = 'gemini-1.5-flash',
-  timeoutMs = 12000
+  timeoutMs = 10000
 ): Promise<string> {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
 
   const requestBody = {
     systemInstruction: {
@@ -88,7 +88,8 @@ async function callGeminiApi(
     const response = await fetch(url, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'x-goog-api-key': apiKey
       },
       body: JSON.stringify(requestBody),
       signal: controller.signal
@@ -96,23 +97,33 @@ async function callGeminiApi(
 
     if (!response.ok) {
       const errorBody = await response.text().catch(() => '');
-      logger.error('[AI Coach] Gemini API error status:', response.status, errorBody);
-      throw new Error(`AI service returned status ${response.status}`);
+      const safeErrorBody = errorBody.replace(/key=[^&\s"']+/gi, 'key=[REDACTED]');
+      logger.error('[AI Coach] Gemini API request failure: HTTP status', response.status, safeErrorBody);
+      const apiErr: any = new Error(`AI service returned status ${response.status}`);
+      apiErr.category = 'Gemini API request failure';
+      apiErr.statusCode = response.status === 429 ? 429 : 502;
+      throw apiErr;
     }
 
     const data: any = await response.json();
     const candidateText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
 
     if (!candidateText || typeof candidateText !== 'string') {
-      logger.error('[AI Coach] Empty response candidate from Gemini:', JSON.stringify(data));
-      throw new Error('AI service returned an empty response');
+      logger.error('[AI Coach] AI provider initialization failure: Empty response candidate from Gemini');
+      const emptyErr: any = new Error('AI service returned an empty response');
+      emptyErr.category = 'AI provider initialization failure';
+      emptyErr.statusCode = 502;
+      throw emptyErr;
     }
 
     return candidateText;
   } catch (err: any) {
     if (err.name === 'AbortError') {
-      logger.error('[AI Coach] Gemini API request timed out after', timeoutMs, 'ms');
-      throw new Error('AI Coach service request timed out');
+      logger.error('[AI Coach] Gemini API request failure: Request timed out after', timeoutMs, 'ms');
+      const timeoutErr: any = new Error('AI Coach service request timed out');
+      timeoutErr.category = 'Gemini API request failure';
+      timeoutErr.statusCode = 504;
+      throw timeoutErr;
     }
     throw err;
   } finally {
@@ -134,12 +145,18 @@ export async function generateCoachResponse(
   options?: CoachGenerationOptions
 ): Promise<AICoachResponse> {
   if (!userMessage || typeof userMessage !== 'string' || userMessage.trim().length === 0) {
-    throw new Error('Invalid request: question or message is required');
+    const err: any = new Error('Invalid request: question or message is required');
+    err.category = 'Invalid request';
+    err.statusCode = 400;
+    throw err;
   }
 
   const trimmedMessage = userMessage.trim();
   if (trimmedMessage.length > 500) {
-    throw new Error('Invalid request: message exceeds maximum length of 500 characters');
+    const err: any = new Error('Invalid request: message exceeds maximum length of 500 characters');
+    err.category = 'Invalid request';
+    err.statusCode = 400;
+    throw err;
   }
 
   // 1. Collect relevant user context from Firestore
@@ -160,7 +177,7 @@ export async function generateCoachResponse(
     return validation.data;
   }
 
-  const apiKey = options?.apiKey || process.env.GEMINI_API_KEY || process.env.AI_API_KEY;
+  const apiKey = options?.apiKey || process.env.GEMINI_API_KEY || process.env.AI_API_KEY || process.env.GOOGLE_API_KEY;
 
   if (!apiKey) {
     // If running in local test mode without a real API key configured, use safe test generator
@@ -172,18 +189,24 @@ export async function generateCoachResponse(
         return validation.data;
       }
     }
-    logger.error('[AI Coach] GEMINI_API_KEY is not configured on the server');
-    throw new Error('AI Coach service is temporarily unavailable (configuration error)');
+    logger.error('[AI Coach] Missing environment variable: GEMINI_API_KEY is not configured on the server');
+    const configErr: any = new Error('SportX AI Coach is temporarily unavailable: GEMINI_API_KEY is not configured on the server.');
+    configErr.category = 'Missing environment variable';
+    configErr.statusCode = 503;
+    throw configErr;
   }
 
   const model = options?.model || process.env.AI_MODEL || 'gemini-1.5-flash';
-  const timeoutMs = options?.timeoutMs || 12000;
+  const timeoutMs = options?.timeoutMs || 10000;
 
   try {
     rawResponseText = await callGeminiApi(apiKey, prompt, model, timeoutMs);
   } catch (apiError: any) {
-    logger.error('[AI Coach] AI API call failure:', apiError.message);
-    throw new Error('Failed to communicate with AI Coach service');
+    if (!apiError.category) {
+      apiError.category = 'Gemini API request failure';
+      apiError.statusCode = apiError.statusCode || 502;
+    }
+    throw apiError;
   }
 
   // 4. Parse JSON
@@ -193,15 +216,21 @@ export async function generateCoachResponse(
     const cleanJson = rawResponseText.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
     parsedJson = JSON.parse(cleanJson);
   } catch (parseErr) {
-    logger.error('[AI Coach] Failed to parse AI JSON response:', rawResponseText);
-    throw new Error('AI service returned a malformed response structure');
+    logger.error('[AI Coach] AI provider initialization failure: Failed to parse AI JSON response');
+    const malformedErr: any = new Error('AI service returned a malformed response structure');
+    malformedErr.category = 'AI provider initialization failure';
+    malformedErr.statusCode = 502;
+    throw malformedErr;
   }
 
   // 5. Validate the structured AI response
   const validation = validateCoachResponse(parsedJson);
   if (!validation.isValid || !validation.data) {
-    logger.error('[AI Coach] Response validation failed:', validation.errors, 'Raw:', parsedJson);
-    throw new Error('AI response did not satisfy safety and quality constraints');
+    logger.error('[AI Coach] AI provider initialization failure: Response validation failed:', validation.errors);
+    const valErr: any = new Error('AI response did not satisfy safety and quality constraints');
+    valErr.category = 'AI provider initialization failure';
+    valErr.statusCode = 502;
+    throw valErr;
   }
 
   return validation.data;
@@ -238,6 +267,7 @@ function generateLocalTestResponse(context: CoachUserContext, question: string):
  */
 export async function askCoachHandler(req: any, res: any): Promise<void> {
   if (req.method !== 'POST') {
+    logger.warn(`[AI Coach] Invalid request: Method ${req.method} not allowed`);
     res.status(405).json({ success: false, error: 'Method Not Allowed. Please use POST.' });
     return;
   }
@@ -247,6 +277,7 @@ export async function askCoachHandler(req: any, res: any): Promise<void> {
     const { authenticateRequest } = await import('../auth');
     const user = await authenticateRequest(req);
     if (!user || !user.uid) {
+      logger.warn('[AI Coach] Firebase authentication failure: Missing or invalid bearer token');
       res.status(401).json({
         success: false,
         error: 'Unauthorized: Valid authentication token required to consult SportX AI Coach'
@@ -254,9 +285,19 @@ export async function askCoachHandler(req: any, res: any): Promise<void> {
       return;
     }
 
-    // 2. Validate request parameters
-    const message = req.body?.message || req.body?.question;
+    // 2. Validate request parameters safely across object, string, or buffer formats
+    let body = req.body;
+    if (typeof body === 'string') {
+      try {
+        body = JSON.parse(body);
+      } catch (e) {
+        // keep as is
+      }
+    }
+
+    const message = body?.message || body?.question;
     if (!message || typeof message !== 'string' || message.trim().length === 0) {
+      logger.warn('[AI Coach] Invalid request: "message" parameter is required');
       res.status(400).json({
         success: false,
         error: 'Invalid request: "message" is required and must be a non-empty string'
@@ -266,6 +307,7 @@ export async function askCoachHandler(req: any, res: any): Promise<void> {
 
     const trimmedMessage = message.trim();
     if (trimmedMessage.length > 500) {
+      logger.warn('[AI Coach] Invalid request: "message" parameter exceeds 500 characters');
       res.status(400).json({
         success: false,
         error: 'Invalid request: "message" exceeds maximum length of 500 characters'
@@ -286,10 +328,13 @@ export async function askCoachHandler(req: any, res: any): Promise<void> {
       timestamp: new Date().toISOString()
     });
   } catch (err: any) {
-    logger.error('[askCoachHandler] Error processing request:', err?.message || err);
-    res.status(500).json({
+    const category = err?.category || 'Unexpected server error';
+    const statusCode = err?.statusCode || 500;
+    logger.error(`[AI Coach] ${category}:`, err?.message || err);
+
+    res.status(statusCode).json({
       success: false,
-      error: 'SportX AI Coach service encountered an error. Please try again shortly.'
+      error: err?.message || 'SportX AI Coach service encountered an error. Please try again shortly.'
     });
   }
 }

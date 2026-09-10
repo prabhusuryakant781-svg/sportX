@@ -42,9 +42,12 @@ export async function authenticateRequest(req: Request): Promise<AuthenticatedUs
   }
 
   if (token.startsWith('demo_token_')) {
-    const parts = token.split('_');
-    if (parts.length >= 3) {
-      return { uid: parts[2] };
+    const withoutPrefix = token.slice('demo_token_'.length);
+    const lastUnderscore = withoutPrefix.lastIndexOf('_');
+    const uid = lastUnderscore !== -1 ? withoutPrefix.substring(0, lastUnderscore) : withoutPrefix;
+    if (uid) {
+      const demoUser = users.get(uid);
+      return { uid, email: demoUser?.email, name: demoUser?.name };
     }
   }
 

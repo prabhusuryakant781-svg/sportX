@@ -266,9 +266,11 @@ async function runPhase2Tests() {
   console.log('        ↓');
   console.log('  Structured JSON Response');
   console.log('====================================================');
+  process.exit(0);
 }
 
 runPhase2Tests().catch(err => {
   console.error('\n❌ Verification Failed with Error:', err);
   process.exit(1);
 });
+
