@@ -11,6 +11,8 @@
     "start": "npm run shell",
     "deploy": "firebase deploy --only functions",
     "logs": "firebase functions:log",
+    "test": "npm run build && node lib/testBackend.js",
+    "test:backend": "npm run build && node lib/testBackend.js",
     "test:local": "npm run build && node lib/testLocal.js",
     "test:coach": "npm run build && node lib/testCoach.js",
     "test:vision": "npm run build && node lib/testVision.js",

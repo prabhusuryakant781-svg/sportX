@@ -6,11 +6,11 @@
  * 1. Only collect data relevant to the current AI Coach request.
  * 2. Do NOT send the entire Firestore database to the AI.
  * 3. Use actual existing Firestore schema (users, workoutSessions).
- * 4. Handle missing data gracefully.
+ * 4. Handle missing data gracefully with fast-fallbacks.
  */
 
-import { db, hasFirebaseCredentials } from '../config/firebase';
-import { users as demoUsers, sessions as demoSessions } from '../config/demoStore';
+import { UserRepository } from '../repositories/userRepository';
+import { SessionRepository } from '../repositories/sessionRepository';
 
 export interface CoachUserContext {
   user: {
@@ -30,18 +30,16 @@ export interface CoachUserContext {
     formScore: number;
     errors: string[];
   };
-}
 
-function withTimeout<T>(promise: Promise<T>, ms = 1500): Promise<T> {
-  let timer: NodeJS.Timeout | undefined;
-  const timeoutPromise = new Promise<T>((_, reject) => {
-    timer = setTimeout(() => reject(new Error('Firestore operation timeout')), ms);
-  });
-  // Prevent unhandled promise rejection if the query rejects after the timeout fires
-  promise.catch(() => {});
-  return Promise.race([promise, timeoutPromise]).finally(() => {
-    if (timer) clearTimeout(timer);
-  });
+  // Compatibility aliases
+  streak: number;
+  currentStreak: number;
+  averageFormScore: number;
+  fitnessLevel: string;
+  goal: string;
+  sport: string;
+  availableTimeMinutes: number;
+  commonErrors: string[];
 }
 
 /**
@@ -52,57 +50,24 @@ export async function buildCoachContext(userId: string): Promise<CoachUserContex
   let userData: Record<string, any> = {};
   let sessionDocsData: any[] = [];
 
-  // 1 & 2. Fetch from Firestore if credentials are configured, or fast-fallback to demoStore
-  if (hasFirebaseCredentials) {
-    try {
-      const userDoc = await withTimeout(db.collection('users').doc(userId).get(), 1500);
-      if (userDoc.exists) {
-        userData = userDoc.data() || {};
-      } else {
-        const demoUser = demoUsers.get(userId);
-        if (demoUser) {
-          userData = demoUser;
-        }
-      }
-    } catch (err) {
-      const demoUser = demoUsers.get(userId);
-      if (demoUser) {
-        userData = demoUser;
-      }
+  // 1. Fetch user profile from Firestore users/{userId}
+  try {
+    const userDoc = await UserRepository.getById(userId);
+    if (userDoc) {
+      userData = userDoc;
     }
+  } catch (err) {
+    console.warn(`[contextBuilder] Notice: Could not fetch user ${userId}:`, (err as Error).message);
+  }
 
-    try {
-      const sessionsSnapshot = await withTimeout(
-        db.collection('workoutSessions')
-          .where('userId', '==', userId)
-          .limit(5)
-          .get(),
-        1500
-      );
-
-      if (!sessionsSnapshot.empty) {
-        sessionDocsData = sessionsSnapshot.docs.map(d => d.data());
-      } else {
-        const matchedDemoSessions = demoSessions.filter(s => s.userId === userId);
-        if (matchedDemoSessions.length > 0) {
-          sessionDocsData = matchedDemoSessions;
-        }
-      }
-    } catch (err) {
-      const matchedDemoSessions = demoSessions.filter(s => s.userId === userId);
-      if (matchedDemoSessions.length > 0) {
-        sessionDocsData = matchedDemoSessions;
-      }
+  // 2. Fetch recent workout sessions from Firestore workoutSessions
+  try {
+    const sessions = await SessionRepository.getUserSessions(userId, { limit: 5 });
+    if (sessions.length > 0) {
+      sessionDocsData = sessions;
     }
-  } else {
-    const demoUser = demoUsers.get(userId);
-    if (demoUser) {
-      userData = demoUser;
-    }
-    const matchedDemoSessions = demoSessions.filter(s => s.userId === userId);
-    if (matchedDemoSessions.length > 0) {
-      sessionDocsData = matchedDemoSessions;
-    }
+  } catch (err) {
+    console.warn(`[contextBuilder] Notice: Could not query workoutSessions for ${userId}:`, (err as Error).message);
   }
 
   // 3. Compute performance metrics and recent issues
@@ -111,10 +76,27 @@ export async function buildCoachContext(userId: string): Promise<CoachUserContex
   const errorFrequency: Record<string, number> = {};
 
   for (const session of sessionDocsData) {
-    const score = session.averageFormScore ?? session.formScore;
+    const score = session.formAccuracyAverage ?? session.averageFormScore ?? session.formScore;
     if (typeof score === 'number' && !isNaN(score)) {
       scoreSum += score;
       scoreCount++;
+    }
+
+    // Gather form errors from exercise logs
+    if (Array.isArray(session.exerciseLogs)) {
+      for (const log of session.exerciseLogs) {
+        if (Array.isArray(log.sets)) {
+          for (const set of log.sets) {
+            if (Array.isArray(set.feedbackMessages)) {
+              for (const msg of set.feedbackMessages) {
+                if (typeof msg === 'string' && msg.startsWith('❗')) {
+                  errorFrequency[msg] = (errorFrequency[msg] || 0) + 1;
+                }
+              }
+            }
+          }
+        }
+      }
     }
 
     const errors = session.formErrors || session.errors;
@@ -180,28 +162,39 @@ export async function buildCoachContext(userId: string): Promise<CoachUserContex
     };
   } else if (sessionDocsData.length > 0) {
     const latest = sessionDocsData[0];
-    const errorsList = Array.isArray(latest.formErrors)
-      ? latest.formErrors.map((e: any) => (typeof e === 'string' ? e : e?.errorType)).filter(Boolean)
-      : (Array.isArray(latest.errors) ? latest.errors : []);
+    const exerciseId = latest.exerciseLogs?.[0]?.exerciseId || latest.exerciseId || 'general_exercise';
+    const errorsList: string[] = [];
+
+    if (Array.isArray(latest.exerciseLogs)) {
+      for (const log of latest.exerciseLogs) {
+        if (Array.isArray(log.sets)) {
+          for (const set of log.sets) {
+            if (Array.isArray(set.feedbackMessages)) {
+              errorsList.push(...set.feedbackMessages.filter((m: string) => m.startsWith('❗')));
+            }
+          }
+        }
+      }
+    }
 
     latestSessionFeedback = {
-      exercise: String(latest.exerciseId || latest.exercise || 'general_exercise'),
-      reps: Number(latest.totalReps || latest.reps || 0),
-      formScore: Number(latest.averageFormScore || latest.formScore || 0),
+      exercise: String(exerciseId),
+      reps: Number(latest.totalReps || 0),
+      formScore: Number(latest.formAccuracyAverage || latest.averageFormScore || 0),
       errors: errorsList,
     };
   }
 
-  // 5. Structure user profile fields
-  const sports = Array.isArray(userData.selectedSports) && userData.selectedSports.length > 0
-    ? userData.selectedSports[0]
-    : 'general_fitness';
-
-  return {
+  // 5. Structure final context strictly adhering to token efficiency rules
+  const context: CoachUserContext = {
     user: {
-      fitnessLevel: String(userData.fitnessLevel || 'beginner'),
-      goal: String(userData.fitnessGoal || 'fitness'),
-      sport: String(sports),
+      fitnessLevel: String(userData.fitnessLevel || 'intermediate'),
+      goal: String(
+        Array.isArray(userData.goals) ? userData.goals[0] : (userData.goal || userData.fitnessGoal || 'endurance')
+      ),
+      sport: String(
+        Array.isArray(userData.selectedSports) ? userData.selectedSports[0] : (userData.sport || userData.sportId || 'badminton')
+      ),
     },
     performance: {
       recentWorkouts,
@@ -209,26 +202,22 @@ export async function buildCoachContext(userId: string): Promise<CoachUserContex
       averagePerformance,
     },
     recentIssues,
-    ...(latestSessionFeedback ? { latestSessionFeedback } : {})
+    latestSessionFeedback,
+    streak: currentStreak,
+    currentStreak,
+    averageFormScore: averagePerformance,
+    fitnessLevel: String(userData.fitnessLevel || 'intermediate'),
+    goal: String(
+      Array.isArray(userData.goals) ? userData.goals[0] : (userData.goal || userData.fitnessGoal || 'endurance')
+    ),
+    sport: String(
+      Array.isArray(userData.selectedSports) ? userData.selectedSports[0] : (userData.sport || userData.sportId || 'badminton')
+    ),
+    availableTimeMinutes: Number(userData.availableWorkoutTime || userData.availableTimeMinutes || 20),
+    commonErrors: sortedErrors,
   };
+
+  return context;
 }
 
-/**
- * Backward compatibility wrapper for existing insights and workout generator
- */
-export async function buildAICoachContext(userId: string): Promise<any> {
-  const ctx = await buildCoachContext(userId);
-  return {
-    userId,
-    studentName: 'Student Athlete',
-    fitnessLevel: ctx.user.fitnessLevel,
-    goal: ctx.user.goal,
-    availableTimeMinutes: 20,
-    recentWorkouts: ctx.performance.recentWorkouts,
-    averageFormScore: ctx.performance.averagePerformance || 85,
-    streak: ctx.performance.currentStreak,
-    commonErrors: ctx.recentIssues.filter(i => i.startsWith('error_')).map(i => i.replace('error_', '')),
-    latestSession: ctx.latestSessionFeedback
-  };
-}
-
+export const buildAICoachContext = buildCoachContext;

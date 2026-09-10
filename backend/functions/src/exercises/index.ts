@@ -1,101 +1,78 @@
 /**
- * Exercises Routes: GET /exercises, GET /exercises/:id
- * Core Feature: 11 (Exercise Library)
+ * Exercises Routes: GET /exercises, GET /exercises/:id, POST /exercises/search
+ * Core Feature: Exercise Library, Form Rules & Biomechanical Specs
  */
 import { Router } from 'express';
+import { ExerciseRepository, INITIAL_EXERCISES } from '../repositories/exerciseRepository';
+import * as logger from 'firebase-functions/logger';
 
 export const exercisesRouter = Router();
 
-export const EXERCISES = [
-  {
-    id: 'squat',
-    name: 'Bodyweight Squats',
-    category: 'lower_body',
-    difficulty: 'beginner',
-    targetMuscles: ['Quadriceps', 'Glutes', 'Hamstrings'],
-    equipment: ['none'],
-    instructions: [
-      'Stand with feet shoulder-width apart, toes slightly outward.',
-      'Hinge hips back and bend knees until thighs are parallel to floor.',
-      'Drive through heels to return to standing.',
-    ],
-    commonErrors: ['knees_inward', 'shallow_depth', 'chest_collapse'],
-    formRules: { minKneeAngle: 85, maxKneeAngle: 165, cadenceSecondsMin: 1.2 },
-    aiSupported: true,
-  },
-  {
-    id: 'pushup',
-    name: 'Standard Push-ups',
-    category: 'upper_body',
-    difficulty: 'intermediate',
-    targetMuscles: ['Chest', 'Anterior Deltoids', 'Triceps', 'Core'],
-    equipment: ['none'],
-    instructions: [
-      'Start in a high plank with hands slightly wider than shoulders.',
-      'Lower chest until elbows reach 90 degrees.',
-      'Push firmly back to top.',
-    ],
-    commonErrors: ['hip_sag', 'elbow_flare', 'half_rep'],
-    formRules: { minElbowAngle: 90, maxElbowAngle: 160, cadenceSecondsMin: 1.0 },
-    aiSupported: true,
-  },
-  {
-    id: 'bicep_curl',
-    name: 'Bicep Curls',
-    category: 'upper_body',
-    difficulty: 'beginner',
-    targetMuscles: ['Biceps Brachii', 'Forearms'],
-    equipment: ['dumbbells', 'resistance_bands'],
-    instructions: [
-      'Hold weights at sides, palms forward.',
-      'Curl weights upward keeping elbows pinned.',
-      'Lower with controlled tempo.',
-    ],
-    commonErrors: ['elbow_swing', 'back_sway'],
-    formRules: { minAngle: 40, maxAngle: 155 },
-    aiSupported: true,
-  },
-  {
-    id: 'plank',
-    name: 'Forearm Core Plank',
-    category: 'core',
-    difficulty: 'beginner',
-    targetMuscles: ['Rectus Abdominis', 'Transverse Abdominis', 'Lower Back'],
-    equipment: ['none'],
-    instructions: [
-      'Rest on forearms and toes, elbows below shoulders.',
-      'Hold body in a straight line from head to heels.',
-    ],
-    commonErrors: ['hip_pike', 'hip_sag'],
-    formRules: { spineAngleMin: 170, spineAngleMax: 185 },
-    aiSupported: true,
-  },
-  {
-    id: 'jumping_jacks',
-    name: 'Jumping Jacks',
-    category: 'cardio',
-    difficulty: 'beginner',
-    targetMuscles: ['Full Body', 'Cardio'],
-    equipment: ['none'],
-    instructions: [
-      'Stand with feet together, arms at sides.',
-      'Jump while spreading feet wide and raising arms overhead.',
-      'Return to start.',
-    ],
-    commonErrors: ['arms_not_overhead'],
-    formRules: { minArmAngle: 140 },
-    aiSupported: true,
-  },
-];
+// Re-export initial exercises for backwards compatibility
+export const EXERCISES = INITIAL_EXERCISES;
 
 // GET /api/v1/exercises
-exercisesRouter.get('/', (_req, res) => {
-  res.status(200).json({ success: true, count: EXERCISES.length, data: EXERCISES });
+exercisesRouter.get('/', async (req, res) => {
+  try {
+    const { sportId, difficulty, muscle } = req.query;
+    const exercises = await ExerciseRepository.getAll({
+      sportId: sportId as string,
+      difficulty: difficulty as string,
+      targetMuscle: muscle as string,
+    });
+
+    res.status(200).json({ success: true, count: exercises.length, data: exercises });
+  } catch (err: any) {
+    logger.error('Error fetching exercises:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 // GET /api/v1/exercises/:id
-exercisesRouter.get('/:id', (req, res) => {
-  const ex = EXERCISES.find(e => e.id === req.params.id);
-  if (!ex) return res.status(404).json({ error: 'Exercise not found' });
-  res.status(200).json({ success: true, data: ex });
+exercisesRouter.get('/:id', async (req, res) => {
+  try {
+    const exercise = await ExerciseRepository.getById(req.params.id);
+    if (!exercise) {
+      return res.status(404).json({ success: false, error: 'Exercise not found' });
+    }
+    return res.status(200).json({ success: true, data: exercise });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// POST /api/v1/exercises/search
+exercisesRouter.post('/search', async (req, res) => {
+  try {
+    const { query, muscle, equipment, difficulty } = req.body;
+    let list = await ExerciseRepository.getAll();
+
+    if (query) {
+      const q = query.toLowerCase();
+      list = list.filter(
+        (e) =>
+          e.name.toLowerCase().includes(q) ||
+          e.targetMuscles.some((m) => m.toLowerCase().includes(q)) ||
+          e.sportId.toLowerCase().includes(q)
+      );
+    }
+    if (muscle) {
+      const m = muscle.toLowerCase();
+      list = list.filter(
+        (e) =>
+          e.targetMuscles.some((t) => t.toLowerCase().includes(m)) ||
+          e.secondaryMuscles.some((s) => s.toLowerCase().includes(m))
+      );
+    }
+    if (equipment) {
+      list = list.filter((e) => e.equipmentNeeded.includes(equipment));
+    }
+    if (difficulty) {
+      list = list.filter((e) => e.difficulty === difficulty);
+    }
+
+    res.status(200).json({ success: true, count: list.length, data: list });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 });

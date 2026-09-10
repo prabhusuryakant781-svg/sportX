@@ -23,8 +23,17 @@ import { aiCoachRouter } from './aiCoach';
 import { challengesRouter } from './challenges';
 import { lobbiesRouter } from './lobbies';
 import { bugsRouter } from './bugs';
+import { notificationsRouter } from './notifications';
+import { progressRouter } from './progress';
+import { verifyAppCheck } from './middleware/appCheck';
 import { askCoachHandler, generateWorkoutHandler, progressAnalysisHandler, consistencyInsightHandler } from './ai';
 import { visionRouter } from './vision';
+
+// Background Cloud Functions
+import { onUserCreated, onUserDeleted } from './triggers/authTriggers';
+import { onWorkoutCompleted } from './triggers/firestoreTriggers';
+import { checkStreaksDaily, weeklySummaryReport } from './scheduled/scheduledTasks';
+import { verifyWorkoutSession, calculateWorkoutXP, searchExercises, getAICoachRecommendation } from './callable/callableFunctions';
 
 export const app = express();
 
@@ -32,6 +41,7 @@ export const app = express();
 app.use(cors({ origin: true }));
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: false }));
+app.use(verifyAppCheck);
 
 // Lightweight request logging
 app.use((req: Request, _res: Response, next) => {
@@ -107,8 +117,10 @@ v1.use('/exercises', exercisesRouter); // CF11: Exercise Library
 v1.use('/workouts', workoutsRouter);   // CF12-CF14: Personalized Plans / Daily Plan
 v1.use('/sessions', sessionsRouter);   // CF9: Rep Counting | CF15: Activity Log | CF24: XP
 v1.use('/activity', activityRouter);   // CF15: Activity Log | CF16: History
+v1.use('/progress', progressRouter);   // CF17: Progress Tracking
 v1.use('/gamification', gamificationRouter); // CF19: Streak | CF21: Milestones | CF24: XP | CF27: Badges
 v1.use('/leaderboard', leaderboardRouter);   // CF20: Leaderboard | CF22: Social Comparison
+v1.use('/notifications', notificationsRouter); // Notifications Feed & FCM
 v1.use('/ai', aiCoachRouter);          // CF6-CF10: AI Pose, Form, Feedback, Coach
 v1.post('/ai/ask-coach', askCoachHandler); // Phase 2: AI Coach consultation
 v1.post('/ai/generate-workout', generateWorkoutHandler); // Phase 4: AI Personalized Workout Generator
@@ -147,6 +159,34 @@ v1.get('/system/firestore-check', async (req: Request, res: Response) => {
   }
 });
 
+// Data seeding endpoint (admin use only — seeds exercises, sports, workouts)
+v1.post('/system/seed', async (_req: Request, res: Response) => {
+  try {
+    const { ExerciseRepository } = await import('./repositories/exerciseRepository');
+    const { SportRepository } = await import('./repositories/sportRepository');
+    const { WorkoutRepository } = await import('./repositories/workoutRepository');
+
+    const [exerciseCount, sportCount, workoutCount] = await Promise.all([
+      ExerciseRepository.seedInitialExercises(),
+      SportRepository.seedInitialSports(),
+      WorkoutRepository.seedInitialWorkouts(),
+    ]);
+
+    res.status(200).json({
+      success: true,
+      message: 'Seed data written to Firestore',
+      data: {
+        exercises: exerciseCount,
+        sports: sportCount,
+        workouts: workoutCount,
+      },
+    });
+  } catch (err: any) {
+    logger.error('Seed error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // Index — list all registered routes
 v1.get('/', (_req, res) => {
   res.status(200).json({
@@ -155,17 +195,25 @@ v1.get('/', (_req, res) => {
     routes: [
       'GET  /health',
       'GET  /api/v1/system/firestore-check',
+      'POST /api/v1/system/seed',
       'POST /api/v1/auth/signup', 'POST /api/v1/auth/login',
+      'POST /api/v1/auth/google', 'POST /api/v1/auth/reset-password',
+      'POST /api/v1/auth/logout', 'DELETE /api/v1/auth/account',
+      'POST /api/v1/auth/fcm-token',
       'GET  /api/v1/users/profile', 'PUT  /api/v1/users/profile',
+      'GET  /api/v1/users/stats',
       'GET  /api/v1/sports', 'POST /api/v1/sports/select',
       'GET  /api/v1/exercises', 'GET  /api/v1/exercises/:id',
+      'POST /api/v1/exercises/search',
       'GET  /api/v1/workouts', 'GET  /api/v1/workouts/today', 'GET  /api/v1/workouts/:id',
+      'POST /api/v1/workouts',
       'POST /api/v1/sessions/start', 'POST /api/v1/sessions/:id/complete', 'POST /api/v1/sessions/:id/cancel',
       'GET  /api/v1/activity/history',
-      'GET  /api/v1/gamification/badges',
+      'GET  /api/v1/gamification/badges', 'GET  /api/v1/gamification/status',
       'GET  /api/v1/leaderboard/global', 'GET  /api/v1/leaderboard/college',
       'POST /api/v1/ai/analyze-form', 'GET  /api/v1/ai/coaching-tip',
       'POST /api/v1/ai/ask-coach', 'POST /api/v1/ai/generate-workout', 'GET  /api/v1/ai/progress', 'GET  /api/v1/ai/consistency',
+      'GET  /api/v1/notifications', 'GET  /api/v1/progress/summary',
       'POST /api/v1/challenges', 'GET  /api/v1/challenges', 'PATCH /api/v1/challenges/:id/respond',
       'POST /api/v1/lobbies', 'POST /api/v1/lobbies/:id/join', 'GET  /api/v1/lobbies/:id', 'POST /api/v1/lobbies/:id/start',
       'POST /api/v1/bugs', 'GET  /api/v1/bugs',
@@ -247,3 +295,14 @@ export const healthCheck = onRequest({ cors: true }, async (req: Request, res: R
  */
 export const askCoach = onRequest({ cors: true }, askCoachHandler);
 
+// ── Auth Lifecycle Triggers (v1) ───────────────────────────────────────────────
+export { onUserCreated, onUserDeleted };
+
+// ── Firestore Background Triggers (2nd Gen) ────────────────────────────────────
+export { onWorkoutCompleted };
+
+// ── Scheduled Cloud Functions (2nd Gen) ─────────────────────────────────────────
+export { checkStreaksDaily, weeklySummaryReport };
+
+// ── Callable Cloud Functions (2nd Gen) ──────────────────────────────────────────
+export { verifyWorkoutSession, calculateWorkoutXP, searchExercises, getAICoachRecommendation };

@@ -1,71 +1,91 @@
 /**
- * Challenges Routes: POST /challenges, GET /challenges
- * Core Features: 25 (Peer Challenges)
+ * Challenges Routes: POST /challenges, GET /challenges, PATCH /challenges/:id/respond
+ * Core Features: Peer Challenges stored in Firestore challenges/{challengeId}
  */
 import { Router, Response } from 'express';
-import { nextId } from '../config/demoStore';
+import { db } from '../config/firebase';
 import { verifyAuth, AuthenticatedRequest } from '../auth';
+import * as logger from 'firebase-functions/logger';
 
 export const challengesRouter = Router();
-
-const challenges: any[] = [
-  {
-    id: 'ch_demo_001',
-    creatorId: 'demo_student_01',
-    creatorName: 'Aarav Sharma',
-    challengeeId: 'u4',
-    challengeeName: 'Rohan Verma',
-    exerciseId: 'pushup',
-    targetReps: 20,
-    status: 'pending',
-    expiresAt: new Date(Date.now() + 3 * 86400000).toISOString(),
-    createdAt: new Date().toISOString(),
-  },
-];
+const COLLECTION = 'challenges';
 
 // POST /api/v1/challenges
-challengesRouter.post('/', verifyAuth, (req: AuthenticatedRequest, res: Response) => {
-  const { challengeeId, exerciseId, targetReps, message } = req.body;
+challengesRouter.post('/', verifyAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { challengeeId, exerciseId, targetReps, message } = req.body;
 
-  if (!challengeeId || !exerciseId || !targetReps) {
-    return res.status(400).json({ error: 'challengeeId, exerciseId and targetReps are required' });
+    if (!challengeeId || !exerciseId || !targetReps) {
+      return res.status(400).json({ success: false, error: 'challengeeId, exerciseId and targetReps are required' });
+    }
+
+    const challengeId = `challenge_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+    const newChallenge = {
+      id: challengeId,
+      creatorId: req.user!.uid,
+      creatorName: req.user!.name || 'Athlete',
+      challengeeId,
+      challengeeName: '(pending)',
+      exerciseId,
+      targetReps: Number(targetReps),
+      message: message ?? `I challenge you to ${targetReps} ${exerciseId}s!`,
+      status: 'pending',
+      expiresAt: new Date(Date.now() + 3 * 86400000).toISOString(),
+      createdAt: new Date().toISOString(),
+    };
+
+    await db.collection(COLLECTION).doc(challengeId).set(newChallenge);
+
+    res.status(201).json({
+      success: true,
+      message: '⚡ Challenge sent! Let the battle begin!',
+      data: newChallenge,
+    });
+  } catch (err: any) {
+    logger.error('Error creating challenge:', err);
+    res.status(500).json({ success: false, error: err.message });
   }
-
-  const newChallenge = {
-    id: nextId('challenge'),
-    creatorId: req.user!.uid,
-    creatorName: req.user!.name,
-    challengeeId,
-    challengeeName: '(pending)',
-    exerciseId,
-    targetReps: Number(targetReps),
-    message: message ?? `I challenge you to ${targetReps} ${exerciseId}s!`,
-    status: 'pending',
-    expiresAt: new Date(Date.now() + 3 * 86400000).toISOString(),
-    createdAt: new Date().toISOString(),
-  };
-
-  challenges.push(newChallenge);
-
-  res.status(201).json({
-    success: true,
-    message: '⚡ Challenge sent! Let the battle begin!',
-    data: newChallenge,
-  });
 });
 
 // GET /api/v1/challenges
-challengesRouter.get('/', verifyAuth, (req: AuthenticatedRequest, res: Response) => {
-  const uid = req.user!.uid;
-  const myChallenges = challenges.filter(c => c.creatorId === uid || c.challengeeId === uid);
-  res.status(200).json({ success: true, count: myChallenges.length, data: myChallenges });
+challengesRouter.get('/', verifyAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const uid = req.user!.uid;
+
+    // Query challenges where user is creator OR challengee
+    const creatorSnap = await db.collection(COLLECTION).where('creatorId', '==', uid).get();
+    const challengeeSnap = await db.collection(COLLECTION).where('challengeeId', '==', uid).get();
+
+    const challengeMap = new Map<string, any>();
+    creatorSnap.docs.forEach((d) => challengeMap.set(d.id, d.data()));
+    challengeeSnap.docs.forEach((d) => challengeMap.set(d.id, d.data()));
+
+    const myChallenges = Array.from(challengeMap.values());
+    res.status(200).json({ success: true, count: myChallenges.length, data: myChallenges });
+  } catch (err: any) {
+    logger.error('Error listing challenges:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 // PATCH /api/v1/challenges/:id/respond
-challengesRouter.patch('/:id/respond', verifyAuth, (req: AuthenticatedRequest, res: Response) => {
-  const { action } = req.body; // 'accept' or 'decline'
-  const ch = challenges.find(c => c.id === req.params.id);
-  if (!ch) return res.status(404).json({ error: 'Challenge not found' });
-  ch.status = action === 'accept' ? 'active' : 'declined';
-  res.status(200).json({ success: true, message: `Challenge ${ch.status}`, data: ch });
+challengesRouter.patch('/:id/respond', verifyAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { action } = req.body; // 'accept' or 'decline'
+    const docRef = db.collection(COLLECTION).doc(req.params.id);
+    const docSnap = await docRef.get();
+
+    if (!docSnap.exists) {
+      return res.status(404).json({ success: false, error: 'Challenge not found' });
+    }
+
+    const newStatus = action === 'accept' ? 'active' : 'declined';
+    await docRef.update({ status: newStatus, respondedAt: new Date().toISOString() });
+
+    const updated = { ...docSnap.data(), status: newStatus };
+    res.status(200).json({ success: true, message: `Challenge ${newStatus}`, data: updated });
+  } catch (err: any) {
+    logger.error('Error responding to challenge:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
 });

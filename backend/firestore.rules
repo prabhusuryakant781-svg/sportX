@@ -3,7 +3,7 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper functions
+    // ── Helper functions ────────────────────────────────────────────────────────
     function isAuthenticated() {
       return request.auth != null;
     }
@@ -12,56 +12,126 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
-    // 1. Users collection (Features 1, 2, 4, 5, 19, 24)
+    function isAdmin() {
+      return isAuthenticated() && (
+        request.auth.token.admin == true ||
+        request.auth.token.role == 'admin'
+      );
+    }
+
+    // ── 1. Users collection ───────────────────────────────────────────────────
     match /users/{userId} {
       allow read: if isAuthenticated();
-      // Server-managed fields (totalXp, currentStreak, longestStreak) cannot be tampered with by clients
-      allow create: if isAuthenticated() && request.auth.uid == userId;
-      allow update: if isOwner(userId) 
-        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['totalXp', 'currentStreak', 'longestStreak']);
-      allow delete: if isOwner(userId);
+      // Server-managed fields (xp, level, currentStreak, longestStreak, badges) cannot be tampered with by clients
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId) &&
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+          'xp', 'XP', 'totalXp', 'level', 'currentStreak', 'longestStreak', 
+          'badges', 'totalWorkouts', 'totalMinutes', 'totalCalories'
+        ]);
+      allow delete: if isOwner(userId) || isAdmin();
     }
 
-    // 2. Exercises collection (Feature 11)
-    match /exercises/{exerciseId} {
-      allow read: if isAuthenticated();
-      allow write: if false; // Admin / Function write only
-    }
-
-    // 3. Sports collection (Feature 3)
+    // ── 2. Master Sports collection ───────────────────────────────────────────
     match /sports/{sportId} {
       allow read: if isAuthenticated();
-      allow write: if false;
+      allow write: if isAdmin();
     }
 
-    // 4. Workout Plans (Features 12, 13, 14)
+    // ── 3. Master Exercises collection ────────────────────────────────────────
+    match /exercises/{exerciseId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // ── 4. Workout Plans collection ───────────────────────────────────────────
+    match /workouts/{workoutId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && (
+        request.resource.data.creatorId == request.auth.uid || isAdmin()
+      );
+      allow update, delete: if isAuthenticated() && (
+        resource.data.creatorId == request.auth.uid || isAdmin()
+      );
+    }
+
     match /workoutPlans/{planId} {
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
-      allow update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && (
+        request.resource.data.userId == request.auth.uid || isAdmin()
+      );
+      allow update, delete: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid || isAdmin()
+      );
     }
 
-    // 5. Workout Sessions (Features 15, 28)
+    // ── 5. Workout Sessions collection ────────────────────────────────────────
     match /workoutSessions/{sessionId} {
       allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
       allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
       allow update: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow delete: if isAdmin();
     }
 
-    // 6. Activity Logs (Features 15, 16)
+    // ── 6. Activity Logs (Immutable telemetry) ────────────────────────────────
     match /activityLogs/{activityId} {
       allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
       allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
       allow update, delete: if false; // Immutable logs
     }
 
-    // 7. Challenges (Features 23, 27)
+    // ── 7. Streaks collection (Server-authoritative) ──────────────────────────
+    match /streaks/{userId} {
+      allow read: if isAuthenticated() && (isOwner(userId) || isAdmin());
+      allow write: if false; // Managed exclusively via Cloud Functions
+    }
+
+    // ── 8. XP Transactions (Immutable audit trail) ────────────────────────────
+    match /xpTransactions/{txId} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow write: if false; // Server-authoritative only
+    }
+
+    // ── 9. Master Badges & Milestones ─────────────────────────────────────────
+    match /badges/{badgeId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // ── 10. User Badges (Unlocked trophies) ───────────────────────────────────
+    match /userBadges/{userBadgeId} {
+      allow read: if isAuthenticated();
+      allow write: if false; // Awarded solely through Cloud Functions triggers
+    }
+
+    // ── 11. Progress Aggregates ───────────────────────────────────────────────
+    match /progress/{userId} {
+      allow read: if isAuthenticated() && (isOwner(userId) || isAdmin());
+      allow write: if false; // Server-aggregated only
+    }
+
+    // ── 12. Device Tokens for FCM ─────────────────────────────────────────────
+    match /deviceTokens/{tokenId} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create, update: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+
+    // ── 13. In-App Notifications ──────────────────────────────────────────────
+    match /notifications/{notificationId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow update: if isAuthenticated() 
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
+      allow create, delete: if false;
+    }
+
+    // ── 14. Challenges & Multiplayer ──────────────────────────────────────────
     match /challenges/{challengeId} {
       allow read: if isAuthenticated();
       allow write: if false;
     }
 
-    // 8. Multiplayer Lobbies (Features 7, 25, 26)
     match /lobbies/{lobbyId} {
       allow read: if isAuthenticated();
       allow create: if isAuthenticated();
@@ -69,23 +139,22 @@ service cloud.firestore {
       allow delete: if isAuthenticated() && resource.data.hostUserId == request.auth.uid;
     }
 
-    // 9. Leaderboards (Feature 27)
+    // ── 15. Leaderboards & Insights ───────────────────────────────────────────
     match /leaderboards/{leaderboardId} {
       allow read: if isAuthenticated();
-      allow write: if false; // Written strictly by Cloud Functions
+      allow write: if false;
     }
 
-    // 10. Bug Reports (Feature 30)
-    match /bugReports/{reportId} {
-      allow read: if false; // Developers/Admins only
-      allow create: if isAuthenticated();
-      allow update, delete: if false;
-    }
-
-    // 11. AI Coach Insights (Feature 22)
     match /coachInsights/{insightId} {
       allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
       allow write: if false;
+    }
+
+    // ── 16. Developer / Bug Reports ───────────────────────────────────────────
+    match /bugReports/{reportId} {
+      allow read: if isAdmin();
+      allow create: if isAuthenticated();
+      allow update, delete: if false;
     }
   }
 }

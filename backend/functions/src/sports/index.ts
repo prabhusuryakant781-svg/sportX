@@ -1,41 +1,52 @@
 /**
- * Sports Routes: GET /sports, POST /sports/select
- * Core Feature: 3 (Sports Selection)
+ * Sports Routes: GET /sports, POST /sports/select, GET /sports/:id
+ * Core Feature: Sports Catalogue & User Sport Selections
  */
 import { Router, Response } from 'express';
-import { users } from '../config/demoStore';
+import { SportRepository } from '../repositories/sportRepository';
+import { UserRepository } from '../repositories/userRepository';
 import { verifyAuth, AuthenticatedRequest } from '../auth';
+import * as logger from 'firebase-functions/logger';
 
 export const sportsRouter = Router();
 
-const SPORTS_CATALOGUE = [
-  { id: 'badminton', name: 'Badminton', category: 'Racquet', icon: '🏸', caloriePerHour: 400 },
-  { id: 'football', name: 'Football / Soccer', category: 'Team Sport', icon: '⚽', caloriePerHour: 550 },
-  { id: 'cricket', name: 'Cricket', category: 'Team Sport', icon: '🏏', caloriePerHour: 350 },
-  { id: 'basketball', name: 'Basketball', category: 'Team Sport', icon: '🏀', caloriePerHour: 600 },
-  { id: 'running', name: 'Campus Running', category: 'Athletics', icon: '🏃', caloriePerHour: 500 },
-  { id: 'table_tennis', name: 'Table Tennis', category: 'Racquet', icon: '🏓', caloriePerHour: 300 },
-];
-
 // GET /api/v1/sports
-sportsRouter.get('/', (_req, res) => {
-  res.status(200).json({ success: true, data: SPORTS_CATALOGUE });
+sportsRouter.get('/', async (_req, res) => {
+  try {
+    const sports = await SportRepository.getAll();
+    res.status(200).json({ success: true, count: sports.length, data: sports });
+  } catch (err: any) {
+    logger.error('Error in /sports:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// GET /api/v1/sports/:id
+sportsRouter.get('/:id', async (req, res) => {
+  try {
+    const sport = await SportRepository.getById(req.params.id);
+    if (!sport) {
+      return res.status(404).json({ success: false, error: 'Sport not found' });
+    }
+    return res.status(200).json({ success: true, data: sport });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 // POST /api/v1/sports/select
-sportsRouter.post('/select', verifyAuth, (req: AuthenticatedRequest, res: Response) => {
-  const uid = req.user!.uid;
-  const { sports } = req.body;
+sportsRouter.post('/select', verifyAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const uid = req.user!.uid;
+    const { sports } = req.body;
 
-  if (!Array.isArray(sports)) {
-    return res.status(400).json({ error: 'sports must be an array of sport IDs' });
+    if (!Array.isArray(sports)) {
+      return res.status(400).json({ success: false, error: 'sports must be an array of sport IDs' });
+    }
+
+    await UserRepository.update(uid, { selectedSports: sports });
+    return res.status(200).json({ success: true, message: 'Sports updated successfully', sports });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
   }
-
-  const user = users.get(uid);
-  if (user) {
-    user.selectedSports = sports;
-    users.set(uid, user);
-  }
-
-  res.status(200).json({ success: true, message: 'Sports updated', sports });
 });

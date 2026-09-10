@@ -1,98 +1,134 @@
 /**
- * Workout Plan Routes: GET /workouts, GET /workouts/today
- * Core Features: 12 (Personalized Plan), 13 (Workout Library), 14 (Daily Plan)
+ * Workout Plan Routes: GET /workouts, GET /workouts/today, GET /workouts/:id, POST /workouts
+ * Core Feature: Personalized Workout Plans, Library & Custom Routines
  */
 import { Router, Response } from 'express';
-import { users } from '../config/demoStore';
+import { WorkoutRepository, INITIAL_WORKOUTS } from '../repositories/workoutRepository';
+import { UserRepository } from '../repositories/userRepository';
 import { verifyAuth, AuthenticatedRequest } from '../auth';
+import { WorkoutPlanDoc } from '../types';
+import * as logger from 'firebase-functions/logger';
 
 export const workoutsRouter = Router();
 
-export const WORKOUT_PLANS = [
-  {
-    id: 'dorm_blast_10',
-    title: '10-Min Express Dorm Blast',
-    targetGoal: 'fitness',
-    estimatedDurationMinutes: 10,
-    difficulty: 'beginner',
-    exercises: [
-      { exerciseId: 'jumping_jacks', name: 'Jumping Jacks', targetSets: 2, targetReps: 20, aiSupported: true, restSeconds: 20 },
-      { exerciseId: 'squat', name: 'Bodyweight Squats', targetSets: 2, targetReps: 10, aiSupported: true, restSeconds: 20 },
-      { exerciseId: 'pushup', name: 'Standard Push-ups', targetSets: 2, targetReps: 8, aiSupported: true, restSeconds: 20 },
-    ],
-  },
-  {
-    id: 'dorm_blast_20',
-    title: '20-Min Dorm Room Blast',
-    targetGoal: 'fitness',
-    estimatedDurationMinutes: 20,
-    difficulty: 'beginner',
-    exercises: [
-      { exerciseId: 'squat', name: 'Bodyweight Squats', targetSets: 3, targetReps: 12, aiSupported: true, restSeconds: 30 },
-      { exerciseId: 'pushup', name: 'Standard Push-ups', targetSets: 3, targetReps: 10, aiSupported: true, restSeconds: 30 },
-      { exerciseId: 'plank', name: 'Core Plank', targetSets: 3, targetDurationSeconds: 45, aiSupported: true, restSeconds: 30 },
-    ],
-  },
-  {
-    id: 'strength_30',
-    title: '30-Min Strength Builder',
-    targetGoal: 'strength',
-    estimatedDurationMinutes: 30,
-    difficulty: 'intermediate',
-    exercises: [
-      { exerciseId: 'squat', name: 'Bodyweight Squats', targetSets: 4, targetReps: 15, aiSupported: true, restSeconds: 45 },
-      { exerciseId: 'pushup', name: 'Standard Push-ups', targetSets: 4, targetReps: 12, aiSupported: true, restSeconds: 45 },
-      { exerciseId: 'bicep_curl', name: 'Bicep Curls', targetSets: 3, targetReps: 12, aiSupported: true, restSeconds: 30 },
-      { exerciseId: 'plank', name: 'Core Plank', targetSets: 3, targetDurationSeconds: 60, aiSupported: true, restSeconds: 30 },
-    ],
-  },
-  {
-    id: 'endurance_45',
-    title: '45-Min Athletic Endurance Circuit',
-    targetGoal: 'endurance',
-    estimatedDurationMinutes: 45,
-    difficulty: 'advanced',
-    exercises: [
-      { exerciseId: 'jumping_jacks', name: 'Jumping Jacks', targetSets: 4, targetReps: 30, aiSupported: true, restSeconds: 20 },
-      { exerciseId: 'squat', name: 'Bodyweight Squats', targetSets: 4, targetReps: 20, aiSupported: true, restSeconds: 30 },
-      { exerciseId: 'pushup', name: 'Standard Push-ups', targetSets: 4, targetReps: 15, aiSupported: true, restSeconds: 30 },
-      { exerciseId: 'bicep_curl', name: 'Bicep Curls', targetSets: 3, targetReps: 15, aiSupported: true, restSeconds: 30 },
-      { exerciseId: 'plank', name: 'Core Plank', targetSets: 3, targetDurationSeconds: 90, aiSupported: true, restSeconds: 30 },
-    ],
-  },
-];
+// Re-export for compatibility
+export const WORKOUT_PLANS = INITIAL_WORKOUTS;
 
 // GET /api/v1/workouts
-workoutsRouter.get('/', (req, res) => {
-  const { time, goal } = req.query;
-  let results = [...WORKOUT_PLANS];
-  if (time) results = results.filter(p => p.estimatedDurationMinutes <= Number(time));
-  if (goal) results = results.filter(p => p.targetGoal === goal);
-  res.status(200).json({ success: true, count: results.length, data: results.length ? results : WORKOUT_PLANS });
+workoutsRouter.get('/', async (req, res) => {
+  try {
+    const { time, goal, difficulty, sport } = req.query;
+    const workouts = await WorkoutRepository.getAll({
+      maxDuration: time ? Number(time) : undefined,
+      goal: goal as string,
+      difficulty: difficulty as string,
+      sport: sport as string,
+    });
+
+    res.status(200).json({ success: true, count: workouts.length, data: workouts });
+  } catch (err: any) {
+    logger.error('Error in GET /workouts:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
-// GET /api/v1/workouts/today  — personalized pick
-workoutsRouter.get('/today', verifyAuth, (req: AuthenticatedRequest, res: Response) => {
-  const user = users.get(req.user!.uid);
-  const time = user?.availableTimeMinutes ?? 20;
-  const goal = user?.fitnessGoal ?? 'fitness';
+// GET /api/v1/workouts/today  — personalized workout selection
+workoutsRouter.get('/today', verifyAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const uid = req.user!.uid;
+    const user = await UserRepository.getById(uid);
 
-  const matched =
-    WORKOUT_PLANS.find(p => p.estimatedDurationMinutes <= time && p.targetGoal === goal) ??
-    WORKOUT_PLANS[1];
+    const time = user?.workoutDaysPerWeek ? 20 : 20;
+    const userGoals = user?.goals || ['fitness'];
+    const primaryGoal = userGoals[0] || 'fitness';
 
-  res.status(200).json({
-    success: true,
-    data: {
-      ...matched,
-      recommendationReason: `Personalized for your ${time}-minute slot and '${goal}' goal.`,
-    },
-  });
+    const allWorkouts = await WorkoutRepository.getAll();
+    const matched =
+      allWorkouts.find(
+        (p) => p.estimatedDuration <= time && (p.targetGoal === primaryGoal || p.targetGoal === 'fitness')
+      ) || allWorkouts[0];
+
+    res.status(200).json({
+      success: true,
+      data: {
+        ...matched,
+        recommendationReason: `Personalized for your ${time}-minute session window and '${primaryGoal}' goal.`,
+      },
+    });
+  } catch (err: any) {
+    logger.error('Error in GET /workouts/today:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 // GET /api/v1/workouts/:id
-workoutsRouter.get('/:id', (req, res) => {
-  const plan = WORKOUT_PLANS.find(p => p.id === req.params.id);
-  if (!plan) return res.status(404).json({ error: 'Workout plan not found' });
-  res.status(200).json({ success: true, data: plan });
+workoutsRouter.get('/:id', async (req, res) => {
+  try {
+    const workout = await WorkoutRepository.getById(req.params.id);
+    if (!workout) {
+      return res.status(404).json({ success: false, error: 'Workout plan not found' });
+    }
+    return res.status(200).json({ success: true, data: workout });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// POST /api/v1/workouts (create custom workout)
+workoutsRouter.post('/', verifyAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const uid = req.user!.uid;
+    const {
+      title,
+      description,
+      sport = 'fitness',
+      difficulty = 'beginner',
+      targetGoal = 'fitness',
+      estimatedDuration = 20,
+      exercises = [],
+      tags = [],
+      isPublic = false,
+    } = req.body;
+
+    if (!title || !Array.isArray(exercises) || exercises.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'title and non-empty exercises array are required to create a workout plan',
+      });
+    }
+
+    const workoutId = `workout_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+    const newWorkout: WorkoutPlanDoc = {
+      workoutId,
+      title,
+      description: description || 'Custom user workout routine',
+      creatorId: uid,
+      sport,
+      difficulty,
+      targetGoal,
+      estimatedDuration: Number(estimatedDuration),
+      estimatedCalories: Math.round(Number(estimatedDuration) * 8.5),
+      exercises: exercises.map((ex: any, idx: number) => ({
+        exerciseId: ex.exerciseId,
+        name: ex.name,
+        targetReps: ex.targetReps ?? 10,
+        targetSets: ex.targetSets ?? 3,
+        targetHoldSeconds: ex.targetHoldSeconds,
+        restInterval: ex.restInterval ?? 30,
+        order: ex.order ?? idx + 1,
+        aiSupported: ex.aiSupported ?? true,
+      })),
+      tags: Array.isArray(tags) ? tags : ['custom'],
+      isCustom: true,
+      isPublic: Boolean(isPublic),
+      likesCount: 0,
+      createdAt: new Date().toISOString(),
+    };
+
+    const saved = await WorkoutRepository.create(newWorkout);
+    res.status(201).json({ success: true, message: 'Workout created successfully', data: saved });
+  } catch (err: any) {
+    logger.error('Error creating workout:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
