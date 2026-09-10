@@ -55,80 +55,116 @@ Provide your structured coaching response following the strict JSON schema.`;
 
 /**
  * Calls the Google Gemini AI API via secure server-side REST endpoint.
+ * Supports auto-fallback across candidate models if Google returns HTTP 404 (model retired/unsupported).
  */
 async function callGeminiApi(
   apiKey: string,
   prompt: string,
-  model = 'gemini-1.5-flash',
+  requestedModel = 'gemini-2.5-flash',
   timeoutMs = 10000
 ): Promise<string> {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
+  const cleanKey = apiKey.trim();
+  const cleanRequested = (requestedModel || 'gemini-2.5-flash').trim().replace(/^models\//, '');
 
-  const requestBody = {
-    systemInstruction: {
-      parts: [{ text: SYSTEM_INSTRUCTION }]
-    },
-    contents: [
-      {
-        role: 'user',
-        parts: [{ text: prompt }]
-      }
-    ],
-    generationConfig: {
-      responseMimeType: 'application/json',
-      temperature: 0.3,
-      maxOutputTokens: 800
-    }
-  };
+  // Ordered list of candidate models to try: user's requested model first, followed by active models
+  const candidateModels = Array.from(
+    new Set([cleanRequested, 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash-latest', 'gemini-1.5-flash'])
+  );
 
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  let lastStatus = 0;
+  let lastErrorBody = '';
 
-  try {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-goog-api-key': apiKey
+  for (let i = 0; i < candidateModels.length; i++) {
+    const model = candidateModels[i];
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(cleanKey)}`;
+
+    const requestBody = {
+      systemInstruction: {
+        parts: [{ text: SYSTEM_INSTRUCTION }]
       },
-      body: JSON.stringify(requestBody),
-      signal: controller.signal
-    });
+      contents: [
+        {
+          role: 'user',
+          parts: [{ text: prompt }]
+        }
+      ],
+      generationConfig: {
+        responseMimeType: 'application/json',
+        temperature: 0.3,
+        maxOutputTokens: 800
+      }
+    };
 
-    if (!response.ok) {
-      const errorBody = await response.text().catch(() => '');
-      const safeErrorBody = errorBody.replace(/key=[^&\s"']+/gi, 'key=[REDACTED]');
-      logger.error('[AI Coach] Gemini API request failure: HTTP status', response.status, safeErrorBody);
-      const apiErr: any = new Error(`AI service returned status ${response.status}`);
-      apiErr.category = 'Gemini API request failure';
-      apiErr.statusCode = response.status === 429 ? 429 : 502;
-      throw apiErr;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': cleanKey
+        },
+        body: JSON.stringify(requestBody),
+        signal: controller.signal
+      });
+
+      if (!response.ok) {
+        lastStatus = response.status;
+        lastErrorBody = await response.text().catch(() => '');
+        const safeErrorBody = lastErrorBody.replace(/key=[^&\s"']+/gi, 'key=[REDACTED]');
+        logger.error(`[AI Coach] Gemini API request failed for model "${model}": HTTP status ${response.status}`, safeErrorBody);
+
+        // If model returned 404 (retired or unsupported in project), try next candidate model
+        if (response.status === 404 && i < candidateModels.length - 1) {
+          logger.info(`[AI Coach] Model "${model}" returned HTTP 404. Trying fallback model "${candidateModels[i + 1]}"...`);
+          continue;
+        }
+
+        const apiErr: any = new Error(
+          response.status === 404
+            ? `AI service model "${model}" was not found (status 404). Please verify AI_MODEL in environment settings.`
+            : `AI service returned status ${response.status}`
+        );
+        apiErr.category = 'Gemini API request failure';
+        apiErr.statusCode = response.status === 429 ? 429 : 502;
+        throw apiErr;
+      }
+
+      const data: any = await response.json();
+      const candidateText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+      if (!candidateText || typeof candidateText !== 'string') {
+        logger.error('[AI Coach] AI provider initialization failure: Empty response candidate from Gemini');
+        const emptyErr: any = new Error('AI service returned an empty response');
+        emptyErr.category = 'AI provider initialization failure';
+        emptyErr.statusCode = 502;
+        throw emptyErr;
+      }
+
+      return candidateText;
+    } catch (err: any) {
+      if (err.name === 'AbortError') {
+        logger.error('[AI Coach] Gemini API request failure: Request timed out after', timeoutMs, 'ms');
+        const timeoutErr: any = new Error('AI Coach service request timed out');
+        timeoutErr.category = 'Gemini API request failure';
+        timeoutErr.statusCode = 504;
+        throw timeoutErr;
+      }
+      // If 404 and more models to try, loop continues
+      if (lastStatus === 404 && i < candidateModels.length - 1) {
+        continue;
+      }
+      throw err;
+    } finally {
+      clearTimeout(timeoutId);
     }
-
-    const data: any = await response.json();
-    const candidateText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-
-    if (!candidateText || typeof candidateText !== 'string') {
-      logger.error('[AI Coach] AI provider initialization failure: Empty response candidate from Gemini');
-      const emptyErr: any = new Error('AI service returned an empty response');
-      emptyErr.category = 'AI provider initialization failure';
-      emptyErr.statusCode = 502;
-      throw emptyErr;
-    }
-
-    return candidateText;
-  } catch (err: any) {
-    if (err.name === 'AbortError') {
-      logger.error('[AI Coach] Gemini API request failure: Request timed out after', timeoutMs, 'ms');
-      const timeoutErr: any = new Error('AI Coach service request timed out');
-      timeoutErr.category = 'Gemini API request failure';
-      timeoutErr.statusCode = 504;
-      throw timeoutErr;
-    }
-    throw err;
-  } finally {
-    clearTimeout(timeoutId);
   }
+
+  const finalErr: any = new Error(`AI service returned status ${lastStatus || 404}`);
+  finalErr.category = 'Gemini API request failure';
+  finalErr.statusCode = 502;
+  throw finalErr;
 }
 
 /**
@@ -196,7 +232,7 @@ export async function generateCoachResponse(
     throw configErr;
   }
 
-  const model = options?.model || process.env.AI_MODEL || 'gemini-1.5-flash';
+  const model = options?.model || process.env.AI_MODEL || 'gemini-2.5-flash';
   const timeoutMs = options?.timeoutMs || 10000;
 
   try {

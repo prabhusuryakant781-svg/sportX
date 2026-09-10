@@ -168,6 +168,7 @@ v1.get('/', (_req, res) => {
 });
 
 app.use('/api/v1', v1);
+app.use('/v1', v1); // Serverless compatibility fallback if /api prefix is stripped by proxy
 
 // ── 404 fallback ───────────────────────────────────────────────────────────────
 app.use((req: Request, res: Response) => {
