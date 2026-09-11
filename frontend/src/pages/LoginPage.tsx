@@ -3,19 +3,24 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 export default function LoginPage() {
-  const { login, signup, loginWithGoogle } = useAuth();
+  const { login, signup, loginWithGoogle, resetPassword } = useAuth();
   const navigate = useNavigate();
   const [tab, setTab] = useState<'login' | 'signup'>('login');
   const [form, setForm] = useState({ name: '', email: '', password: '', collegeName: '', department: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [infoMessage, setInfoMessage] = useState('');
+  const [showForgot, setShowForgot] = useState(false);
 
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm(f => ({ ...f, [k]: e.target.value }));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(''); setLoading(true);
+    setError('');
+    setInfoMessage('');
+    setLoading(true);
+
     try {
       if (tab === 'login') {
         await login({ email: form.email, password: form.password });
@@ -32,19 +37,36 @@ export default function LoginPage() {
   };
 
   const handleGoogle = async () => {
-    setLoading(true); setError('');
+    setLoading(true);
+    setError('');
+    setInfoMessage('');
     try {
       await loginWithGoogle();
       navigate('/dashboard');
-    } catch (err: any) { setError(err.message); } finally { setLoading(false); }
+    } catch (err: any) {
+      setError(err.message || 'Google sign-in failed');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const demoLogin = async () => {
-    setLoading(true); setError('');
+  const handleResetPassword = async () => {
+    if (!form.email) {
+      setError('Please enter your email address to receive a password reset link.');
+      return;
+    }
+    setLoading(true);
+    setError('');
+    setInfoMessage('');
     try {
-      await login({ email: 'demo@sportx.app', password: 'demo' });
-      navigate('/dashboard');
-    } catch (err: any) { setError(err.message); } finally { setLoading(false); }
+      await resetPassword(form.email);
+      setInfoMessage('Password reset email sent! Check your inbox.');
+      setShowForgot(false);
+    } catch (err: any) {
+      setError(err.message || 'Failed to send reset email');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -63,7 +85,7 @@ export default function LoginPage() {
           {(['login', 'signup'] as const).map(t => (
             <button
               key={t}
-              onClick={() => { setTab(t); setError(''); }}
+              onClick={() => { setTab(t); setError(''); setInfoMessage(''); }}
               className={`flex-1 py-2.5 rounded-md border-none cursor-pointer font-outfit font-semibold text-sm transition-all ${
                 tab === t
                   ? 'bg-gradient-hero text-white'
@@ -97,13 +119,46 @@ export default function LoginPage() {
             <input className="input" type="email" value={form.email} onChange={set('email')} placeholder="you@college.edu" required />
           </div>
           <div className="form-group">
-            <label>Password</label>
-            <input className="input" type="password" value={form.password} onChange={set('password')} placeholder="••••••••" required />
+            <div className="flex justify-between items-center mb-1">
+              <label>Password</label>
+              {tab === 'login' && (
+                <button
+                  type="button"
+                  onClick={() => setShowForgot(v => !v)}
+                  className="text-xs text-brand-orange bg-transparent border-none cursor-pointer hover:underline"
+                >
+                  Forgot password?
+                </button>
+              )}
+            </div>
+            <input className="input" type="password" value={form.password} onChange={set('password')} placeholder="••••••••" required={!showForgot} />
           </div>
+
+          {showForgot && (
+            <div className="p-3 bg-white/5 rounded-lg border border-white/10 flex flex-col gap-2">
+              <p className="text-xs text-muted">
+                Enter your email address above and click below to receive a password reset link.
+              </p>
+              <button
+                type="button"
+                onClick={handleResetPassword}
+                disabled={loading}
+                className="btn btn-outline text-xs py-1.5"
+              >
+                Send Reset Email
+              </button>
+            </div>
+          )}
 
           {error && (
             <div className="text-crimson text-sm p-2 bg-crimson/10 rounded-lg border border-crimson/30">
               {error}
+            </div>
+          )}
+
+          {infoMessage && (
+            <div className="text-emerald text-sm p-2 bg-emerald/10 rounded-lg border border-emerald/30">
+              {infoMessage}
             </div>
           )}
 
@@ -125,16 +180,6 @@ export default function LoginPage() {
             <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
           </svg>
           Sign in with Google
-        </button>
-
-        <div className="flex items-center gap-3 my-4">
-          <div className="divider flex-1" />
-          <span className="text-muted text-xs">or</span>
-          <div className="divider flex-1" />
-        </div>
-
-        <button onClick={demoLogin} className="btn btn-outline btn-full" disabled={loading}>
-          🎯 Try Demo (no signup needed)
         </button>
       </div>
     </div>

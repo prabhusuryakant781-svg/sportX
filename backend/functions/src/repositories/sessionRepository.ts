@@ -69,30 +69,6 @@ export class SessionRepository {
       return localSessionsCache.get(sessionId)!;
     }
 
-    const demoMatch = demoSessions.find(s => s.id === sessionId);
-    if (demoMatch) {
-      return {
-        sessionId: demoMatch.id,
-        userId: demoMatch.userId,
-        workoutId: 'workout_standard',
-        sportId: 'general',
-        startTime: demoMatch.completedAt,
-        completionTime: demoMatch.completedAt,
-        endTime: demoMatch.completedAt,
-        durationMinutes: Math.round(demoMatch.durationSeconds / 60),
-        durationSeconds: demoMatch.durationSeconds,
-        totalReps: demoMatch.totalReps,
-        formAccuracyAverage: demoMatch.averageFormScore,
-        caloriesBurned: demoMatch.caloriesBurned,
-        heartRateAverage: null,
-        exerciseLogs: [],
-        exerciseId: demoMatch.exerciseId,
-        xpEarned: demoMatch.xpAwarded,
-        status: 'completed',
-        createdAt: demoMatch.completedAt,
-      };
-    }
-
     return null;
   }
 
@@ -168,5 +144,37 @@ export class SessionRepository {
         return timeB - timeA;
       })
       .slice(0, maxLimit);
+  }
+
+  /**
+   * Delete all workout sessions belonging to a user (used during account deletion)
+   */
+  static async deleteAllByUser(userId: string): Promise<number> {
+    let count = 0;
+    for (const [id, session] of Array.from(localSessionsCache.entries())) {
+      if (session.userId === userId) {
+        localSessionsCache.delete(id);
+        count++;
+      }
+    }
+
+    if (hasFirebaseCredentials) {
+      try {
+        const snap = await withTimeout(
+          db.collection(COLLECTION).where('userId', '==', userId).get(),
+          2500
+        );
+        if (!snap.empty) {
+          const batch = db.batch();
+          snap.docs.forEach((doc) => batch.delete(doc.ref));
+          await batch.commit();
+          count = Math.max(count, snap.size);
+        }
+      } catch (err) {
+        logger.warn(`[SessionRepository] Firestore deleteAllByUser failed for ${userId}:`, err);
+      }
+    }
+
+    return count;
   }
 }

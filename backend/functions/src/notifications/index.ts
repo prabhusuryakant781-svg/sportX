@@ -28,10 +28,15 @@ notificationsRouter.get('/', verifyAuth, async (req: AuthenticatedRequest, res: 
 notificationsRouter.patch('/:id/read', verifyAuth, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { id } = req.params;
-    await NotificationRepository.markAsRead(id);
+    const uid = req.user!.uid;
+    const success = await NotificationRepository.markAsRead(id, uid);
+    if (!success) {
+      return res.status(404).json({ success: false, error: 'Notification not found' });
+    }
     return res.status(200).json({ success: true, message: 'Notification marked as read' });
   } catch (err: any) {
-    return res.status(500).json({ success: false, error: err.message });
+    const status = err.message?.includes('Forbidden') ? 403 : 500;
+    return res.status(status).json({ success: false, error: err.message });
   }
 });
 

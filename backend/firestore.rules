@@ -19,26 +19,61 @@ service cloud.firestore {
       );
     }
 
-    // ── 1. Users collection ───────────────────────────────────────────────────
-    match /users/{userId} {
-      allow read: if isAuthenticated();
-      // Server-managed fields (xp, level, currentStreak, longestStreak, badges) cannot be tampered with by clients
-      allow create: if isOwner(userId);
-      allow update: if isOwner(userId) &&
-        !request.resource.data.diff(resource.data).affectedKeys().hasAny([
-          'xp', 'XP', 'totalXp', 'level', 'currentStreak', 'longestStreak', 
-          'badges', 'totalWorkouts', 'totalMinutes', 'totalCalories'
-        ]);
-      allow delete: if isOwner(userId) || isAdmin();
+    // Strict Safe-Field Allowlist for Profile Updates (Owner-Only)
+    // Server-managed fields (xp, level, streaks, badges, totals, role) can NEVER be written by client
+    function isSafeProfileUpdate() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+        'name', 'profileImage', 'age', 'height', 'weight',
+        'fitnessLevel', 'goals', 'selectedSports', 'experience',
+        'preferences', 'availableWorkoutTime', 'availableEquipment',
+        'workoutDaysPerWeek', 'targetCalories', 'notificationsEnabled',
+        'fcmTokens', 'collegeName', 'department', 'bio', 'isPublic', 'updatedAt'
+      ]);
     }
 
-    // ── 2. Master Sports collection ───────────────────────────────────────────
+    // Safe Profile Creation: allows only safe initial profile setup with 0/default stats
+    function isSafeProfileCreate(userId) {
+      return isOwner(userId) &&
+        request.resource.data.userId == request.auth.uid &&
+        request.resource.data.keys().hasOnly([
+          'userId', 'name', 'email', 'profileImage', 'age', 'height', 'weight',
+          'fitnessLevel', 'goals', 'selectedSports', 'experience',
+          'preferences', 'availableWorkoutTime', 'availableEquipment',
+          'workoutDaysPerWeek', 'targetCalories', 'notificationsEnabled',
+          'fcmTokens', 'collegeName', 'department', 'bio', 'isPublic',
+          'createdAt', 'updatedAt', 'role',
+          'totalWorkouts', 'totalMinutes', 'totalCalories',
+          'currentStreak', 'longestStreak', 'lastWorkoutDate',
+          'xp', 'XP', 'level', 'badges'
+        ]) &&
+        request.resource.data.get('role', 'user') == 'user' &&
+        request.resource.data.get('xp', 0) == 0 &&
+        request.resource.data.get('XP', 0) == 0 &&
+        request.resource.data.get('level', 1) == 1 &&
+        request.resource.data.get('totalWorkouts', 0) == 0 &&
+        request.resource.data.get('totalMinutes', 0) == 0 &&
+        request.resource.data.get('totalCalories', 0) == 0 &&
+        request.resource.data.get('currentStreak', 0) == 0 &&
+        request.resource.data.get('longestStreak', 0) == 0 &&
+        request.resource.data.get('badges', []).size() == 0;
+    }
+
+    // ── 1. Users collection (Private profiles restricted to owners) ─────────────
+    match /users/{userId} {
+      // Private profiles are restricted to owners & admins; public profiles can be read by authenticated users
+      allow read: if isOwner(userId) || isAdmin() || (isAuthenticated() && resource.data.get('isPublic', false) == true);
+      allow create: if isSafeProfileCreate(userId);
+      allow update: if isOwner(userId) && isSafeProfileUpdate();
+      allow delete: if isAdmin();
+    }
+
+    // ── 2. Master Sports collection (Read-only for clients, Admin write) ───────
     match /sports/{sportId} {
       allow read: if isAuthenticated();
       allow write: if isAdmin();
     }
 
-    // ── 3. Master Exercises collection ────────────────────────────────────────
+    // ── 3. Master Exercises collection (Read-only for clients, Admin write) ────
     match /exercises/{exerciseId} {
       allow read: if isAuthenticated();
       allow write: if isAdmin();
@@ -65,49 +100,54 @@ service cloud.firestore {
       );
     }
 
-    // ── 5. Workout Sessions collection ────────────────────────────────────────
+    // ── 5. Workout Sessions (Server-Authoritative Only: Direct client writes DENIED) ──
     match /workoutSessions/{sessionId} {
-      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
-      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
-      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid;
-      allow delete: if isAdmin();
+      // History restricted strictly to owner and admin
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      // Direct client writes strictly DENIED — must use server backend /sessions API
+      allow write: if false;
     }
 
-    // ── 6. Activity Logs (Immutable telemetry) ────────────────────────────────
+    // ── 6. Activity Logs (Server-Authoritative Only: Direct client writes DENIED) ────
     match /activityLogs/{activityId} {
-      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
-      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
-      allow update, delete: if false; // Immutable logs
+      // History restricted strictly to owner and admin
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow write: if false;
     }
 
-    // ── 7. Streaks collection (Server-authoritative) ──────────────────────────
+    // ── 7. Streaks (Server-Authoritative Only: Direct client writes DENIED) ────────
     match /streaks/{userId} {
       allow read: if isAuthenticated() && (isOwner(userId) || isAdmin());
-      allow write: if false; // Managed exclusively via Cloud Functions
+      allow write: if false;
     }
 
-    // ── 8. XP Transactions (Immutable audit trail) ────────────────────────────
+    // ── 8. XP Transactions (Server-Authoritative Only: Direct client writes DENIED) ──
     match /xpTransactions/{txId} {
       allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
-      allow write: if false; // Server-authoritative only
+      allow write: if false;
     }
 
-    // ── 9. Master Badges & Milestones ─────────────────────────────────────────
+    // ── 9. Master Badges & User Badges (Direct client writes DENIED) ────────────
     match /badges/{badgeId} {
       allow read: if isAuthenticated();
       allow write: if isAdmin();
     }
 
-    // ── 10. User Badges (Unlocked trophies) ───────────────────────────────────
     match /userBadges/{userBadgeId} {
-      allow read: if isAuthenticated();
-      allow write: if false; // Awarded solely through Cloud Functions triggers
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isOwner(resource.data.userId) || isAdmin());
+      allow write: if false;
     }
 
-    // ── 11. Progress Aggregates ───────────────────────────────────────────────
+    // ── 10. Progress Aggregates (Server-Authoritative Only: Direct client writes DENIED) ─
     match /progress/{userId} {
       allow read: if isAuthenticated() && (isOwner(userId) || isAdmin());
-      allow write: if false; // Server-aggregated only
+      allow write: if false;
+    }
+
+    // ── 11. Lifetime Analytics (Server-Authoritative Only: Direct client writes DENIED) ─
+    match /analytics/{docId} {
+      allow read: if isAuthenticated() && (isOwner(docId) || resource.data.userId == request.auth.uid || isAdmin());
+      allow write: if false;
     }
 
     // ── 12. Device Tokens for FCM ─────────────────────────────────────────────
@@ -146,7 +186,7 @@ service cloud.firestore {
     }
 
     match /coachInsights/{insightId} {
-      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
       allow write: if false;
     }
 
@@ -157,10 +197,15 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
-    // ── 17. Computer Vision Results (Server-authoritative ingestion) ────────────
+    // ── 17. Computer Vision Results (Server-Authoritative Only: Direct client writes DENIED) ─
     match /visionResults/{resultId} {
       allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
-      allow write: if false; // Ingested strictly via Cloud Functions backend
+      allow write: if false;
+    }
+
+    // ── 18. System Checks (Internal diagnostics only) ──────────────────────────
+    match /systemChecks/{checkId} {
+      allow read, write: if isAdmin();
     }
   }
 }

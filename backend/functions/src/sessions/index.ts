@@ -24,6 +24,7 @@ import { GamificationService } from '../services/gamificationService';
 import { NotificationService } from '../services/notificationService';
 import { verifyAuth, AuthenticatedRequest } from '../auth';
 import { WorkoutSessionDoc, ActivityLogDoc } from '../types';
+import { WorkoutCompletionService } from '../services/workoutCompletionService';
 import * as logger from 'firebase-functions/logger';
 
 export const sessionsRouter = Router();
@@ -192,222 +193,47 @@ sessionsRouter.post('/:sessionId/resume', verifyAuth, async (req: AuthenticatedR
   }
 });
 
-// POST /api/v1/sessions/:sessionId/complete
+/// POST /api/v1/sessions/:sessionId/complete
 sessionsRouter.post('/:sessionId/complete', verifyAuth, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const uid = req.user!.uid;
     const { sessionId } = req.params;
     const {
-      totalReps = 0,
-      averageFormScore = 85,
-      durationSeconds = 60,
-      exerciseId = 'squat',
-      exerciseLogs = [],
-      heartRateAverage = null,
+      totalReps,
+      averageFormScore,
+      durationSeconds,
+      exerciseId,
+      exerciseLogs,
+      heartRateAverage,
+      planId,
+      sportId,
     } = req.body;
 
-    // Ownership and idempotency check
-    const existingSession = await SessionRepository.getById(sessionId);
-    if (existingSession) {
-      if (existingSession.userId !== uid) {
-        return res.status(403).json({ success: false, error: 'Access denied: You do not own this session' });
-      }
-
-      // Idempotency: If already completed, return existing data without duplicate rewards
-      if (existingSession.status === 'completed') {
-        const user = await UserRepository.getById(uid);
-        return res.status(200).json({
-          success: true,
-          message: 'Workout was already completed (idempotent response).',
-          data: {
-            sessionId: existingSession.sessionId,
-            exerciseId,
-            totalReps: existingSession.totalReps,
-            averageFormScore: existingSession.formAccuracyAverage,
-            durationMinutes: existingSession.durationMinutes,
-            caloriesBurned: existingSession.caloriesBurned,
-            xpEarned: existingSession.xpEarned,
-            totalXp: user?.xp || 0,
-            level: user?.level || 1,
-            currentStreak: user?.currentStreak || 0,
-            longestStreak: user?.longestStreak || 0,
-            badgesUnlocked: user?.badges || [],
-          },
-        });
-      }
-    }
-
-    const reps = Math.max(0, Number(totalReps));
-    const score = Math.min(100, Math.max(0, Number(averageFormScore)));
-    const durationSec = Math.max(0, Number(durationSeconds));
-    const durationMin = Math.max(1, Math.round(durationSec / 60));
-    const calories = Math.round(durationMin * 8.5);
-
-    // 1. Authoritative Server-side XP Calculation
-    const xpEarned = GamificationService.calculateSessionXP({
-      totalReps: reps,
-      formAccuracyAverage: score,
-      durationMinutes: durationMin,
-      isCompleted: true,
-    });
-
-    const now = new Date().toISOString();
-    const todayDate = now.split('T')[0];
-
-    // 2. Fetch existing user profile
-    let user = await UserRepository.getById(uid);
-    if (!user) {
-      user = await UserRepository.create(uid, { userId: uid });
-    }
-
-    // 3. Compute Streak progression
-    const streakResult = GamificationService.evaluateStreak({
-      lastWorkoutDate: user.lastWorkoutDate,
-      currentStreak: user.currentStreak,
-      longestStreak: user.longestStreak,
-      sessionDate: todayDate,
-    });
-
-    const newTotalXP = (user.xp || 0) + xpEarned;
-    const newLevel = GamificationService.calculateLevel(newTotalXP);
-    const updatedTotalWorkouts = (user.totalWorkouts || 0) + 1;
-
-    // 4. Compute Badges
-    const badgeResult = GamificationService.evaluateUnlockedBadges({
-      currentBadges: user.badges || [],
-      totalWorkouts: updatedTotalWorkouts,
-      totalReps: (user.totalWorkouts || 0) * 15 + reps,
-      totalXP: newTotalXP,
-      currentStreak: streakResult.currentStreak,
-      sessionFormAccuracy: score,
-    });
-
-    // 5. Save completed session in Firestore
-    const completedSession: WorkoutSessionDoc = {
+    const result = await WorkoutCompletionService.completeSession({
       sessionId,
       userId: uid,
-      workoutId: req.body.planId || existingSession?.workoutId || 'workout_standard',
-      sportId: req.body.sportId || existingSession?.sportId || 'general',
-      startTime: existingSession?.startTime || req.body.startTime || now,
-      pauseTimes: existingSession?.pauseTimes || [],
-      resumeTimes: existingSession?.resumeTimes || [],
-      completionTime: now,
-      endTime: now,
-      durationMinutes: durationMin,
-      durationSeconds: durationSec,
-      totalReps: reps,
-      formAccuracyAverage: score,
-      caloriesBurned: calories,
-      heartRateAverage: heartRateAverage ? Number(heartRateAverage) : null,
-      exerciseLogs: exerciseLogs.length > 0 ? exerciseLogs : [
-        {
-          exerciseId,
-          sets: [{ setNumber: 1, reps, formAccuracy: score, feedbackMessages: ['Good form maintained'] }],
-          totalReps: reps,
-          averageFormScore: score,
-        },
-      ],
-      xpEarned,
-      status: 'completed',
-      createdAt: existingSession?.createdAt || now,
-    };
-
-    await SessionRepository.create(completedSession);
-
-    // 6. Record individual activity logs for AI telemetry (Section 8)
-    const activityLogsToInsert: ActivityLogDoc[] = [];
-    if (completedSession.exerciseLogs && completedSession.exerciseLogs.length > 0) {
-      completedSession.exerciseLogs.forEach((exLog, idx) => {
-        activityLogsToInsert.push({
-          logId: `act_${sessionId}_${idx}`,
-          userId: uid,
-          sessionId,
-          exerciseId: exLog.exerciseId,
-          exerciseName: exLog.exerciseName || exLog.exerciseId,
-          reps: exLog.totalReps || reps,
-          durationSeconds: durationSec,
-          formScore: exLog.averageFormScore || score,
-          detectedErrors: [],
-          calories: Math.round(calories / completedSession.exerciseLogs.length),
-          timestamp: now,
-        });
-      });
-    } else {
-      activityLogsToInsert.push({
-        logId: `act_${sessionId}_0`,
-        userId: uid,
-        sessionId,
-        exerciseId,
-        exerciseName: exerciseId,
-        reps,
-        durationSeconds: durationSec,
-        formScore: score,
-        detectedErrors: [],
-        calories,
-        timestamp: now,
-      });
-    }
-    await ActivityRepository.createBatch(activityLogsToInsert).catch((err) =>
-      logger.warn('Failed recording activity logs:', err)
-    );
-
-    // 7. Atomically apply user progress to users/{userId} (Audits XP transaction, updates streak, unlocks badges)
-    await UserRepository.applyWorkoutCompletion(uid, {
-      sessionId,
-      xpToAdd: xpEarned,
-      newLevel,
-      durationMinutes: durationMin,
-      caloriesBurned: calories,
-      currentStreak: streakResult.currentStreak,
-      longestStreak: streakResult.longestStreak,
-      lastWorkoutDate: todayDate,
-      newBadges: badgeResult.newBadges.map((b) => b.id),
-    });
-
-    // 8. Update Progress Aggregates (Section 10)
-    await ProgressRepository.recordWorkout(uid, {
-      reps,
-      durationMinutes: durationMin,
-      calories,
-      formScore: score,
-      date: todayDate,
+      totalReps,
+      averageFormScore,
+      durationSeconds,
       exerciseId,
-    }).catch((err) => logger.warn('Failed updating progress aggregation:', err));
+      exerciseLogs,
+      heartRateAverage,
+      planId,
+      sportId,
+    });
 
-    // 9. Update Analytics (lifetime stats)
-    await AnalyticsRepository.recordWorkoutMetrics({
-      userId: uid,
-      durationMinutes: durationMin,
-      calories,
-      reps,
-      formAccuracy: score,
-      muscleGroups: [exerciseId],
-    }).catch((err) => logger.warn('Failed updating analytics:', err));
-
-    // 10. Trigger FCM notification for any newly unlocked badges
-    for (const badge of badgeResult.newBadges) {
-      NotificationService.sendBadgeUnlocked(uid, badge.name, badge.icon).catch((e) =>
-        logger.warn('Failed sending badge notification:', e)
-      );
+    if (!result.success) {
+      return res.status(result.statusCode).json({
+        success: false,
+        error: result.error,
+      });
     }
 
-    return res.status(200).json({
+    return res.status(result.statusCode).json({
       success: true,
-      message: '🎉 Workout completed and securely saved to Firestore!',
-      data: {
-        sessionId,
-        exerciseId,
-        totalReps: reps,
-        averageFormScore: score,
-        durationMinutes: durationMin,
-        caloriesBurned: calories,
-        xpEarned,
-        totalXp: newTotalXP,
-        level: newLevel,
-        currentStreak: streakResult.currentStreak,
-        longestStreak: streakResult.longestStreak,
-        badgesUnlocked: badgeResult.newBadges.map((b) => b.id),
-      },
+      message: result.message,
+      idempotent: result.idempotent,
+      data: result.data,
     });
   } catch (err: any) {
     logger.error('Error completing session:', err);

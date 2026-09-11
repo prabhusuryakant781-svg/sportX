@@ -5,6 +5,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { auth } from '../config/firebase';
 import { UserRepository } from '../repositories/userRepository';
+import { assertTokenSafe } from '../config/productionSafety';
 import * as logger from 'firebase-functions/logger';
 
 export interface AuthenticatedUser {
@@ -31,21 +32,10 @@ export async function authenticateRequest(req: Request): Promise<AuthenticatedUs
   const token = authHeader.split('Bearer ')[1]?.trim();
   if (!token) return null;
 
-  // 1. Local / offline demo test token support
-  if (token === 'demo' || token === 'demo123') {
-    return { uid: 'demo_student_01', email: 'aarav@campus.edu', name: 'Aarav Sharma', role: 'user' };
-  }
+  // Enforce zero synthetic/demo tokens in production
+  assertTokenSafe(token);
 
-  if (token.startsWith('demo_token_')) {
-    const withoutPrefix = token.slice('demo_token_'.length);
-    const lastUnderscore = withoutPrefix.lastIndexOf('_');
-    const uid = lastUnderscore !== -1 ? withoutPrefix.substring(0, lastUnderscore) : withoutPrefix;
-    if (uid) {
-      return { uid, role: 'user' };
-    }
-  }
-
-  // 2. Real Firebase Auth ID Token verification via Firebase Admin SDK
+  // Real Firebase Auth ID Token verification via Firebase Admin SDK
   try {
     const decodedToken = await auth.verifyIdToken(token);
     return {
@@ -55,8 +45,8 @@ export async function authenticateRequest(req: Request): Promise<AuthenticatedUs
       role: (decodedToken.role as string) || 'user',
     };
   } catch (err: any) {
-    // If client sent an explicit test user prefix in non-production
-    if (process.env.NODE_ENV !== 'production' && (token.startsWith('test_user_') || token.startsWith('user_'))) {
+    // Only in isolated unit tests (NODE_ENV === 'test'), permit synthetic test runner tokens
+    if (process.env.NODE_ENV === 'test' && token.startsWith('test_user_')) {
       return { uid: token, role: 'user' };
     }
     return null;
@@ -75,12 +65,6 @@ export const verifyAuth = async (
 
   if (user) {
     req.user = user;
-    return next();
-  }
-
-  // If no token provided in local development mode, fallback to demo student
-  if (!req.headers.authorization && process.env.NODE_ENV !== 'production') {
-    req.user = { uid: 'demo_student_01', email: 'aarav@campus.edu', name: 'Aarav Sharma', role: 'user' };
     return next();
   }
 

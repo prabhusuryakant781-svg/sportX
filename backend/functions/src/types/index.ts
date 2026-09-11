@@ -6,7 +6,7 @@ import { Timestamp, FieldValue } from 'firebase-admin/firestore';
 
 export type UserRole = 'user' | 'coach' | 'admin';
 export type FitnessLevel = 'beginner' | 'intermediate' | 'advanced';
-export type SessionStatus = 'in-progress' | 'paused' | 'completed' | 'abandoned';
+export type SessionStatus = 'in-progress' | 'active' | 'paused' | 'completed' | 'abandoned' | 'cancelled';
 
 // ── 1. User Model (users/{userId}) ───────────────────────────────────────────
 export interface UserPreferences {
@@ -191,6 +191,9 @@ export interface WorkoutSessionDoc {
   createdAt: string | Timestamp | FieldValue;
   updatedAt?: string | Timestamp | FieldValue;
   processedByTrigger?: boolean;
+  rewardGranted?: boolean;
+  rewardTxId?: string;
+  rewardAppliedAt?: string;
 }
 
 // ── 6. Activity Logs (activityLogs/{logId}) ──────────────────────────────────

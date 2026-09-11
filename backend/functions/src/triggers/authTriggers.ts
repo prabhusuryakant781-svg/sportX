@@ -5,6 +5,7 @@
 import * as functions from 'firebase-functions/v1';
 import { db } from '../config/firebase';
 import { UserRepository } from '../repositories/userRepository';
+import { AccountService } from '../services/accountService';
 import * as logger from 'firebase-functions/logger';
 
 /**
@@ -51,13 +52,8 @@ export const onUserCreated = functions.auth.user().onCreate(async (user) => {
 export const onUserDeleted = functions.auth.user().onDelete(async (user) => {
   try {
     logger.info(`[Auth Trigger] onUserDeleted invoked for UID: ${user.uid}`);
-
-    const batch = db.batch();
-    batch.delete(db.collection('users').doc(user.uid));
-    batch.delete(db.collection('userStats').doc(user.uid));
-
-    await batch.commit();
-    logger.info(`[Auth Trigger] Successfully cleaned up Firestore data for UID: ${user.uid}`);
+    await AccountService.deleteAccount(user.uid);
+    logger.info(`[Auth Trigger] Successfully executed cascading cleanup for UID: ${user.uid}`);
   } catch (err) {
     logger.error(`[Auth Trigger] Error in onUserDeleted for ${user.uid}:`, err);
   }

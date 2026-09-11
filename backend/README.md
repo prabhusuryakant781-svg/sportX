@@ -7,7 +7,7 @@
 ## 1. Firebase Project Setup
 
 1. Go to the [Firebase Console](https://console.firebase.google.com/) and click **Add Project**.
-2. Name your project (e.g. `sportx-fitness-app`).
+2. Name your project (e.g. `sportx-ab5f`).
 3. (Optional) Enable Google Analytics for crashlytics and performance telemetry.
 4. Install the Firebase CLI globally on your machine:
    ```bash
@@ -20,7 +20,7 @@
 6. Set your active Firebase project:
    ```bash
    cd backend
-   firebase use <your-project-id>
+   firebase use sportx-ab5f
    ```
 
 ---
@@ -46,7 +46,7 @@ In `backend/functions/.env`:
 
 ```ini
 # Firebase & GCP Settings
-FIREBASE_PROJECT_ID=sportx-fitness-app
+FIREBASE_PROJECT_ID=sportx-ab5f
 FUNCTION_REGION=us-central1
 NODE_ENV=production
 

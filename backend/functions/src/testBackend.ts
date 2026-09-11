@@ -12,7 +12,17 @@
  * 9. Firestore Security Invariant Validation
  */
 
+process.env.NODE_ENV = 'test';
+process.env.FIREBASE_PROJECT_ID = process.env.FIREBASE_PROJECT_ID || 'sportx-ab5f';
+process.env.GCLOUD_PROJECT = process.env.GCLOUD_PROJECT || 'sportx-ab5f';
+
 import { GamificationService, SYSTEM_BADGES } from './services/gamificationService';
+import { runAuthTests } from './testAuthEndToEnd';
+import { runWorkoutCompletionTests } from './testWorkoutCompletion';
+import { runSecurityRulesTests } from './testSecurityRules';
+import { runValidationTests } from './testValidation';
+import { runProgressAndHistoryTests } from './testProgressAndHistory';
+import { runEmulatorIntegrationTests } from './testEmulatorIntegration';
 
 let testsPassed = 0;
 let testsFailed = 0;
@@ -305,6 +315,40 @@ async function runTests() {
     assert(SYSTEM_BADGES.every((b) => Boolean(b.id && b.name && b.icon && b.category)), 'All badges have required metadata');
   }
 
+  // ── TEST 9: End-to-End Authentication Security ────────────────────────────────
+  console.log('\n[9/10] Running End-to-End Authentication Security Tests...');
+  await runAuthTests();
+
+  // ── TEST 10: Server-Authoritative Workout Completion ──────────────────────────
+  console.log('\n[10/11] Running Server-Authoritative Workout Completion Tests...');
+  const completionTestResults = await runWorkoutCompletionTests();
+  testsPassed += completionTestResults.passed;
+  testsFailed += completionTestResults.failed;
+
+  // ── TEST 11: Firestore & Storage Security Rules & Invariants ──────────────────
+  console.log('\n[11/12] Running Firebase Security Rules & Invariants Tests...');
+  const rulesTestResults = await runSecurityRulesTests();
+  testsPassed += rulesTestResults.passed;
+  testsFailed += rulesTestResults.failed;
+
+  // ── TEST 12: Domain Validation & Field Protection Tests ───────────────────────────
+  console.log('\n[12/13] Running Domain Validation & Field Protection Tests...');
+  const valResults = await runValidationTests();
+  testsPassed += valResults.passed;
+  testsFailed += valResults.failed;
+
+  // ── TEST 13: Server-Authoritative Progress & History Tests ────────────────────
+  console.log('\n[13/14] Running Progress & History Aggregation Tests...');
+  const progressResults = await runProgressAndHistoryTests();
+  testsPassed += progressResults.passed;
+  testsFailed += progressResults.failed;
+
+  // ── TEST 14: Production-Quality Verification & Integration Tests ─────────────
+  console.log('\n[14/14] Running Production-Quality Verification & Integration Tests...');
+  const emulatorResults = await runEmulatorIntegrationTests();
+  testsPassed += emulatorResults.passed;
+  testsFailed += emulatorResults.failed;
+
   console.log('\n================================================================');
   console.log(`📊 Test Summary: ${testsPassed} passed, ${testsFailed} failed.`);
   console.log('================================================================');
@@ -313,6 +357,7 @@ async function runTests() {
     process.exit(1);
   } else {
     console.log('🎉 ALL BACKEND BUSINESS LOGIC TESTS PASSED SUCCESSFULLY!');
+    process.exit(0);
   }
 }
 

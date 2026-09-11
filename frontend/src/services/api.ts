@@ -17,7 +17,12 @@ async function getToken(): Promise<string> {
       }
     } catch (_) {}
   }
-  return localStorage.getItem('sportx_token') || '';
+  const storedToken = localStorage.getItem('sportx_token') || '';
+  if (storedToken === 'demo' || storedToken.startsWith('demo_')) {
+    localStorage.removeItem('sportx_token');
+    return '';
+  }
+  return storedToken;
 }
 
 async function request<T = any>(method: string, path: string, body?: unknown): Promise<T> {
@@ -38,9 +43,9 @@ async function request<T = any>(method: string, path: string, body?: unknown): P
 
 export const api = {
   // ── Auth ───────────────────────────────────────────────────────────────────
-  signup: (body: { name: string; email: string; password: string; collegeName?: string; department?: string }) =>
+  signup: (body: { name: string; email: string; password: string; collegeName?: string; department?: string; fitnessLevel?: string; selectedSports?: string[] }) =>
     request('POST', '/auth/signup', body),
-  login: (body: { email: string; password: string }) =>
+  login: (body: { email?: string; password?: string; idToken?: string }) =>
     request('POST', '/auth/login', body),
   loginWithGoogle: (body: { idToken: string }) =>
     request('POST', '/auth/google', body),

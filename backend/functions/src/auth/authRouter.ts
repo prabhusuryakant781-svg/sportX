@@ -1,17 +1,21 @@
 /**
  * Auth Router: Production Firebase Authentication Endpoints
- * Core Requirements: Signup, Login, Google Sign-In, Password Reset, Logout, Account Management
+ * Core Requirements: Signup, Login, Google Sign-In, Password Reset, Logout, Account Management,
+ * Re-authentication for Password/Email Updates, Cascading Account Deletion, and Rate Limiting.
  */
 import { Router, Response } from 'express';
 import { auth } from '../config/firebase';
 import { UserRepository } from '../repositories/userRepository';
 import { verifyAuth, AuthenticatedRequest } from './index';
+import { verifyCredentialsWithFirebaseAuth, sendPasswordResetEmailViaFirebase } from './firebaseAuthHelper';
+import { authRateLimiter, securityRateLimiter } from '../middleware/rateLimiter';
+import { AccountService } from '../services/accountService';
 import * as logger from 'firebase-functions/logger';
 
 export const authRouter = Router();
 
 // ── POST /api/v1/auth/signup ──────────────────────────────────────────────────
-authRouter.post('/signup', async (req, res) => {
+authRouter.post('/signup', authRateLimiter, async (req, res) => {
   try {
     const { name, email, password, collegeName, department, fitnessLevel, selectedSports } = req.body;
 
@@ -76,49 +80,11 @@ authRouter.post('/signup', async (req, res) => {
 });
 
 // ── POST /api/v1/auth/login ───────────────────────────────────────────────────
-authRouter.post('/login', async (req, res) => {
+authRouter.post('/login', authRateLimiter, async (req, res) => {
   try {
     const { email, password, idToken } = req.body;
 
-    // Demo shortcut for local development & automated tests
-    if (email === 'demo' || email === 'demo@sportx.app') {
-      const demoUid = 'demo_student_01';
-      let demoUser = await UserRepository.getById(demoUid);
-      if (!demoUser) {
-        demoUser = await UserRepository.create(demoUid, {
-          userId: demoUid,
-          name: 'Aarav Sharma',
-          email: 'aarav@campus.edu',
-          collegeName: 'Campus University',
-          department: 'Computer Science',
-          fitnessLevel: 'beginner',
-          selectedSports: ['badminton', 'football'],
-          xp: 450,
-          currentStreak: 4,
-          longestStreak: 6,
-          level: 3,
-        });
-      }
-
-      return res.status(200).json({
-        success: true,
-        message: 'Logged in as demo student',
-        data: {
-          token: 'demo',
-          user: {
-            id: demoUser.userId,
-            name: demoUser.name,
-            email: demoUser.email,
-            collegeName: demoUser.collegeName,
-            totalXp: demoUser.xp,
-            currentStreak: demoUser.currentStreak,
-            level: demoUser.level,
-          },
-        },
-      });
-    }
-
-    // Direct Firebase ID Token authentication (standard Firebase frontend pattern)
+    // 1. Direct Firebase ID Token authentication (standard Firebase frontend pattern)
     if (idToken) {
       const decoded = await auth.verifyIdToken(idToken);
       let userDoc = await UserRepository.getById(decoded.uid);
@@ -154,29 +120,26 @@ authRouter.post('/login', async (req, res) => {
       return res.status(400).json({ success: false, error: 'email and password are required' });
     }
 
-    // Verify user exists in Firebase Auth
-    let userRecord;
+    // 2. Real Firebase Auth credential verification
+    let verifiedUser;
     try {
-      userRecord = await auth.getUserByEmail(email);
-    } catch (err: any) {
-      if (err.code === 'auth/user-not-found') {
-        return res.status(401).json({ success: false, error: 'No account found with this email' });
-      }
-      throw err;
+      verifiedUser = await verifyCredentialsWithFirebaseAuth(email, password);
+    } catch (authErr: any) {
+      return res.status(401).json({ success: false, error: authErr.message || 'Invalid email or password' });
     }
 
     // Fetch user profile from Firestore
-    let userDoc = await UserRepository.getById(userRecord.uid);
+    let userDoc = await UserRepository.getById(verifiedUser.uid);
     if (!userDoc) {
-      userDoc = await UserRepository.create(userRecord.uid, {
-        userId: userRecord.uid,
-        name: userRecord.displayName || 'Athlete',
-        email: userRecord.email || email,
+      userDoc = await UserRepository.create(verifiedUser.uid, {
+        userId: verifiedUser.uid,
+        name: verifiedUser.displayName || 'Athlete',
+        email: verifiedUser.email || email,
       });
     }
 
     // Generate custom token for client session
-    const customToken = await auth.createCustomToken(userRecord.uid);
+    const customToken = await auth.createCustomToken(verifiedUser.uid);
 
     return res.status(200).json({
       success: true,
@@ -201,13 +164,14 @@ authRouter.post('/login', async (req, res) => {
 });
 
 // ── POST /api/v1/auth/google ──────────────────────────────────────────────────
-authRouter.post('/google', async (req, res) => {
+authRouter.post('/google', authRateLimiter, async (req, res) => {
   try {
     const { idToken } = req.body;
     if (!idToken) {
       return res.status(400).json({ success: false, error: 'idToken is required' });
     }
 
+    // Real Firebase ID Token verification
     const decoded = await auth.verifyIdToken(idToken);
     let userDoc = await UserRepository.getById(decoded.uid);
 
@@ -246,23 +210,23 @@ authRouter.post('/google', async (req, res) => {
 });
 
 // ── POST /api/v1/auth/reset-password ──────────────────────────────────────────
-authRouter.post('/reset-password', async (req, res) => {
+authRouter.post('/reset-password', authRateLimiter, async (req, res) => {
   try {
     const { email } = req.body;
     if (!email) {
       return res.status(400).json({ success: false, error: 'email is required' });
     }
 
-    const resetLink = await auth.generatePasswordResetLink(email);
+    // Sends email without returning reset link to the client
+    await sendPasswordResetEmailViaFirebase(email);
 
     return res.status(200).json({
       success: true,
-      message: 'Password reset link generated successfully.',
-      resetLink,
+      message: 'Password reset email sent successfully.',
     });
   } catch (err: any) {
     logger.error('Error in /reset-password:', err);
-    return res.status(400).json({ success: false, error: err.message || 'Unable to generate reset link' });
+    return res.status(400).json({ success: false, error: err.message || 'Unable to send reset password email' });
   }
 });
 
@@ -270,25 +234,96 @@ authRouter.post('/reset-password', async (req, res) => {
 authRouter.post('/logout', verifyAuth, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const uid = req.user!.uid;
-    if (uid !== 'demo_student_01') {
-      await auth.revokeRefreshTokens(uid);
-    }
+    await auth.revokeRefreshTokens(uid);
     return res.status(200).json({ success: true, message: 'Logged out successfully' });
   } catch (err: any) {
     return res.status(500).json({ success: false, error: err.message });
   }
 });
 
-// ── DELETE /api/v1/auth/account ───────────────────────────────────────────────
-authRouter.delete('/account', verifyAuth, async (req: AuthenticatedRequest, res: Response) => {
+// ── POST /api/v1/auth/update-password ─────────────────────────────────────────
+authRouter.post('/update-password', verifyAuth, securityRateLimiter, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const uid = req.user!.uid;
-    if (uid !== 'demo_student_01') {
-      await auth.deleteUser(uid);
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        error: 'currentPassword and newPassword are required',
+      });
     }
-    return res.status(200).json({ success: true, message: 'User account deleted successfully' });
+
+    const userProfile = await UserRepository.getById(uid);
+    const email = req.user?.email || userProfile?.email;
+    if (!email) {
+      return res.status(400).json({ success: false, error: 'User email not found for re-authentication' });
+    }
+
+    await AccountService.updatePassword(uid, email, currentPassword, newPassword, req.ip);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Password updated successfully. Existing sessions have been revoked.',
+    });
   } catch (err: any) {
-    return res.status(500).json({ success: false, error: err.message });
+    const status = err.message?.includes('Invalid current password') || err.message?.includes('Re-authentication failed')
+      ? 401
+      : 400;
+    return res.status(status).json({ success: false, error: err.message });
+  }
+});
+
+// ── POST /api/v1/auth/update-email ────────────────────────────────────────────
+authRouter.post('/update-email', verifyAuth, securityRateLimiter, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const uid = req.user!.uid;
+    const { currentPassword, newEmail } = req.body;
+
+    if (!currentPassword || !newEmail) {
+      return res.status(400).json({
+        success: false,
+        error: 'currentPassword and newEmail are required',
+      });
+    }
+
+    const userProfile = await UserRepository.getById(uid);
+    const currentEmail = req.user?.email || userProfile?.email;
+    if (!currentEmail) {
+      return res.status(400).json({ success: false, error: 'User email not found for re-authentication' });
+    }
+
+    await AccountService.updateEmail(uid, currentEmail, currentPassword, newEmail, req.ip);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Email updated successfully.',
+      data: { email: newEmail },
+    });
+  } catch (err: any) {
+    const status = err.message?.includes('Invalid current password') || err.message?.includes('Re-authentication failed')
+      ? 401
+      : err.code === 'auth/email-already-exists'
+      ? 409
+      : 400;
+    return res.status(status).json({ success: false, error: err.message });
+  }
+});
+
+// ── DELETE /api/v1/auth/account ───────────────────────────────────────────────
+authRouter.delete('/account', verifyAuth, securityRateLimiter, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const uid = req.user!.uid;
+    const summary = await AccountService.deleteAccount(uid, req.ip);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Account permanently deleted across Auth, Firestore, and Storage.',
+      data: summary,
+    });
+  } catch (err: any) {
+    logger.error('Account deletion error:', err);
+    return res.status(500).json({ success: false, error: err.message || 'Failed to delete account' });
   }
 });
 

@@ -26,6 +26,15 @@
       ]
     },
     {
+      "collectionGroup": "workoutSessions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "endTime", "order": "DESCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "activityLogs",
       "queryScope": "COLLECTION",
       "fields": [
