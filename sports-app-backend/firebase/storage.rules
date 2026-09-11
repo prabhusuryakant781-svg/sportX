@@ -1,0 +1,56 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && (
+        request.auth.token.admin == true ||
+        request.auth.token.role == 'admin'
+      );
+    }
+
+    // ── 1. User Profile Images ────────────────────────────────────────────────
+    // Path: users/{userId}/profile/{fileName} or users/{userId}/avatar/{fileName}
+    match /users/{userId}/profile/{fileName} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner(userId)
+        && request.resource.size < 5 * 1024 * 1024 // 5MB limit
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    match /users/{userId}/avatar/{fileName} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner(userId)
+        && request.resource.size < 5 * 1024 * 1024 // 5MB limit
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    // ── 2. Exercise Media & Demonstration Assets ──────────────────────────────
+    // Path: exercises/{exerciseId}/{fileName}
+    match /exercises/{exerciseId}/{fileName} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin()
+        && request.resource.size < 50 * 1024 * 1024 // 50MB limit
+        && (
+          request.resource.contentType.matches('image/.*') ||
+          request.resource.contentType.matches('video/.*') ||
+          request.resource.contentType.matches('application/json')
+        );
+    }
+
+    // ── 3. General Public / Static App Media ───────────────────────────────────
+    match /media/{fileName} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() && request.resource.size < 25 * 1024 * 1024;
+    }
+  }
+}
