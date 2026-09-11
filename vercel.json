@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "buildCommand": "cd backend/functions && npm install && npm run build && cd ../../frontend && npm install && npm run build",
+  "buildCommand": "cd backend/functions && npm install --include=dev && npm run build && cd ../../frontend && npm install --include=dev && npm run build",
   "outputDirectory": "frontend/dist",
   "functions": {
     "api/index.js": {
@@ -24,7 +24,7 @@
   "env": {
     "FIREBASE_PROJECT_ID": "sportx-ab55f",
     "GCLOUD_PROJECT": "sportx-ab55f",
-    "AI_MODEL": "gemini-3.5-flash",
+    "AI_MODEL": "gemini-flash-latest",
     "NODE_ENV": "production"
   }
 }

@@ -1,9 +1,13 @@
-# ⚡ SportX Backend — Core Backend + Database + Security (Person 1)
+# [ARCHIVED / OBSOLETE] SportX Backend (Person 1 Prototype)
 
-> **Role Responsibility: PERSON 1**  
-> Complete, production-grade backend foundation for the SportX student fitness application. Built with **Firebase Authentication**, **Cloud Firestore**, **Firebase Storage**, **Firebase App Check**, **Firestore & Storage Security Rules**, and **Cloud Functions 2nd Gen (TypeScript)**. Designed to connect to Flutter mobile clients and seamlessly hand off to **Person 2** for AI/Computer Vision integration.
+> [!CAUTION]
+> **OBSOLETE CODEBASE — DO NOT USE OR DEPLOY**  
+> The canonical backend for the entire project is located at `backend/functions/`.  
+> All builds, Vercel deployments, and live runtime routes execute strictly from `backend/functions/`.
 
 ---
+
+# ⚡ SportX Backend — Core Backend + Database + Security (Person 1)
 
 ## 1. Project Overview & Primary Objectives
 
@@ -133,7 +137,7 @@ sports-app-backend/
 ├── firebase.json                # Firebase configuration for rules, functions & emulators
 ├── .firebaserc                  # Firebase project selector
 ├── .gitignore                   # Safe Git ignore patterns
-└── README.md                    # Complete backend architecture & integration documentation
+└── README.md                    # [DEPRECATED / ARCHIVED] Sports App Backend
 ```
 
 ---

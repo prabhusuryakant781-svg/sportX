@@ -10,8 +10,32 @@ export default function SessionResultPage() {
   const { refreshUser } = useAuth();
   const [saving, setSaving] = useState(true);
   const [xpEarned, setXpEarned] = useState(0);
+  const [aiAnalysis, setAiAnalysis] = useState<any>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
 
-  const { result, exercise, planId } = location.state || {};
+  const { result, exercise, planId, sessionId } = location.state || {};
+
+  const handleRequestAIAnalysis = async () => {
+    setIsAnalyzing(true);
+    setAnalysisError(null);
+    try {
+      if (!sessionId) {
+        throw new Error('No session ID associated with this workout. Please restart workout from library.');
+      }
+      const res = await api.analyzeSession(sessionId);
+      if (res?.data) {
+        setAiAnalysis(res.data);
+      } else {
+        throw new Error('Analysis payload was empty.');
+      }
+    } catch (err: any) {
+      console.error('[SessionResultPage] AI analysis error:', err);
+      setAnalysisError(err.message || 'AI workout analysis could not be generated. Please retry.');
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
 
   useEffect(() => {
     if (!result || !exercise) {
@@ -110,6 +134,80 @@ export default function SessionResultPage() {
               <span className="text-3xl font-black" style={{ color: gradeColor }}>{formGrade}</span>
             </div>
           </div>
+        </div>
+
+        {/* ── Post-Workout AI Coach Debrief (Priority 2) ── */}
+        <div className="w-full card bg-gradient-to-b from-indigo-950/40 to-slate-900/60 border border-indigo-500/30 p-5 rounded-2xl mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <span className="text-xl">🤖</span>
+              <h3 className="text-sm font-bold text-white">Gemini Post-Workout Debrief</h3>
+            </div>
+            <span className="badge-pill text-[10px] bg-indigo-500/20 text-indigo-300">Server-Side AI</span>
+          </div>
+
+          {!aiAnalysis && !isAnalyzing && (
+            <div>
+              <p className="text-xs text-muted leading-relaxed mb-4">
+                Request authoritative AI evaluation of your biomechanics, volume, and recovery cues grounded in this session's telemetry.
+              </p>
+              <button
+                onClick={handleRequestAIAnalysis}
+                className="btn btn-secondary w-full py-2.5 text-xs font-semibold bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-200 border border-indigo-500/40"
+              >
+                ⚡ Analyze Workout with AI Coach
+              </button>
+            </div>
+          )}
+
+          {isAnalyzing && (
+            <div className="text-center py-4">
+              <div className="spinner w-6 h-6 mx-auto mb-2 border-indigo-400" />
+              <div className="text-xs font-semibold text-white">Correlating Vision & Firestore Telemetry…</div>
+              <div className="text-[10px] text-muted mt-1">Consulting Google Gemini AI Coach</div>
+            </div>
+          )}
+
+          {analysisError && !isAnalyzing && (
+            <div className="text-rose-400 text-xs mt-2">
+              ⚠️ {analysisError}
+              <button
+                onClick={handleRequestAIAnalysis}
+                className="btn btn-secondary text-[10px] py-1 px-2.5 mt-2 block"
+              >
+                🔄 Retry Analysis
+              </button>
+            </div>
+          )}
+
+          {aiAnalysis && !isAnalyzing && (
+            <div className="space-y-3">
+              <div>
+                <span className="text-[10px] uppercase font-bold text-indigo-400 tracking-wider">Assessment</span>
+                <p className="text-xs text-slate-200 mt-1 leading-relaxed">{aiAnalysis.summary}</p>
+              </div>
+
+              {Array.isArray(aiAnalysis.actionableCues) && aiAnalysis.actionableCues.length > 0 && (
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-amber tracking-wider">🎯 Form Cues for Next Time</span>
+                  <div className="space-y-1.5 mt-1.5">
+                    {aiAnalysis.actionableCues.map((cue: string, i: number) => (
+                      <div key={i} className="bg-black/30 border border-white/5 rounded-lg p-2 text-xs text-slate-300">
+                        {cue}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <button
+                onClick={() => navigate('/ai-coach')}
+                className="btn btn-secondary w-full py-2 text-xs mt-3 bg-white/5 hover:bg-white/10"
+              >
+                💬 Consult AI Coach in Chat
+              </button>
+            </div>
+          )}
         </div>
 
         <button

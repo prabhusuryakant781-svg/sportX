@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom';
 const navItems = [
   { to: '/dashboard', icon: '🏠', label: 'Home' },
   { to: '/workout', icon: '💪', label: 'Workout' },
-  { to: '/camera', icon: '📸', label: 'Camera' },
+  { to: '/ai-coach', icon: '🤖', label: 'AI Coach' },
   { to: '/progress', icon: '📊', label: 'Progress' },
   { to: '/lobby', icon: '⚡', label: 'Compete' },
 ];

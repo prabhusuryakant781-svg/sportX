@@ -32,8 +32,10 @@ function testAssert(condition, description) {
 // 1. API Client Contracts
 // -----------------------------------------------------------------
 console.log('[1/5] Testing Frontend API Client Service (api.js)...');
+const apiTsPath = path.resolve(__dirname, '../src/services/api.ts');
 const apiJsPath = path.resolve(__dirname, '../src/services/api.js');
-const apiJsSource = fs.readFileSync(apiJsPath, 'utf-8');
+const apiPath = fs.existsSync(apiTsPath) ? apiTsPath : apiJsPath;
+const apiJsSource = fs.readFileSync(apiPath, 'utf-8');
 
 testAssert(apiJsSource.includes('startSession:'), 'api.js exports startSession');
 testAssert(apiJsSource.includes('finishSession:'), 'api.js exports finishSession');
@@ -50,8 +52,15 @@ console.log('\n[2/5] Testing Client-Side Privacy & Secret Invariants...');
 testAssert(!apiJsSource.includes('GEMINI_API_KEY'), 'api.js has no GEMINI_API_KEY');
 testAssert(!apiJsSource.includes('generativelanguage.googleapis.com'), 'Browser client does not call Gemini API directly');
 
+// Helper to resolve .tsx or .jsx
+function resolveComponentPath(base) {
+  const tsx = base + '.tsx';
+  const jsx = base + '.jsx';
+  return fs.existsSync(tsx) ? tsx : jsx;
+}
+
 // Verify frontend source files don't upload webcam frames
-const cameraWorkoutPath = path.resolve(__dirname, '../src/components/CameraWorkout.jsx');
+const cameraWorkoutPath = resolveComponentPath(path.resolve(__dirname, '../src/components/CameraWorkout'));
 const cameraWorkoutSource = fs.readFileSync(cameraWorkoutPath, 'utf-8');
 
 testAssert(!cameraWorkoutSource.includes('canvas.toDataURL'), 'CameraWorkout does not serialize canvas frames');
@@ -62,7 +71,7 @@ testAssert(cameraWorkoutSource.includes('onStartWorkout'), 'CameraWorkout accept
 // 3. Camera Workout Page Session Integration
 // -----------------------------------------------------------------
 console.log('\n[3/5] Testing CameraWorkoutPage Lifecycle Binding...');
-const cameraPagePath = path.resolve(__dirname, '../src/pages/CameraWorkoutPage.jsx');
+const cameraPagePath = resolveComponentPath(path.resolve(__dirname, '../src/pages/CameraWorkoutPage'));
 const cameraPageSource = fs.readFileSync(cameraPagePath, 'utf-8');
 
 testAssert(cameraPageSource.includes('api.startSession'), 'CameraWorkoutPage initiates backend session on workout start');
@@ -74,7 +83,7 @@ testAssert(cameraPageSource.includes('/result'), 'CameraWorkoutPage navigates to
 // 4. Session Result Page AI Debriefing
 // -----------------------------------------------------------------
 console.log('\n[4/5] Testing SessionResultPage AI Analysis Integration...');
-const sessionResultPath = path.resolve(__dirname, '../src/pages/SessionResultPage.jsx');
+const sessionResultPath = resolveComponentPath(path.resolve(__dirname, '../src/pages/SessionResultPage'));
 const sessionResultSource = fs.readFileSync(sessionResultPath, 'utf-8');
 
 testAssert(sessionResultSource.includes('api.analyzeSession'), 'SessionResultPage connects to api.analyzeSession');

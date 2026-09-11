@@ -130,7 +130,9 @@ export function validateVisionResult(raw: unknown): VisionValidationResult {
           errors.push(`Error at index ${i} requires a non-empty "code" string`);
         } else {
           const code = item.code.trim().toLowerCase();
-          const severity = (item.severity ? String(item.severity).toLowerCase() : 'medium') as ErrorSeverity;
+          let rawSeverity = item.severity ? String(item.severity).toLowerCase() : 'medium';
+          if (rawSeverity === 'moderate') rawSeverity = 'medium';
+          const severity = rawSeverity as ErrorSeverity;
           if (!VALID_SEVERITIES.has(severity)) {
             errors.push(`Error "${code}" has invalid severity "${item.severity}". Must be "low", "medium", or "high"`);
           } else {

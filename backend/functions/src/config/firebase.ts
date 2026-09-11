@@ -1,4 +1,5 @@
 import * as admin from 'firebase-admin';
+import { getFirestore } from 'firebase-admin/firestore';
 
 // Read project ID from environment variables
 const projectId = process.env.FIREBASE_PROJECT_ID || process.env.GCLOUD_PROJECT || 'sportx-ab55f';
@@ -43,7 +44,9 @@ export const hasFirebaseCredentials = Boolean(
   process.env.FIRESTORE_EMULATOR_HOST
 );
 
-export const db = admin.firestore();
+// Support named database 'default' (without parentheses) configured on Google Cloud project sportx-ab55f
+const firestoreDbName = process.env.FIRESTORE_DATABASE_ID || 'default';
+export const db = getFirestore(admin.app(), firestoreDbName);
 export const auth = admin.auth();
 export const storage = admin.storage();
 export const messaging = admin.messaging();

@@ -41,6 +41,8 @@ const COACHING_TIPS: Record<string, string[]> = {
 aiCoachRouter.get('/coaching-tip', (req, res) => {
   const exerciseId = String(req.query.exerciseId ?? 'default');
   const tips = COACHING_TIPS[exerciseId] ?? COACHING_TIPS['default'];
-  const tip = tips[Math.floor(Math.random() * tips.length)];
+  const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
+  const tipIndex = Math.abs(dayOfYear) % tips.length;
+  const tip = tips[tipIndex];
   res.status(200).json({ success: true, exerciseId, tip });
 });

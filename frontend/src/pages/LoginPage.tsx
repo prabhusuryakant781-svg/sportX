@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 export default function LoginPage() {
-  const { login, signup, loginWithGoogle } = useAuth();
+  const { login, signup, loginWithGoogle, isFirebaseReady } = useAuth();
   const navigate = useNavigate();
   const [tab, setTab] = useState<'login' | 'signup'>('login');
   const [form, setForm] = useState({ name: '', email: '', password: '', collegeName: '', department: '' });
@@ -36,15 +36,11 @@ export default function LoginPage() {
     try {
       await loginWithGoogle();
       navigate('/dashboard');
-    } catch (err: any) { setError(err.message); } finally { setLoading(false); }
-  };
-
-  const demoLogin = async () => {
-    setLoading(true); setError('');
-    try {
-      await login({ email: 'demo@sportx.app', password: 'demo' });
-      navigate('/dashboard');
-    } catch (err: any) { setError(err.message); } finally { setLoading(false); }
+    } catch (err: any) {
+      setError(err.message || 'Google sign-in failed');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -58,6 +54,11 @@ export default function LoginPage() {
 
       {/* Card */}
       <div className="card w-full max-w-[400px]">
+        {!isFirebaseReady && (
+          <div className="text-amber-400 text-xs p-3 mb-4 bg-amber-500/10 rounded-lg border border-amber-500/30 leading-relaxed">
+            ℹ️ <strong>Firebase Client Setup Required:</strong> To sign in, configure <code>VITE_FIREBASE_API_KEY</code> and <code>VITE_FIREBASE_APP_ID</code> in Vercel project settings.
+          </div>
+        )}
         {/* Tab Toggle */}
         <div className="flex rounded-lg p-1 mb-6" style={{ background: '#1F2937' }}>
           {(['login', 'signup'] as const).map(t => (
@@ -125,16 +126,6 @@ export default function LoginPage() {
             <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
           </svg>
           Sign in with Google
-        </button>
-
-        <div className="flex items-center gap-3 my-4">
-          <div className="divider flex-1" />
-          <span className="text-muted text-xs">or</span>
-          <div className="divider flex-1" />
-        </div>
-
-        <button onClick={demoLogin} className="btn btn-outline btn-full" disabled={loading}>
-          🎯 Try Demo (no signup needed)
         </button>
       </div>
     </div>

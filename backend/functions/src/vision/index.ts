@@ -82,6 +82,14 @@ visionRouter.get('/results/:sessionId', verifyAuth, async (req: AuthenticatedReq
       return;
     }
 
+    if (record.userId !== req.user!.uid) {
+      res.status(403).json({
+        success: false,
+        error: 'Access denied: You do not own this vision result'
+      });
+      return;
+    }
+
     res.status(200).json({
       success: true,
       data: record

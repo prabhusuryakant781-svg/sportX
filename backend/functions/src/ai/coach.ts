@@ -83,16 +83,16 @@ Provide your structured coaching response following the strict JSON schema.`;
 export async function callGeminiApi(
   apiKey: string,
   prompt: string,
-  requestedModel = 'gemini-3.5-flash',
-  timeoutMs = 20000,
+  requestedModel = 'gemini-flash-latest',
+  timeoutMs = 30000,
   systemInstructionText = SYSTEM_INSTRUCTION
 ): Promise<string> {
   const cleanKey = apiKey.trim();
-  const cleanRequested = (requestedModel || 'gemini-3.5-flash').trim().replace(/^models\//, '');
+  const cleanRequested = (requestedModel || 'gemini-flash-latest').trim().replace(/^models\//, '');
 
   // Ordered list of candidate models confirmed available by the Gemini API
   const candidateModels = Array.from(
-    new Set([cleanRequested, 'gemini-3.5-flash', 'gemini-3.6-flash', 'gemini-flash-latest'])
+    new Set([cleanRequested, 'gemini-flash-latest', 'gemini-3.5-flash-lite', 'gemini-3.6-flash', 'gemini-3.5-flash'])
   );
 
   let lastStatus = 0;
@@ -169,14 +169,18 @@ export async function callGeminiApi(
       return candidateText;
     } catch (err: any) {
       if (err.name === 'AbortError') {
-        logger.error('[AI Coach] Gemini API request failure: Request timed out after', timeoutMs, 'ms');
+        logger.warn(`[AI Coach] Gemini API request timed out for model "${model}" after ${timeoutMs}ms.`);
+        if (i < candidateModels.length - 1) {
+          logger.info(`[AI Coach] Trying fallback model "${candidateModels[i + 1]}"...`);
+          continue;
+        }
         const timeoutErr: any = new Error('AI Coach service request timed out');
         timeoutErr.category = 'Gemini API request failure';
         timeoutErr.statusCode = 504;
         throw timeoutErr;
       }
-      // If 404 and more models to try, loop continues
-      if (lastStatus === 404 && i < candidateModels.length - 1) {
+      // If 404 or 429 and more models to try, loop continues
+      if ((lastStatus === 404 || lastStatus === 429 || lastStatus === 503) && i < candidateModels.length - 1) {
         continue;
       }
       throw err;

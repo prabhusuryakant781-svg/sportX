@@ -13,6 +13,7 @@ import ProgressPage from './pages/ProgressPage';
 import LobbyPage from './pages/LobbyPage';
 import LeaderboardPage from './pages/LeaderboardPage';
 import ProfilePage from './pages/ProfilePage';
+import AICoachPage from './pages/AICoachPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { token, loading } = useAuth();
@@ -51,6 +52,7 @@ export default function App() {
         <Route path="/dashboard" element={<ProtectedRoute><AppShell><DashboardPage /></AppShell></ProtectedRoute>} />
         <Route path="/workout" element={<ProtectedRoute><AppShell><WorkoutLibraryPage /></AppShell></ProtectedRoute>} />
         <Route path="/progress" element={<ProtectedRoute><AppShell><ProgressPage /></AppShell></ProtectedRoute>} />
+        <Route path="/ai-coach" element={<ProtectedRoute><AppShell><AICoachPage /></AppShell></ProtectedRoute>} />
         <Route path="/lobby" element={<ProtectedRoute><AppShell><LobbyPage /></AppShell></ProtectedRoute>} />
         <Route path="/leaderboard" element={<ProtectedRoute><AppShell><LeaderboardPage /></AppShell></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><AppShell><ProfilePage /></AppShell></ProtectedRoute>} />

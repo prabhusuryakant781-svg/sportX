@@ -20,10 +20,16 @@ async function getToken(): Promise<string> {
   return localStorage.getItem('sportx_token') || '';
 }
 
-async function request<T = any>(method: string, path: string, body?: unknown): Promise<T> {
+async function request<T = any>(method: string, path: string, body?: unknown, requireAuth = true): Promise<T> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   const token = await getToken();
-  if (token) headers['Authorization'] = `Bearer ${token}`;
+  
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  } else if (requireAuth && !path.startsWith('/auth/login') && !path.startsWith('/auth/signup') && !path.startsWith('/exercises')) {
+    // Fail clearly if authentication is required but user is not signed in
+    console.warn(`[SportX API] Request to "${path}" attempted without active Firebase Auth token.`);
+  }
 
   const res = await fetch(`${BASE}${path}`, {
     method,
@@ -32,7 +38,21 @@ async function request<T = any>(method: string, path: string, body?: unknown): P
   });
 
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+  if (!res.ok) {
+    let msg = data.error || data.message;
+    if (!msg) {
+      if (res.status === 401) msg = 'Unauthorized: Please sign in to continue.';
+      else if (res.status === 403) msg = 'Access denied: You do not have permission for this resource.';
+      else if (res.status === 404) msg = 'Requested resource not found.';
+      else if (res.status === 429) msg = 'Too many requests: Please wait a moment and try again.';
+      else if (res.status >= 500) msg = 'Internal server error: Please try again later.';
+      else msg = `Request failed with HTTP ${res.status}`;
+    }
+    const err: any = new Error(msg);
+    err.status = res.status;
+    err.data = data;
+    throw err;
+  }
   return data as T;
 }
 

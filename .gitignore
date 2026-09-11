@@ -19,6 +19,7 @@ serviceAccountKey.json
 firebase-adminsdk*.json
 credentials.json
 client_secret*.json
+.env.local
 
 # Build Outputs
 dist/
@@ -36,3 +37,5 @@ Thumbs.db
 # Media / Logs
 *.log
 recordings/
+.vercel
+.env*
