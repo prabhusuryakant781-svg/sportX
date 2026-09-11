@@ -8,11 +8,11 @@ import { getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'AIzaSyDemoSportXKeyForDevelopmentOnly',
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'sportx-ab5f.firebaseapp.com',
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || 'sportx-ab5f',
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || 'sportx-ab5f.appspot.com',
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '123456789012',
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || '1:123456789012:web:demoSportXAppId',
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'sportx-ab55f.firebaseapp.com',
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || 'sportx-ab55f',
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || 'sportx-ab55f.firebasestorage.app',
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '936318210167',
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || '1:936318210167:web:demoSportXAppId',
 };
 
 // Initialize Firebase client app (singleton)

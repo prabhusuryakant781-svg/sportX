@@ -5,7 +5,11 @@
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import { onRequest } from 'firebase-functions/v2/https';
+import { setGlobalOptions } from 'firebase-functions/v2';
 import * as logger from 'firebase-functions/logger';
+
+// Set global region to us-central1 consistently across all 2nd Gen functions
+setGlobalOptions({ region: 'us-central1' });
 import * as admin from 'firebase-admin';
 import { db } from './config/firebase';
 
@@ -37,8 +41,52 @@ import { verifyWorkoutSession, calculateWorkoutXP, searchExercises, getAICoachRe
 
 export const app = express();
 
-// ── Middleware ─────────────────────────────────────────────────────────────────
-app.use(cors({ origin: true }));
+// ── CORS Configuration ─────────────────────────────────────────────────────────
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',').map(s => s.trim())
+  : [];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile native apps, curl, server-to-server)
+    if (!origin) return callback(null, true);
+
+    // Allow local development origins
+    if (
+      origin.startsWith('http://localhost:') ||
+      origin.startsWith('http://127.0.0.1:') ||
+      origin === 'capacitor://localhost'
+    ) {
+      return callback(null, true);
+    }
+
+    // Allow explicitly configured production origins
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    // Allow Vercel preview and production deployments (*.vercel.app)
+    if (/^https:\/\/([a-z0-9-]+)\.vercel\.app$/i.test(origin)) {
+      return callback(null, true);
+    }
+
+    // Allow Firebase Hosting domains for this project
+    if (
+      origin === 'https://sportx-ab55f.web.app' ||
+      origin === 'https://sportx-ab55f.firebaseapp.com'
+    ) {
+      return callback(null, true);
+    }
+
+    // In development mode, allow any origin
+    if (process.env.NODE_ENV === 'development') {
+      return callback(null, true);
+    }
+
+    return callback(new Error(`CORS policy does not allow access from origin: ${origin}`));
+  },
+  credentials: true
+}));
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: false }));
 app.use(verifyAppCheck);
@@ -212,7 +260,7 @@ v1.get('/', (_req, res) => {
       'GET  /api/v1/activity/history',
       'GET  /api/v1/gamification/badges', 'GET  /api/v1/gamification/status',
       'GET  /api/v1/leaderboard/global', 'GET  /api/v1/leaderboard/college',
-      'POST /api/v1/ai/analyze-form', 'GET  /api/v1/ai/coaching-tip',
+      'GET  /api/v1/ai/coaching-tip',
       'POST /api/v1/ai/ask-coach', 'POST /api/v1/ai/generate-workout', 'GET  /api/v1/ai/progress', 'GET  /api/v1/ai/consistency', 'POST /api/v1/ai/session-analysis',
       'GET  /api/v1/notifications', 'GET  /api/v1/progress/summary',
       'POST /api/v1/challenges', 'GET  /api/v1/challenges', 'PATCH /api/v1/challenges/:id/respond',

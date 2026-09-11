@@ -5,7 +5,7 @@
  */
 import { auth } from './firebase.js';
 
-const BASE = '/api/v1';
+const BASE = import.meta.env.VITE_API_BASE_URL || '/api/v1';
 
 async function getToken(): Promise<string> {
   if (auth && auth.currentUser) {

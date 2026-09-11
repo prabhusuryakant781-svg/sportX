@@ -6,7 +6,7 @@ class ApiConstants {
   // Production Cloud Functions / Vercel API Base URL
   static const String baseUrl = String.fromEnvironment(
     'SPORTX_API_URL',
-    defaultValue: 'https://sportx-ab5f.web.app/api/v1',
+    defaultValue: 'https://sportx2026-ten.vercel.app/api/v1',
   );
 
   // Local development fallback

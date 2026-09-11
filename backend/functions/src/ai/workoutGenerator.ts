@@ -297,8 +297,8 @@ JSON Schema required:
     const rawText = await callGeminiApi(
       options?.apiKey || process.env.GEMINI_API_KEY!,
       prompt,
-      options?.model || 'gemini-2.5-flash',
-      10000,
+      options?.model || process.env.AI_MODEL || 'gemini-3.6-flash',
+      20000,
       'You are the SportX AI Strength and Conditioning Coach. Return ONLY valid JSON matching the workout schema.'
     );
 

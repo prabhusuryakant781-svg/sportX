@@ -8,8 +8,7 @@
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "outDir": ".vercel/output",
-    "rootDir": ".",
-    "baseUrl": "."
+    "rootDir": "."
   },
   "include": ["api/**/*", "backend/functions/src/**/*"],
   "exclude": ["node_modules", "frontend", "backend/functions/node_modules", "backend/functions/lib"]

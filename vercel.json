@@ -1,33 +1,30 @@
 {
   "version": 2,
-  "buildCommand": "npm install && cd backend/functions && npm install && npm run build && cd ../../frontend && npm install && npm run build",
+  "buildCommand": "cd backend/functions && npm install && npm run build && cd ../../frontend && npm install && npm run build",
   "outputDirectory": "frontend/dist",
   "functions": {
-    "api/index.ts": {
+    "api/index.js": {
       "maxDuration": 30
     }
   },
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "/api/index.ts"
+      "destination": "/api/index.js"
     },
     {
       "source": "/health",
-      "destination": "/api/index.ts"
+      "destination": "/api/index.js"
     },
     {
       "source": "/(.*)",
       "destination": "/index.html"
     }
-  ]
-  ,
+  ],
   "env": {
-    "FIREBASE_PROJECT_ID": "sportx-ab5f",
-    "GCLOUD_PROJECT": "sportx-ab5f",
-    "FIRESTORE_EMULATOR_HOST": "",
-    "FIREBASE_STORAGE_EMULATOR_HOST": "",
-    "PORT": "3001",
+    "FIREBASE_PROJECT_ID": "sportx-ab55f",
+    "GCLOUD_PROJECT": "sportx-ab55f",
+    "AI_MODEL": "gemini-3.5-flash",
     "NODE_ENV": "production"
   }
 }

@@ -1,10 +1,8 @@
 /**
- * AI Coach Routes: POST /ai/analyze-form, GET /ai/coaching-tip
- * Core Features: Pose Estimation, Form Correction, Real-time Feedback, AI Coach
+ * AI Coach Tip Routes: GET /ai/coaching-tip
+ * Core Features: Exercise Tips & Guidance
  */
-import { Router, Response } from 'express';
-import { verifyAuth, AuthenticatedRequest } from '../auth';
-import { ExerciseRepository, INITIAL_EXERCISES } from '../repositories/exerciseRepository';
+import { Router } from 'express';
 
 export const aiCoachRouter = Router();
 
@@ -38,49 +36,6 @@ const COACHING_TIPS: Record<string, string[]> = {
   ],
 };
 
-// POST /api/v1/ai/analyze-form
-aiCoachRouter.post('/analyze-form', verifyAuth, async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const { exerciseId, keypoints, timestamp } = req.body;
-
-    if (!exerciseId) {
-      return res.status(400).json({ success: false, error: 'exerciseId is required' });
-    }
-
-    const exercise = await ExerciseRepository.getById(exerciseId);
-
-    // Simulate form analysis (real AI vision model integration would go here)
-    const formScore = Math.min(100, Math.max(50, 72 + Math.round(Math.random() * 28)));
-    const commonErrors = exercise?.formRules?.postureRules || [];
-    const detectedError = formScore < 75 && commonErrors.length > 0
-      ? commonErrors[Math.floor(Math.random() * commonErrors.length)]
-      : null;
-
-    const corrections: string[] = [];
-    if (detectedError) {
-      corrections.push(`❗ ${detectedError}`);
-    }
-    if (corrections.length === 0) corrections.push('✅ Great form! Keep it up!');
-
-    res.status(200).json({
-      success: true,
-      data: {
-        exerciseId,
-        formScore,
-        phase: formScore > 80 ? 'up' : 'transition',
-        repCounted: formScore >= 70,
-        feedback: corrections,
-        keyMetrics: {
-          kneeAngle: exercise?.formRules?.minKneeAngle ? Math.floor(Math.random() * 40) + 90 : null,
-          spineNeutral: formScore > 75,
-          depthAchieved: formScore > 70,
-        },
-      },
-    });
-  } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
 
 // GET /api/v1/ai/coaching-tip?exerciseId=squat
 aiCoachRouter.get('/coaching-tip', (req, res) => {

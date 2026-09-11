@@ -1,26 +1,32 @@
 import * as admin from 'firebase-admin';
 
-// Only respect FIRESTORE_EMULATOR_HOST if explicitly configured externally
-const projectId = process.env.GCLOUD_PROJECT || process.env.FIREBASE_PROJECT_ID || 'sportx-ab5f';
+// Read project ID from environment variables
+const projectId = process.env.FIREBASE_PROJECT_ID || process.env.GCLOUD_PROJECT || 'sportx-ab55f';
 
-// Detect and parse optional Firebase credentials for production/serverless
+// Parse optional Firebase Admin credentials for Vercel serverless / production
 let credential: admin.credential.Credential | undefined = undefined;
-if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+
+if (process.env.FIREBASE_CLIENT_EMAIL && process.env.FIREBASE_PRIVATE_KEY) {
+  try {
+    const privateKey = process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n').replace(/^"|"$/g, '');
+    credential = admin.credential.cert({
+      projectId,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL.trim(),
+      privateKey,
+    });
+  } catch (err: any) {
+    console.warn('[Firebase Admin] Notice: Could not parse FIREBASE_CLIENT_EMAIL and FIREBASE_PRIVATE_KEY:', err.message);
+  }
+} else if (process.env.FIREBASE_SERVICE_ACCOUNT) {
   try {
     const sa = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
     credential = admin.credential.cert(sa);
   } catch (err) {
-    console.warn('[Firebase] Warning: Failed to parse FIREBASE_SERVICE_ACCOUNT JSON');
+    console.warn('[Firebase Admin] Warning: Failed to parse FIREBASE_SERVICE_ACCOUNT JSON');
   }
-} else if (process.env.FIREBASE_CLIENT_EMAIL && process.env.FIREBASE_PRIVATE_KEY) {
-  credential = admin.credential.cert({
-    projectId,
-    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-    privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
-  });
 }
 
-// Initialize Firebase Admin SDK
+// Initialize Firebase Admin SDK using Application Default Credentials in production Cloud Functions runtime
 if (!admin.apps.length) {
   admin.initializeApp({
     projectId: projectId,
@@ -32,6 +38,8 @@ export const hasFirebaseCredentials = Boolean(
   credential ||
   process.env.GOOGLE_APPLICATION_CREDENTIALS ||
   process.env.K_SERVICE ||
+  process.env.FUNCTION_TARGET ||
+  process.env.FIREBASE_CONFIG ||
   process.env.FIRESTORE_EMULATOR_HOST
 );
 

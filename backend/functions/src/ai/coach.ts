@@ -45,6 +45,25 @@ MANDATORY RULES:
 No markdown formatting, no code block backticks, only valid raw JSON.`;
 
 /**
+ * Safely extracts JSON from raw Gemini model outputs, handling markdown fences,
+ * thought tokens, and extraneous surrounding text.
+ */
+function extractJsonPayload(rawText: string): any {
+  let cleanText = (rawText || '').trim();
+  const codeBlockMatch = cleanText.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+  if (codeBlockMatch) {
+    cleanText = codeBlockMatch[1].trim();
+  } else {
+    const firstBrace = cleanText.indexOf('{');
+    const lastBrace = cleanText.lastIndexOf('}');
+    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+      cleanText = cleanText.substring(firstBrace, lastBrace + 1);
+    }
+  }
+  return JSON.parse(cleanText);
+}
+
+/**
  * Builds the AI prompt combining system rules, user context, and user inquiry.
  */
 function buildPrompt(context: CoachUserContext, userMessage: string): string {
@@ -64,16 +83,16 @@ Provide your structured coaching response following the strict JSON schema.`;
 export async function callGeminiApi(
   apiKey: string,
   prompt: string,
-  requestedModel = 'gemini-2.5-flash',
-  timeoutMs = 10000,
+  requestedModel = 'gemini-3.5-flash',
+  timeoutMs = 20000,
   systemInstructionText = SYSTEM_INSTRUCTION
 ): Promise<string> {
   const cleanKey = apiKey.trim();
-  const cleanRequested = (requestedModel || 'gemini-2.5-flash').trim().replace(/^models\//, '');
+  const cleanRequested = (requestedModel || 'gemini-3.5-flash').trim().replace(/^models\//, '');
 
-  // Ordered list of candidate models to try: user's requested model first, followed by active models
+  // Ordered list of candidate models confirmed available by the Gemini API
   const candidateModels = Array.from(
-    new Set([cleanRequested, 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash-latest', 'gemini-1.5-flash'])
+    new Set([cleanRequested, 'gemini-3.5-flash', 'gemini-3.6-flash', 'gemini-flash-latest'])
   );
 
   let lastStatus = 0;
@@ -96,7 +115,7 @@ export async function callGeminiApi(
       generationConfig: {
         responseMimeType: 'application/json',
         temperature: 0.3,
-        maxOutputTokens: 800
+        maxOutputTokens: 2048
       }
     };
 
@@ -120,9 +139,9 @@ export async function callGeminiApi(
         const safeErrorBody = lastErrorBody.replace(/key=[^&\s"']+/gi, 'key=[REDACTED]');
         logger.error(`[AI Coach] Gemini API request failed for model "${model}": HTTP status ${response.status}`, safeErrorBody);
 
-        // If model returned 404 (retired or unsupported in project), try next candidate model
-        if (response.status === 404 && i < candidateModels.length - 1) {
-          logger.info(`[AI Coach] Model "${model}" returned HTTP 404. Trying fallback model "${candidateModels[i + 1]}"...`);
+        // If model returned 404, 503 (high demand), or 429 (rate limit), try next candidate model
+        if ((response.status === 404 || response.status === 503 || response.status === 429) && i < candidateModels.length - 1) {
+          logger.info(`[AI Coach] Model "${model}" returned HTTP ${response.status}. Trying fallback model "${candidateModels[i + 1]}"...`);
           continue;
         }
 
@@ -237,8 +256,8 @@ export async function generateCoachResponse(
     throw configErr;
   }
 
-  const model = options?.model || process.env.AI_MODEL || 'gemini-2.5-flash';
-  const timeoutMs = options?.timeoutMs || 10000;
+  const model = options?.model || process.env.AI_MODEL || 'gemini-3.5-flash';
+  const timeoutMs = options?.timeoutMs || 20000;
 
   try {
     rawResponseText = await callGeminiApi(apiKey, prompt, model, timeoutMs);
@@ -253,12 +272,10 @@ export async function generateCoachResponse(
   // 4. Parse JSON
   let parsedJson: any;
   try {
-    // Strip possible markdown ticks if returned
-    const cleanJson = rawResponseText.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
-    parsedJson = JSON.parse(cleanJson);
+    parsedJson = extractJsonPayload(rawResponseText);
   } catch (parseErr) {
-    logger.error('[AI Coach] AI provider initialization failure: Failed to parse AI JSON response');
-    const malformedErr: any = new Error('AI service returned a malformed response structure');
+    logger.error('[AI Coach] AI provider initialization failure: Failed to parse AI JSON response:', rawResponseText);
+    const malformedErr: any = new Error('AI service returned a malformed response structure: ' + (parseErr as any)?.message);
     malformedErr.category = 'AI provider initialization failure';
     malformedErr.statusCode = 502;
     throw malformedErr;
@@ -553,15 +570,14 @@ Generate structured form feedback following the strict JSON schema. Remember: ON
     throw configErr;
   }
 
-  const model = options?.model || process.env.AI_MODEL || 'gemini-2.5-flash';
-  const timeoutMs = options?.timeoutMs || 10000;
+  const model = options?.model || process.env.AI_MODEL || 'gemini-3.5-flash';
+  const timeoutMs = options?.timeoutMs || 20000;
 
   const rawText = await callGeminiApi(apiKey, prompt, model, timeoutMs, FORM_FEEDBACK_SYSTEM_INSTRUCTION);
 
   let parsed: any;
   try {
-    const cleanJson = rawText.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
-    parsed = JSON.parse(cleanJson);
+    parsed = extractJsonPayload(rawText);
   } catch (pErr) {
     logger.error('[AI Form Feedback] Failed to parse AI JSON response:', rawText);
     const malformedErr: any = new Error('AI service returned a malformed form feedback response');
@@ -724,14 +740,13 @@ Evaluate this completed session. Highlight what was done well, address detected 
       nextFocus: hasErrors ? context.detectedErrors[0].replace(/_/g, ' ') : 'progressive overload'
     };
   } else {
-    const model = options?.model || process.env.AI_MODEL || 'gemini-2.5-flash';
-    const timeoutMs = options?.timeoutMs || 10000;
+    const model = options?.model || process.env.AI_MODEL || 'gemini-3.5-flash';
+    const timeoutMs = options?.timeoutMs || 20000;
 
     const rawText = await callGeminiApi(apiKey, prompt, model, timeoutMs, POST_WORKOUT_SYSTEM_INSTRUCTION);
-    const cleanJson = rawText.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
     let parsed: any;
     try {
-      parsed = JSON.parse(cleanJson);
+      parsed = extractJsonPayload(rawText);
     } catch (parseErr) {
       logger.error('[AI Session Analysis] Malformed JSON from Gemini:', rawText);
       const malformedErr: any = new Error('AI service returned a malformed response');
