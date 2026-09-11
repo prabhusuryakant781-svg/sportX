@@ -7,6 +7,11 @@
     "dev": "npx concurrently \"npm --prefix backend/functions run dev\" \"npm --prefix frontend run dev\"",
     "dev:frontend": "npm --prefix frontend run dev",
     "dev:backend": "npm --prefix backend/functions run dev",
+    "typecheck": "npm --prefix frontend run typecheck && npm --prefix backend/functions run build",
+    "test": "npm --prefix backend/functions test",
+    "test:unit": "npm --prefix backend/functions test",
+    "test:emulator": "npm --prefix backend/functions run test:emulator",
+    "ci": "npm run typecheck && npm run test",
     "build": "cd backend/functions && npm install --include=dev && npm run build && cd ../../frontend && npm install --include=dev && npm run build",
     "vercel-build": "cd backend/functions && npm install --include=dev && npm run build && cd ../../frontend && npm install --include=dev && npm run build"
   },

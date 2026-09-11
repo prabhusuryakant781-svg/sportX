@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "npm --prefix functions run dev",
     "build": "npm --prefix functions run build",
-    "start": "npm --prefix functions start"
+    "start": "npm --prefix functions start",
+    "test:rules": "firebase emulators:exec --only firestore,storage \"node functions/lib/testSecurityRules.js\""
   }
 }

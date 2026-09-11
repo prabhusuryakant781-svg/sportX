@@ -32,6 +32,7 @@ import { progressRouter } from './progress';
 import { verifyAppCheck } from './middleware/appCheck';
 import { askCoachHandler, generateWorkoutHandler, progressAnalysisHandler, consistencyInsightHandler, sessionAnalysisHandler } from './ai';
 import { visionRouter } from './vision';
+import { verifyAuth, requireRole, AuthenticatedRequest } from './auth';
 
 // Background Cloud Functions
 import { onUserCreated, onUserDeleted } from './triggers/authTriggers';
@@ -180,8 +181,19 @@ v1.use('/lobbies', lobbiesRouter);     // CF23: Multiplayer Workout Mode
 v1.use('/bugs', bugsRouter);           // CF30: Bug Reporting
 v1.use('/vision', visionRouter);       // Phase 3: Computer Vision Integration & Form Feedback
 
-// Dedicated Firestore connectivity verification route
-v1.get('/system/firestore-check', async (req: Request, res: Response) => {
+// Admin authorization guard for system management routes
+const requireAdminOrSystemKey = async (req: Request, res: Response, next: express.NextFunction) => {
+  const systemKey = req.headers['x-system-key'];
+  if (process.env.SYSTEM_ADMIN_KEY && systemKey && systemKey === process.env.SYSTEM_ADMIN_KEY) {
+    return next();
+  }
+  return verifyAuth(req as AuthenticatedRequest, res, async () => {
+    return requireRole(['admin'])(req as AuthenticatedRequest, res, next);
+  });
+};
+
+// Dedicated Firestore connectivity verification route (Admin only)
+v1.get('/system/firestore-check', requireAdminOrSystemKey, async (req: Request, res: Response) => {
   try {
     const testDocRef = db.collection('systemChecks').doc('firestoreTest');
     const testPayload = {
@@ -208,8 +220,8 @@ v1.get('/system/firestore-check', async (req: Request, res: Response) => {
   }
 });
 
-// Data seeding endpoint (admin use only — seeds exercises, sports, workouts)
-v1.post('/system/seed', async (_req: Request, res: Response) => {
+// Data seeding endpoint (Admin only — seeds exercises, sports, workouts)
+v1.post('/system/seed', requireAdminOrSystemKey, async (_req: Request, res: Response) => {
   try {
     const { ExerciseRepository } = await import('./repositories/exerciseRepository');
     const { SportRepository } = await import('./repositories/sportRepository');

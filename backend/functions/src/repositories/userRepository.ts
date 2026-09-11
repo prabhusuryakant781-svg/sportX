@@ -284,4 +284,18 @@ export class UserRepository {
     const snapshot = await db.collection(COLLECTION).limit(500).get();
     return snapshot.docs.map((doc) => doc.data() as UserDoc);
   }
+
+  /**
+   * Permanently delete user document and cache entry
+   */
+  static async delete(userId: string): Promise<void> {
+    localUsersCache.delete(userId);
+    if (hasFirebaseCredentials) {
+      try {
+        await withTimeout(db.collection(COLLECTION).doc(userId).delete(), 2000);
+      } catch (err) {
+        logger.warn(`[UserRepository] Firestore delete failed for ${userId}:`, err);
+      }
+    }
+  }
 }

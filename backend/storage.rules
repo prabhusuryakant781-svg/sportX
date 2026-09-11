@@ -7,6 +7,10 @@ service firebase.storage {
       return request.auth != null;
     }
 
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
     function isAdmin() {
       return isAuthenticated() && (
         request.auth.token.admin == true ||
@@ -14,16 +18,30 @@ service firebase.storage {
       );
     }
 
-    // Profile pictures: Any authenticated user can read, only owner can upload (max 5MB, image only)
+    // 1. Profile avatars: Authenticated read, only owner can upload (max 5MB, image only)
     match /users/{userId}/avatar/{fileName} {
       allow read: if isAuthenticated();
-      allow write: if isAuthenticated() 
-        && request.auth.uid == userId
+      allow write: if isOwner(userId)
         && request.resource.size < 5 * 1024 * 1024
         && request.resource.contentType.matches('image/.*');
     }
 
-    // Exercise demonstrations and media: Authenticated read, admin write (max 50MB for video/animation/image)
+    match /users/{userId}/profile/{fileName} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner(userId)
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    // 2. Private workout recordings & telemetry media: Owner-only read and write (max 100MB, video/image)
+    match /users/{userId}/sessions/{sessionId}/{fileName} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow write: if isOwner(userId)
+        && request.resource.size < 100 * 1024 * 1024
+        && (request.resource.contentType.matches('video/.*') || request.resource.contentType.matches('image/.*'));
+    }
+
+    // 3. Exercise demonstrations and media: Authenticated read, admin write (max 50MB)
     match /exercises/{exerciseId}/{fileName} {
       allow read: if isAuthenticated();
       allow write: if isAdmin()
@@ -35,10 +53,15 @@ service firebase.storage {
         );
     }
 
-    // General app fitness media assets
+    // 4. General app fitness media assets: Authenticated read, admin write
     match /media/{fileName} {
       allow read: if isAuthenticated();
       allow write: if isAdmin() && request.resource.size < 25 * 1024 * 1024;
+    }
+
+    // 5. Default deny all other paths
+    match /{allPaths=**} {
+      allow read, write: if false;
     }
   }
 }

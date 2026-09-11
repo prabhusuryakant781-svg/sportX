@@ -7,6 +7,7 @@ import { WorkoutRepository, INITIAL_WORKOUTS } from '../repositories/workoutRepo
 import { UserRepository } from '../repositories/userRepository';
 import { verifyAuth, AuthenticatedRequest } from '../auth';
 import { WorkoutPlanDoc } from '../types';
+import { validateWorkoutPlan } from '../middleware/validation';
 import * as logger from 'firebase-functions/logger';
 
 export const workoutsRouter = Router();
@@ -78,8 +79,18 @@ workoutsRouter.get('/:id', async (req, res) => {
 workoutsRouter.post('/', verifyAuth, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const uid = req.user!.uid;
+
+    const planValidation = validateWorkoutPlan(req.body);
+    if (!planValidation.isValid) {
+      return res.status(400).json({
+        success: false,
+        error: planValidation.error,
+      });
+    }
+
     const {
       title,
+      name,
       description,
       sport = 'fitness',
       difficulty = 'beginner',
@@ -90,17 +101,10 @@ workoutsRouter.post('/', verifyAuth, async (req: AuthenticatedRequest, res: Resp
       isPublic = false,
     } = req.body;
 
-    if (!title || !Array.isArray(exercises) || exercises.length === 0) {
-      return res.status(400).json({
-        success: false,
-        error: 'title and non-empty exercises array are required to create a workout plan',
-      });
-    }
-
     const workoutId = `workout_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
     const newWorkout: WorkoutPlanDoc = {
       workoutId,
-      title,
+      title: title || name,
       description: description || 'Custom user workout routine',
       creatorId: uid,
       sport,

@@ -13,12 +13,16 @@
     "logs": "firebase functions:log",
     "test": "npm run build && node lib/testBackend.js",
     "test:backend": "npm run build && node lib/testBackend.js",
+    "test:emulator": "npm run build && node lib/testEmulatorIntegration.js",
     "test:local": "npm run build && node lib/testLocal.js",
     "test:coach": "npm run build && node lib/testCoach.js",
     "test:vision": "npm run build && node lib/testVision.js",
     "test:personalization": "npm run build && node lib/testPersonalization.js",
     "test:challenges": "npm run build && node lib/testChallenges.js",
-    "test:p2": "npm run build && node lib/testPriority2.js"
+    "test:p2": "npm run build && node lib/testPriority2.js",
+    "test:rules": "npm run build && firebase emulators:exec --only firestore,storage \"node lib/testSecurityRules.js\"",
+    "seed": "npm run build && node lib/scripts/seed.js",
+    "seed:ts": "npx ts-node --transpile-only src/scripts/seed.ts"
   },
   "engines": {
     "node": ">=18"
@@ -35,6 +39,7 @@
     "typescript": "^5.5.3"
   },
   "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.2",
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
     "@types/morgan": "^1.9.9",

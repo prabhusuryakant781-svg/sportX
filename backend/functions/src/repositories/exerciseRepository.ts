@@ -3,7 +3,7 @@
  * Firestore Data Access for exercises/{exerciseId}
  * Extensible 28-Movement Registry with Biomechanical Form Rules & AI Metadata
  */
-import { db } from '../config/firebase';
+import { db, hasFirebaseCredentials } from '../config/firebase';
 import { ExerciseDoc } from '../types';
 import * as logger from 'firebase-functions/logger';
 
@@ -986,17 +986,17 @@ export class ExerciseRepository {
    * Get exercise by ID
    */
   static async getById(exerciseId: string): Promise<ExerciseDoc | null> {
-    try {
-      const docSnap = await db.collection(COLLECTION).doc(exerciseId).get();
-      if (docSnap.exists) {
-        return docSnap.data() as ExerciseDoc;
+    if (hasFirebaseCredentials) {
+      try {
+        const docSnap = await db.collection(COLLECTION).doc(exerciseId).get();
+        if (docSnap.exists) {
+          return docSnap.data() as ExerciseDoc;
+        }
+      } catch (err) {
+        logger.warn(`Error fetching exercise ${exerciseId}:`, err);
       }
-      const initial = INITIAL_EXERCISES.find((e) => e.exerciseId === exerciseId);
-      return initial || null;
-    } catch (err) {
-      logger.error(`Error fetching exercise ${exerciseId}:`, err);
-      return INITIAL_EXERCISES.find((e) => e.exerciseId === exerciseId) || null;
     }
+    return INITIAL_EXERCISES.find((e) => e.exerciseId === exerciseId) || null;
   }
 
   /**

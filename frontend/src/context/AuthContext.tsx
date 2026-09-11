@@ -6,6 +6,7 @@ import {
   signInWithPopup,
   signOut,
   onAuthStateChanged,
+  sendPasswordResetEmail,
   type User as FirebaseUser
 } from 'firebase/auth';
 import { auth, googleProvider, isRealFirebaseConfigured } from '../services/firebase';
@@ -169,6 +170,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setFirebaseUser(null);
   };
 
+  const resetPassword = async (email: string) => {
+    if (!auth) {
+      throw new Error('Firebase Authentication is not configured.');
+    }
+    await sendPasswordResetEmail(auth, email.trim());
+  };
+
   const refreshUser = async (): Promise<User> => {
     const res: any = await api.getProfile();
     if (res?.data) {
@@ -188,6 +196,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signup,
         loginWithGoogle,
         logout,
+        resetPassword,
         refreshUser,
         firebaseUser,
         isFirebaseReady: isRealFirebaseConfigured
