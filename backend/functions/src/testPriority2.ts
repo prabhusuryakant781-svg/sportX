@@ -19,6 +19,7 @@
  * N. Frontend session completion
  * O. Error handling
  */
+process.env.NODE_ENV = 'test';
 
 import { SessionRepository } from './repositories/sessionRepository';
 import { UserRepository } from './repositories/userRepository';
@@ -317,7 +318,7 @@ async function runTests() {
   const errStatus = { caught: false };
   const mockErrReq = {
     method: 'POST',
-    headers: { authorization: 'Bearer demo' },
+    headers: { authorization: 'Bearer test_user_athlete_01' },
     body: { sessionId: '' } // missing
   };
   const mockErrRes = {

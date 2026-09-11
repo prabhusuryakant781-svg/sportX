@@ -13,7 +13,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 process.env.LOCAL_TEST = 'true';
-process.env.NODE_ENV = process.env.NODE_ENV || 'test';
+process.env.NODE_ENV = 'test';
 
 import { validateVisionResult, VisionResultPayload } from './vision/validators';
 import { processVisionResult, getVisionResults, getVisionResultBySession } from './vision/visionResult';

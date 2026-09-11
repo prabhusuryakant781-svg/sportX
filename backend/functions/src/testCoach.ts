@@ -22,7 +22,7 @@ dotenv.config();
 
 // Ensure local testing environment flags
 process.env.LOCAL_TEST = 'true';
-process.env.NODE_ENV = process.env.NODE_ENV || 'test';
+process.env.NODE_ENV = 'test';
 
 import { buildCoachContext } from './ai/contextBuilder';
 import { validateCoachResponse } from './ai/validators';
