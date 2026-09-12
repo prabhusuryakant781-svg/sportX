@@ -460,158 +460,84 @@ export default function CompetitivePage() {
             </div>
           </div>
 
-          {/* Account Need Diagnostic & Sport Selector */}
-          <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-950/40 via-indigo-950/30 to-slate-900 border border-blue-500/30 space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] uppercase font-black tracking-wider text-cyan-400 flex items-center gap-1.5">
-                <span>📋</span> ATHLETE PROFILE DIAGNOSTIC
-              </span>
-              <span className="text-[10px] px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 font-bold">
-                Account Tailored
-              </span>
+          {/* Matchmaking Info Card */}
+          <div className="p-5 rounded-2xl bg-gradient-to-r from-blue-950/40 via-indigo-950/30 to-slate-900 border border-blue-500/30 text-center space-y-2">
+            <div className="w-14 h-14 mx-auto rounded-2xl bg-blue-600/20 border border-blue-500/40 flex items-center justify-center text-3xl shadow-lg shadow-blue-500/20">
+              ⚔️
             </div>
-
-            <div>
-              <h3 className="text-base font-black text-white flex items-center gap-2">
-                <span>{SPORT_ICONS[selectedSport] || '🏅'}</span>
-                <span>{ACCOUNT_NEED_DIAGNOSTICS[selectedSport]?.title || 'Athlete Skill Development'}</span>
-              </h3>
-              <p className="text-xs text-slate-300 mt-1">
-                {ACCOUNT_NEED_DIAGNOSTICS[selectedSport]?.rationale || 'Targeted drill specifically prescribed for your account profile.'}
-              </p>
-            </div>
-
-            {/* If user has enrolled sports in account, allow selecting between their enrolled account sports */}
-            <div>
-              <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-1.5 block">
-                Your Account Disciplines
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {accountSports.map((sportId) => (
-                  <button
-                    key={sportId}
-                    onClick={() => setSelectedSport(sportId)}
-                    className={`py-1.5 px-3 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border ${
-                      selectedSport === sportId
-                        ? 'bg-blue-600 border-blue-400 text-white shadow-md shadow-blue-500/20'
-                        : 'bg-slate-900/80 border-white/10 text-slate-300 hover:border-white/30'
-                    }`}
-                  >
-                    <span>{SPORT_ICONS[sportId] || '🏅'}</span>
-                    <span className="capitalize">{sportId}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
+            <h3 className="text-lg font-black text-white">Global Matchmaking Arena</h3>
+            <p className="text-xs text-slate-300 max-w-xs mx-auto">
+              Skill-based matchmaking within your rank division ({currentRankTier}). Your competitive challenge will be revealed in the match room.
+            </p>
           </div>
 
-          {/* Big Action CTA: Tailored Match for Account Need */}
-          <button
-            onClick={handleStartRandomMatch}
-            disabled={loading || !accountTargetedChallenge}
-            className="w-full py-4 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-black text-base uppercase tracking-wider shadow-xl shadow-indigo-600/25 active:scale-[0.98] transition flex items-center justify-center gap-3"
-          >
-            <span>⚔️</span> MATCH FOR {selectedSport.toUpperCase()} NEED
-          </button>
-
-          <p className="text-center text-[11px] text-slate-400 -mt-2">
-            Auto-pairs with verified {currentRankTier} athletes in "{accountTargetedChallenge?.title || 'Targeted Challenge'}"
-          </p>
-
-          {/* Prescribed Drill For Your Account Need (Replaces Generic Eligible Demo Challenges) */}
-          {accountTargetedChallenge && (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                  <span>🎯</span> Prescribed For Your Account
-                </h3>
-                <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-bold">
-                  Recommended Drill
-                </span>
-              </div>
-
-              <div className="p-4 rounded-2xl bg-slate-900/80 border border-blue-500/30 relative overflow-hidden">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-xl bg-blue-600/20 border border-blue-500/40 flex items-center justify-center text-2xl">
-                      {SPORT_ICONS[accountTargetedChallenge.sportId] || '🏅'}
-                    </div>
-                    <div>
-                      <span className="text-[10px] px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 font-extrabold uppercase">
-                        {accountTargetedChallenge.sportId} • {accountTargetedChallenge.durationSeconds}s
-                      </span>
-                      <h4 className="font-black text-base text-white mt-1">{accountTargetedChallenge.title}</h4>
-                      <p className="text-[11px] text-slate-400">
-                        Division: {accountTargetedChallenge.minRank} to {accountTargetedChallenge.maxRank}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="text-right">
-                    <span className="text-xs font-black text-emerald-400">+{accountTargetedChallenge.rewards.firstPlace.xp} XP</span>
-                    <p className="text-[10px] text-amber-400 font-bold">+{accountTargetedChallenge.rewards.firstPlace.rankPoints} RP</p>
-                  </div>
-                </div>
-
-                {/* Account Need Rationale */}
-                <div className="mt-3 p-3 rounded-xl bg-slate-950/60 border border-white/5 space-y-1.5">
-                  <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-200">
-                    <span>📌</span>
-                    <span>Account Growth Target:</span>
-                  </div>
-                  <p className="text-xs text-slate-300">
-                    {accountTargetedChallenge.goal}
-                  </p>
-                  <div className="pt-2 border-t border-white/5 text-[10px] text-slate-400 flex items-center justify-between">
-                    <span>Scoring: {accountTargetedChallenge.scoringFormula}</span>
-                    <span className="text-cyan-400 font-semibold">Head-to-Head (2 Players)</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
+          {/* Start Button */}
+          <div className="space-y-2 pt-2">
+            <button
+              onClick={handleStartRandomMatch}
+              disabled={loading}
+              className="w-full py-5 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-black text-lg uppercase tracking-wider shadow-2xl shadow-indigo-600/30 active:scale-[0.98] transition flex items-center justify-center gap-3"
+            >
+              <span>⚔️</span> START RANDOM MATCH
+            </button>
+            <p className="text-center text-[11px] text-slate-400">
+              Tap start to enter matchmaking queue
+            </p>
+          </div>
         </div>
       )}
 
       {/* ═══════════════════════════════════════════════════════════════════════════
-          STAGE 2: SEARCHING SCREEN
+          STAGE 2: LOBBY SEARCHING GRAPHIC
           ═══════════════════════════════════════════════════════════════════════════ */}
       {stage === 'SEARCHING' && (
-        <div className="px-4 py-12 flex flex-col items-center text-center space-y-8">
-          {/* Radar animation container */}
-          <div className="relative w-48 h-48 flex items-center justify-center">
-            <div className="absolute inset-0 rounded-full border border-blue-500/20 animate-ping" />
-            <div className="absolute inset-4 rounded-full border border-indigo-500/30 animate-pulse" />
-            <div className="absolute inset-8 rounded-full border border-purple-500/40" />
-            <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-blue-600 to-purple-600 flex items-center justify-center text-4xl shadow-xl shadow-blue-500/30">
+        <div className="px-4 py-16 flex flex-col items-center text-center space-y-8">
+          {/* High-Tech Radar Searching Graphic */}
+          <div className="relative w-56 h-56 flex items-center justify-center">
+            {/* Outer pulsating ring */}
+            <div className="absolute inset-0 rounded-full border-2 border-blue-500/30 animate-ping" />
+            {/* Middle pulsing wave */}
+            <div className="absolute inset-6 rounded-full border-2 border-indigo-500/40 animate-pulse" />
+            {/* Concentric grid rings */}
+            <div className="absolute inset-12 rounded-full border border-purple-500/50" />
+            <div className="absolute inset-16 rounded-full border border-cyan-500/30 border-dashed animate-spin" style={{ animationDuration: '12s' }} />
+            {/* Glowing central core */}
+            <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-blue-600 via-indigo-600 to-purple-600 flex items-center justify-center text-4xl shadow-2xl shadow-blue-500/50 relative z-10">
               ⚡
             </div>
           </div>
 
-          <div>
-            <h2 className="text-xl font-extrabold text-white">SEARCHING FOR OPPONENT...</h2>
-            <p className="text-xs text-slate-400 mt-1">
-              Matching within ±1 tier ({currentRankTier}) • {selectedSport.toUpperCase()}
+          <div className="space-y-2">
+            <h2 className="text-2xl font-black text-white tracking-wide flex items-center justify-center gap-2">
+              <span>SEARCHING LOBBY</span>
+              <span className="inline-flex gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-bounce" style={{ animationDelay: '0ms' }} />
+                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-bounce" style={{ animationDelay: '150ms' }} />
+                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+              </span>
+            </h2>
+            <p className="text-xs text-slate-400">
+              Scanning for online athletes in {currentRankTier} tier (±1 window)
             </p>
-            <div className="mt-3 inline-block px-3 py-1 rounded-full bg-slate-900 border border-white/10 text-xs font-mono text-cyan-400">
-              Elapsed: {String(Math.floor(searchSeconds / 60)).padStart(2, '0')}:
+            <div className="mt-2 inline-block px-4 py-1.5 rounded-full bg-slate-900/90 border border-white/10 text-xs font-mono text-cyan-400 shadow-inner">
+              Queue Elapsed: {String(Math.floor(searchSeconds / 60)).padStart(2, '0')}:
               {String(searchSeconds % 60).padStart(2, '0')}
             </div>
           </div>
 
-          <div className="w-full max-w-xs space-y-3">
+          <div className="w-full max-w-xs space-y-3 pt-4">
             {/* Dev Mode Instant Simulation Helper */}
             <button
               onClick={handleDevSimulateOpponent}
-              className="w-full py-2.5 px-4 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-400 text-xs font-bold uppercase tracking-wider transition flex items-center justify-center gap-2"
+              className="w-full py-3 px-4 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-400 text-xs font-bold uppercase tracking-wider transition flex items-center justify-center gap-2"
             >
-              <span>🤖</span> Instant Pair (Simulated Athlete)
+              <span>🤖</span> Instant Pair (Simulated Opponent)
             </button>
 
             {/* Cancel Button */}
             <button
               onClick={handleCancelSearch}
-              className="w-full py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 border border-white/10 text-slate-300 text-xs font-bold transition"
+              className="w-full py-3 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 border border-white/10 text-slate-300 text-xs font-bold transition"
             >
               Cancel Search
             </button>
