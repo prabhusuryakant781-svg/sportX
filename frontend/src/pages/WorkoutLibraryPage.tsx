@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import WorkoutCard from '../components/WorkoutCard';
 import ExerciseCard from '../components/ExerciseCard';
+import { buildCameraRoute } from '../utils/exerciseUtils';
 import type { WorkoutPlan, Exercise } from '../types';
 
 export default function WorkoutLibraryPage() {
@@ -24,11 +25,11 @@ export default function WorkoutLibraryPage() {
 
   const handleStartPlan = (plan: WorkoutPlan) => {
     const firstEx = plan.exercises?.[0]?.exerciseId || 'squat';
-    navigate(`/camera/${plan.id}/${firstEx}`);
+    navigate(buildCameraRoute(plan, firstEx));
   };
 
   const handleSelectExercise = (ex: Exercise) => {
-    navigate(`/camera/free/${ex.id}`);
+    navigate(buildCameraRoute('free', ex));
   };
 
   return (
@@ -62,8 +63,8 @@ export default function WorkoutLibraryPage() {
           </div>
         ) : tab === 'plans' ? (
           <div className="flex flex-col gap-4">
-            {plans.map(p => (
-              <WorkoutCard key={p.id} plan={p} onStart={handleStartPlan} />
+            {plans.map((p, idx) => (
+              <WorkoutCard key={p.id || p.workoutId || p.planId || `plan-${idx}`} plan={p} onStart={handleStartPlan} />
             ))}
             {plans.length === 0 && (
               <div className="empty-state">
@@ -74,8 +75,8 @@ export default function WorkoutLibraryPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-3">
-            {exercises.map(ex => (
-              <ExerciseCard key={ex.id} exercise={ex} onSelect={handleSelectExercise} />
+            {exercises.map((ex, idx) => (
+              <ExerciseCard key={ex.id || ex.exerciseId || `ex-${idx}`} exercise={ex} onSelect={handleSelectExercise} />
             ))}
           </div>
         )}

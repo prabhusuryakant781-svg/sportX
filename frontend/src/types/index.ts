@@ -33,20 +33,24 @@ export interface Session {
 }
 
 export interface Exercise {
-  id: string;
+  id?: string;
+  exerciseId?: string;
   name: string;
-  icon: string;
-  category: string;
-  description: string;
-  targetMuscles: string[];
-  difficulty: string;
+  icon?: string;
+  category?: string;
+  description?: string;
+  targetMuscles?: string[];
+  difficulty?: string;
 }
 
 export interface WorkoutPlan {
-  id: string;
+  id?: string;
+  workoutId?: string;
+  planId?: string;
   title: string;
   difficulty: string;
-  estimatedDurationMinutes: number;
+  estimatedDurationMinutes?: number;
+  estimatedDuration?: number;
   exercises: WorkoutExercise[];
   recommendationReason?: string;
 }

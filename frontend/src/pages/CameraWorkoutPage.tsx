@@ -3,12 +3,39 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import CameraWorkout from '../components/CameraWorkout';
 import { useWorkout } from '../context/WorkoutContext';
+import { normalizeExerciseId } from '../utils/exerciseUtils';
 import type { WorkoutPlan, Exercise } from '../types';
 
 export default function CameraWorkoutPage() {
-  const { planId, exerciseId } = useParams();
+  const params = useParams<{ planId?: string; exerciseId?: string }>();
   const navigate = useNavigate();
   const { setSessionId, endWorkout } = useWorkout();
+
+  // Resolve raw parameters
+  let rawPlanId = params.planId;
+  let rawExerciseId = params.exerciseId;
+
+  // Handle single param case: e.g. /camera/:exerciseId
+  if (!rawExerciseId && rawPlanId) {
+    rawExerciseId = rawPlanId;
+    rawPlanId = 'free';
+  }
+
+  // Canonical normalization
+  const cleanPlanId = (!rawPlanId || rawPlanId === 'undefined' || rawPlanId === 'null') ? 'free' : rawPlanId;
+  const cleanExerciseId = normalizeExerciseId(rawExerciseId);
+
+  // Self-heal: If route has "undefined" or was single-parameter, replace with canonical /camera/:planId/:exerciseId
+  useEffect(() => {
+    if (
+      params.planId === 'undefined' ||
+      params.exerciseId === 'undefined' ||
+      !params.exerciseId ||
+      params.exerciseId !== cleanExerciseId
+    ) {
+      navigate(`/camera/${cleanPlanId}/${cleanExerciseId}`, { replace: true });
+    }
+  }, [params.planId, params.exerciseId, cleanPlanId, cleanExerciseId, navigate]);
 
   const [loading, setLoading] = useState(true);
   const [exercise, setExercise] = useState<Exercise | null>(null);
@@ -20,11 +47,12 @@ export default function CameraWorkoutPage() {
   const [lastResult, setLastResult] = useState<any>(null);
 
   useEffect(() => {
-    const exId = exerciseId || 'squat';
+    const exId = cleanExerciseId;
     Promise.all([
       api.getExercise(exId).catch(() => ({
         data: {
           id: exId,
+          exerciseId: exId,
           name: exId === 'pushup' ? 'Push-Ups' : exId === 'jumping_jacks' ? 'Jumping Jacks' : 'Bodyweight Squats',
           category: 'strength',
           targetMuscles: ['quads', 'glutes', 'core'],
@@ -33,13 +61,20 @@ export default function CameraWorkoutPage() {
           icon: exId === 'pushup' ? '💪' : exId === 'jumping_jacks' ? '⭐' : '🏋️',
         }
       })),
-      planId && planId !== 'free' ? api.getWorkout(planId).catch(() => ({ data: null })) : Promise.resolve({ data: null })
+      cleanPlanId !== 'free' ? api.getWorkout(cleanPlanId).catch(() => ({ data: null })) : Promise.resolve({ data: null })
     ]).then(([eRes, pRes]: any[]) => {
-      setExercise(eRes.data);
-      setPlan(pRes.data);
+      const rawEx = eRes?.data || {};
+      const resolvedEx: Exercise = {
+        ...rawEx,
+        id: rawEx.id || rawEx.exerciseId || exId,
+        exerciseId: rawEx.exerciseId || rawEx.id || exId,
+        name: rawEx.name || (exId === 'pushup' ? 'Push-Ups' : exId === 'jumping_jacks' ? 'Jumping Jacks' : 'Bodyweight Squats'),
+      };
+      setExercise(resolvedEx);
+      setPlan(pRes?.data || null);
       setLoading(false);
     });
-  }, [planId, exerciseId]);
+  }, [cleanPlanId, cleanExerciseId]);
 
   // Seamlessly initiate backend session for workout
   const initSession = useCallback(async (exId: string) => {
@@ -48,7 +83,7 @@ export default function CameraWorkoutPage() {
     try {
       const res: any = await api.startSession({
         exerciseId: exId,
-        planId: planId !== 'free' ? planId : undefined,
+        planId: cleanPlanId !== 'free' ? cleanPlanId : undefined,
       });
       const sId = res?.data?.sessionId || res?.data?.id;
       if (sId) {
@@ -60,7 +95,7 @@ export default function CameraWorkoutPage() {
     } finally {
       setIsStarting(false);
     }
-  }, [activeSessionId, isStarting, planId, setSessionId]);
+  }, [activeSessionId, isStarting, cleanPlanId, setSessionId]);
 
   // Automatically initiate backend session once exercise is loaded
   useEffect(() => {
@@ -85,8 +120,8 @@ export default function CameraWorkoutPage() {
     if (!sId) {
       try {
         const res: any = await api.startSession({
-          exerciseId: exercise.id,
-          planId: planId !== 'free' ? planId : undefined,
+          exerciseId: exercise.id || exercise.exerciseId || cleanExerciseId,
+          planId: cleanPlanId !== 'free' ? cleanPlanId : undefined,
         });
         sId = res?.data?.sessionId || res?.data?.id;
         if (sId) {
@@ -105,10 +140,11 @@ export default function CameraWorkoutPage() {
     }
 
     try {
+      const resolvedExId = exercise.id || exercise.exerciseId || cleanExerciseId;
       // 1. Ingest Vision telemetry using exact same sessionId
       await api.submitVisionResult({
         sessionId: sId,
-        exerciseId: exercise.id,
+        exerciseId: resolvedExId,
         exerciseName: exercise.name,
         reps: result.reps,
         formScore: result.formScore,
@@ -124,7 +160,7 @@ export default function CameraWorkoutPage() {
 
       // 2. Authoritative session completion using exact same sessionId
       await api.completeSession(sId, {
-        exerciseId: exercise.id,
+        exerciseId: resolvedExId,
         exerciseName: exercise.name,
         totalReps: result.reps,
         averageFormScore: result.formScore,
@@ -137,7 +173,7 @@ export default function CameraWorkoutPage() {
           sessionId: sId,
           result,
           exercise,
-          planId,
+          planId: cleanPlanId !== 'free' ? cleanPlanId : undefined,
         },
       });
     } catch (e: any) {
@@ -196,10 +232,14 @@ export default function CameraWorkoutPage() {
             </div>
           )}
           <CameraWorkout
-            exerciseId={exercise.id as any}
+            exerciseId={cleanExerciseId as any}
             onComplete={handleComplete}
             onStartWorkout={handleStartWorkout}
-            targetReps={plan ? plan.exercises.find(e => e.exerciseId === exercise.id)?.reps : 20}
+            targetReps={
+              plan?.exercises
+                ? plan.exercises.find(e => normalizeExerciseId(e.exerciseId) === cleanExerciseId)?.reps || 20
+                : 20
+            }
           />
         </div>
       </div>

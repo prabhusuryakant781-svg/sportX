@@ -19,7 +19,7 @@ export default function WorkoutCard({ plan, onStart }: WorkoutCardProps) {
       </div>
 
       <div className="flex flex-wrap gap-2 mt-3">
-        <span className="stat-pill">⏱️ {plan.estimatedDurationMinutes} min</span>
+        <span className="stat-pill">⏱️ {plan.estimatedDurationMinutes || plan.estimatedDuration || 15} min</span>
         <span className="stat-pill">📋 {plan.exercises?.length || 0} exercises</span>
         <span className="stat-pill">🎯 {plan.difficulty}</span>
       </div>

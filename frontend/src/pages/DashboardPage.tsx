@@ -5,6 +5,7 @@ import { api } from '../services/api';
 import GoalRing from '../components/GoalRing';
 import StreakFlame from '../components/StreakFlame';
 import ManualLogModal from '../components/ManualLogModal';
+import { buildCameraRoute } from '../utils/exerciseUtils';
 import type { WorkoutPlan, Badge } from '../types';
 
 function StatCard({ icon, label, value, accent }: { icon: string; label: string; value: string | number; accent?: string }) {
@@ -102,13 +103,16 @@ export default function DashboardPage() {
               <span className="text-4xl">🏋️</span>
             </div>
             <div className="flex flex-wrap gap-2 mt-3">
-              <span className="stat-pill">⏱️ {todayPlan.estimatedDurationMinutes} min</span>
-              <span className="stat-pill">📋 {todayPlan.exercises?.length} exercises</span>
+              <span className="stat-pill">⏱️ {todayPlan.estimatedDurationMinutes || todayPlan.estimatedDuration || 15} min</span>
+              <span className="stat-pill">📋 {todayPlan.exercises?.length || 0} exercises</span>
               <span className="stat-pill">🎯 {todayPlan.difficulty}</span>
             </div>
             <button
               className="btn btn-primary btn-full mt-3"
-              onClick={() => navigate(`/camera/${todayPlan.id}/${todayPlan.exercises?.[0]?.exerciseId || 'squat'}`)}
+              onClick={() => {
+                const firstEx = todayPlan.exercises?.[0]?.exerciseId || 'squat';
+                navigate(buildCameraRoute(todayPlan, firstEx));
+              }}
             >
               🎬 Start Workout
             </button>
@@ -124,7 +128,7 @@ export default function DashboardPage() {
             { icon: '⚡', label: 'Compete', path: '/lobby' },
             { icon: '🏆', label: 'Leaderboard', path: '/leaderboard' },
             { icon: '🏅', label: 'Log Activity', action: () => setShowManualLog(true) },
-            { icon: '📸', label: 'Free Camera', path: '/camera' },
+            { icon: '📸', label: 'Free Camera', path: '/camera/free/squat' },
           ].map(a => (
             <button
               key={a.label}

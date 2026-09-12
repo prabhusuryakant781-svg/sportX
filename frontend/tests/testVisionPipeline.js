@@ -20,6 +20,7 @@ import {
 } from '../src/utils/mediapipeLandmarks.js';
 import { calculateAngle, validateCameraPositioning } from '../src/utils/poseMath.js';
 import { RepCounterFSM } from '../src/utils/repCounterFSM.js';
+import { normalizeExerciseId, getPlanId, getExerciseId, buildCameraRoute } from '../src/utils/exerciseUtils.js';
 
 let passedTests = 0;
 let totalTests = 0;
@@ -288,6 +289,78 @@ assert(rawArrayResult.reps === 1, 'RepCounterFSM successfully processes raw Medi
 rawArrayFsm.reset();
 assert(rawArrayFsm.reps === 0, 'reset() clears reps back to 0');
 assert(rawArrayFsm.state === 'UP', 'reset() restores starting FSM state to UP');
+
+// -------------------------------------------------------------
+// Test Group 8: Exercise ID Normalization & Route Generation Regression
+// -------------------------------------------------------------
+console.log('--- Test Group 8: Exercise ID Normalization & Route Generation ---');
+
+// 1. Canonical normalization of jumping jacks variations
+assert(normalizeExerciseId('jumping_jacks') === 'jumping_jacks', 'Canonical jumping_jacks preserved');
+assert(normalizeExerciseId('jumping-jacks') === 'jumping_jacks', 'Hyphenated jumping-jacks normalized');
+assert(normalizeExerciseId('jumpingJacks') === 'jumping_jacks', 'CamelCase jumpingJacks normalized');
+assert(normalizeExerciseId('jumping jack') === 'jumping_jacks', 'Space separated jumping jack normalized');
+assert(normalizeExerciseId('jumping_jack') === 'jumping_jacks', 'Singular jumping_jack normalized');
+
+// 2. Canonical normalization of squats and pushups
+assert(normalizeExerciseId('squat') === 'squat', 'Canonical squat preserved');
+assert(normalizeExerciseId('squats') === 'squat', 'Plural squats normalized to squat');
+assert(normalizeExerciseId('pushup') === 'pushup', 'Canonical pushup preserved');
+assert(normalizeExerciseId('pushups') === 'pushup', 'Plural pushups normalized to pushup');
+assert(normalizeExerciseId('push_ups') === 'pushup', 'push_ups normalized to pushup');
+assert(normalizeExerciseId('push-up') === 'pushup', 'Hyphenated push-up normalized to pushup');
+assert(normalizeExerciseId(undefined) === 'squat', 'undefined falls back to safe default squat');
+assert(normalizeExerciseId(null) === 'squat', 'null falls back to safe default squat');
+assert(normalizeExerciseId('') === 'squat', 'empty string falls back to safe default squat');
+
+// 3. Plan ID extraction
+assert(getPlanId({ workoutId: 'dorm_blast_10' }) === 'dorm_blast_10', 'Extracts workoutId correctly');
+assert(getPlanId({ planId: 'dorm_blast_20' }) === 'dorm_blast_20', 'Extracts planId correctly');
+assert(getPlanId({ id: 'strength_30' }) === 'strength_30', 'Extracts id correctly');
+assert(getPlanId('free') === 'free', 'String "free" preserved');
+assert(getPlanId('undefined') === 'free', 'Literal string "undefined" mapped to "free"');
+assert(getPlanId(undefined) === 'free', 'undefined plan object mapped to "free"');
+assert(getPlanId(null) === 'free', 'null plan object mapped to "free"');
+
+// 4. Exercise ID extraction
+assert(getExerciseId({ exerciseId: 'jumping_jacks' }) === 'jumping_jacks', 'Extracts exerciseId from object');
+assert(getExerciseId({ id: 'jumping_jacks' }) === 'jumping_jacks', 'Extracts id from object');
+assert(getExerciseId({ id: 'jumping-jacks' }) === 'jumping_jacks', 'Extracts and normalizes id from object');
+assert(getExerciseId('jumping_jacks') === 'jumping_jacks', 'String exerciseId preserved');
+assert(getExerciseId('undefined') === 'squat', 'Literal string "undefined" exercise mapped to default squat');
+
+// 5. Zero-undefined Camera Route Generation
+const squatRoute = buildCameraRoute('free', { exerciseId: 'squat' });
+assert(squatRoute === '/camera/free/squat', 'Generates /camera/free/squat');
+
+const pushupRoute = buildCameraRoute('free', { exerciseId: 'pushup' });
+assert(pushupRoute === '/camera/free/pushup', 'Generates /camera/free/pushup');
+
+const jjRoute = buildCameraRoute('free', { exerciseId: 'jumping_jacks' });
+assert(jjRoute === '/camera/free/jumping_jacks', 'Generates /camera/free/jumping_jacks');
+
+// CRITICAL REGRESSION: Plan object with only workoutId and exerciseId
+const planObj = {
+  workoutId: 'dorm_blast_10',
+  title: 'Dorm Room Blast',
+  exercises: [{ exerciseId: 'jumping_jacks' }]
+};
+const planRoute = buildCameraRoute(planObj, planObj.exercises[0].exerciseId);
+assert(planRoute === '/camera/dorm_blast_10/jumping_jacks', 'Plan workout route generated with workoutId');
+assert(!planRoute.includes('undefined'), 'Plan workout route contains NO "undefined"');
+
+// CRITICAL REGRESSION: Accidental undefined inputs NEVER produce /camera/undefined/...
+const bugRegressionRoute1 = buildCameraRoute(undefined, 'jumping_jacks');
+assert(bugRegressionRoute1 === '/camera/free/jumping_jacks', 'Undefined plan gracefully defaults to /camera/free/jumping_jacks');
+assert(!bugRegressionRoute1.includes('undefined'), 'Regression 1 contains NO "undefined"');
+
+const bugRegressionRoute2 = buildCameraRoute('undefined', 'jumping_jacks');
+assert(bugRegressionRoute2 === '/camera/free/jumping_jacks', 'Literal "undefined" plan gracefully defaults to /camera/free/jumping_jacks');
+assert(!bugRegressionRoute2.includes('undefined'), 'Regression 2 contains NO "undefined"');
+
+const bugRegressionRoute3 = buildCameraRoute('free', undefined);
+assert(bugRegressionRoute3 === '/camera/free/squat', 'Undefined exercise gracefully defaults to /camera/free/squat');
+assert(!bugRegressionRoute3.includes('undefined'), 'Regression 3 contains NO "undefined"');
 
 // -------------------------------------------------------------
 // Summary

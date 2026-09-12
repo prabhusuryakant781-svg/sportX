@@ -60,7 +60,8 @@ export default function App() {
         {/* Protected Routes without Bottom Nav (Fullscreen experiences) */}
         <Route path="/camera/:planId/:exerciseId" element={<ProtectedRoute><CameraWorkoutPage /></ProtectedRoute>} />
         <Route path="/camera/free/:exerciseId" element={<ProtectedRoute><CameraWorkoutPage /></ProtectedRoute>} />
-        <Route path="/camera" element={<Navigate to="/workout" replace />} />
+        <Route path="/camera/:exerciseId" element={<ProtectedRoute><CameraWorkoutPage /></ProtectedRoute>} />
+        <Route path="/camera" element={<Navigate to="/camera/free/squat" replace />} />
         <Route path="/result" element={<ProtectedRoute><SessionResultPage /></ProtectedRoute>} />
 
         {/* Fallback */}
