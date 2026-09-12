@@ -4,6 +4,7 @@
  * Designed for AI / Computer-Vision form analysis telemetry
  */
 import { db, hasFirebaseCredentials } from '../config/firebase';
+import { assertProductionSafe } from '../config/productionSafety';
 import { ActivityLogDoc } from '../types';
 import * as logger from 'firebase-functions/logger';
 
@@ -37,7 +38,10 @@ export class ActivityRepository {
         await db.collection(COLLECTION).doc(log.logId).set(log);
       } catch (err) {
         logger.warn(`[ActivityRepository] Firestore create failed for ${log.logId}:`, err);
+        assertProductionSafe(`ActivityRepository.create(${log.logId})`);
       }
+    } else {
+      assertProductionSafe(`ActivityRepository.create(${log.logId}) (no credentials)`);
     }
 
     return log;
@@ -63,7 +67,10 @@ export class ActivityRepository {
         await batch.commit();
       } catch (err) {
         logger.warn('[ActivityRepository] Firestore createBatch failed:', err);
+        assertProductionSafe('ActivityRepository.createBatch');
       }
+    } else {
+      assertProductionSafe('ActivityRepository.createBatch (no credentials)');
     }
   }
 
@@ -101,8 +108,10 @@ export class ActivityRepository {
 
           return logs.sort((a, b) => parseLogTime(b) - parseLogTime(a));
         }
+        return [];
       } catch (err) {
         logger.warn(`[ActivityRepository] Firestore getByUser failed for ${userId}:`, err);
+        assertProductionSafe(`ActivityRepository.getByUser(${userId})`);
       }
     }
 

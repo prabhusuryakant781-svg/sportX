@@ -7,6 +7,8 @@ import { db } from '../config/firebase';
 import { StreakDoc, StreakDayRecord } from '../types';
 import * as logger from 'firebase-functions/logger';
 
+import { assertProductionSafe } from '../config/productionSafety';
+
 const COLLECTION = 'streaks';
 
 export class StreakRepository {
@@ -14,9 +16,14 @@ export class StreakRepository {
    * Get streak record for a user
    */
   static async getByUserId(userId: string): Promise<StreakDoc | null> {
-    const doc = await db.collection(COLLECTION).doc(userId).get();
-    if (!doc.exists) return null;
-    return doc.data() as StreakDoc;
+    try {
+      const doc = await db.collection(COLLECTION).doc(userId).get();
+      if (!doc.exists) return null;
+      return doc.data() as StreakDoc;
+    } catch (err) {
+      assertProductionSafe('StreakRepository.getByUserId', err);
+      return null;
+    }
   }
 
   /**

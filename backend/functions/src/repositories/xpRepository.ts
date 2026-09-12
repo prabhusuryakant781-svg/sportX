@@ -7,6 +7,8 @@ import { db } from '../config/firebase';
 import { XPTransactionDoc } from '../types';
 import * as logger from 'firebase-functions/logger';
 
+import { assertProductionSafe } from '../config/productionSafety';
+
 const COLLECTION = 'xpTransactions';
 
 export class XPRepository {
@@ -52,6 +54,7 @@ export class XPRepository {
         return timeB - timeA;
       }).slice(0, limit);
     } catch (err) {
+      assertProductionSafe('XPRepository.getUserHistory', err);
       logger.error(`Error fetching XP history for user ${userId}:`, err);
       return [];
     }

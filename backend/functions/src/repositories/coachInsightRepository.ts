@@ -5,6 +5,7 @@
  */
 import { db, hasFirebaseCredentials } from '../config/firebase';
 import { demoCoachInsights } from '../config/demoStore';
+import { assertProductionSafe } from '../config/productionSafety';
 import { CoachInsightDoc } from '../types';
 import * as logger from 'firebase-functions/logger';
 
@@ -35,11 +36,14 @@ export class CoachInsightRepository {
         logger.info(`[CoachInsight] Saved insight ${insight.insightId} for user ${insight.userId}`);
         return insight;
       } catch (err) {
-        logger.warn('[CoachInsight] Firestore unavailable, saving to demoStore fallback:', err);
+        logger.warn('[CoachInsight] Firestore unavailable:', err);
+        assertProductionSafe('CoachInsightRepository.create');
       }
+    } else {
+      assertProductionSafe('CoachInsightRepository.create (no credentials)');
     }
 
-    // Demo store fallback
+    // Demo store fallback for offline tests
     demoCoachInsights.unshift(insight);
     return insight;
   }
@@ -63,8 +67,11 @@ export class CoachInsightRepository {
           return snap.docs[0].data() as CoachInsightDoc;
         }
       } catch (err) {
-        logger.warn('[CoachInsight] Firestore query by sessionId failed, checking demoStore:', err);
+        logger.warn('[CoachInsight] Firestore query by sessionId failed:', err);
+        assertProductionSafe(`CoachInsightRepository.getBySessionId(${sessionId})`);
       }
+    } else {
+      assertProductionSafe(`CoachInsightRepository.getBySessionId(${sessionId}) (no credentials)`);
     }
 
     const demoMatch = demoCoachInsights.find(i => i.sourceSessionId === sessionId);
@@ -93,8 +100,11 @@ export class CoachInsightRepository {
           });
         }
       } catch (err) {
-        logger.warn('[CoachInsight] Firestore query failed, checking demoStore:', err);
+        logger.warn('[CoachInsight] Firestore query failed:', err);
+        assertProductionSafe(`CoachInsightRepository.getUserInsights(${userId})`);
       }
+    } else {
+      assertProductionSafe(`CoachInsightRepository.getUserInsights(${userId}) (no credentials)`);
     }
 
     return demoCoachInsights

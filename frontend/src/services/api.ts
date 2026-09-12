@@ -126,7 +126,7 @@ export const api = {
   getCollegeLeaderboard: () => request('GET', '/leaderboard/college'),
 
   // ── AI Coach (Gemini) ──────────────────────────────────────────────────────
-  askCoach: (body: { message: string; context?: string }) =>
+  askCoach: (body: { message: string; context?: string; history?: Array<{ role: 'user' | 'assistant'; content: string }> }) =>
     request('POST', '/ai/ask-coach', body),
   analyzeSession: (sessionId: string) =>
     request('POST', '/ai/session-analysis', { sessionId }),

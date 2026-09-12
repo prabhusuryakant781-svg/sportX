@@ -18,9 +18,9 @@ import {
   validatePoseConfidence,
   MEDIAPIPE_SPORTX_MAPPING
 } from '../src/utils/mediapipeLandmarks.js';
-import { calculateAngle, validateCameraPositioning } from '../src/utils/poseMath.js';
-import { RepCounterFSM } from '../src/utils/repCounterFSM.js';
-import { normalizeExerciseId, getPlanId, getExerciseId, buildCameraRoute } from '../src/utils/exerciseUtils.js';
+import { calculateAngle, validateCameraPositioning } from '../src/utils/poseMath.ts';
+import { RepCounterFSM } from '../src/utils/repCounterFSM.ts';
+import { normalizeExerciseId, getPlanId, getExerciseId, buildCameraRoute } from '../src/utils/exerciseUtils.ts';
 
 let passedTests = 0;
 let totalTests = 0;

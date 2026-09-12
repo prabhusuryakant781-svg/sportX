@@ -14,7 +14,7 @@ export default function SessionResultPage() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
 
-  const { result, exercise, planId, sessionId } = location.state || {};
+  const { result, exercise, planId, sessionId, completionData } = location.state || {};
 
   const handleRequestAIAnalysis = async () => {
     setIsAnalyzing(true);
@@ -45,17 +45,20 @@ export default function SessionResultPage() {
 
     const saveResult = async () => {
       try {
-        // Optimistic XP calc (simplified formula)
-        const calcXp = Math.floor(result.reps * (result.formScore / 100) * 10);
-        setXpEarned(calcXp);
-
-        // In a real flow, we'd complete the active session here
-        // await api.completeSession(activeSessionId, { ...result });
+        // Authoritative server XP from backend completion response
+        const serverXp = completionData?.xpEarned ?? completionData?.xpAdded ?? completionData?.xp;
+        if (typeof serverXp === 'number') {
+          setXpEarned(serverXp);
+        } else {
+          // Fallback only if completionData was not passed
+          const calcXp = Math.floor(result.reps * (result.formScore / 100) * 10);
+          setXpEarned(calcXp);
+        }
 
         await refreshUser();
         triggerConfetti();
       } catch (err) {
-        console.error('Failed to save result', err);
+        console.error('Failed to finalize result display', err);
       } finally {
         setSaving(false);
       }

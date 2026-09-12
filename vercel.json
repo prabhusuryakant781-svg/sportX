@@ -22,8 +22,6 @@
     }
   ],
   "env": {
-    "FIREBASE_PROJECT_ID": "sportx-ab5f",
-    "GCLOUD_PROJECT": "sportx-ab5f",
     "FIRESTORE_EMULATOR_HOST": "",
     "FIREBASE_STORAGE_EMULATOR_HOST": "",
     "PORT": "3001",

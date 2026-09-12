@@ -4,9 +4,26 @@ import { initializePoseLandmarker, detectPose } from '../services/poseLandmarker
 import type { Landmark } from '../utils/poseMath';
 import GoalRing from './GoalRing';
 
+export interface WorkoutCompletionResult {
+  reps: number;
+  formScore: number;
+  duration: number;
+  streak: number;
+  validFormReps?: number;
+  minAngle?: number | null;
+  averageAngle?: number | null;
+  cadenceRepsPerMinute?: number | null;
+  detectedErrors?: any[];
+  confidence?: number | null;
+  feedbackLog?: string[];
+  exerciseId?: string;
+  visionVersion?: string;
+  [key: string]: any;
+}
+
 interface CameraWorkoutProps {
   exerciseId: ExerciseType;
-  onComplete: (result: { reps: number; formScore: number; duration: number; streak: number }) => void;
+  onComplete: (result: WorkoutCompletionResult) => void;
   onUpdate?: (state: RepCounterState) => void;
   onStartWorkout?: () => void;
   targetReps?: number;
@@ -67,6 +84,12 @@ export default function CameraWorkout({
   const isMountedRef = useRef(true);
   const lastStateUpdateRef = useRef<number>(0);
   const isCompletingRef = useRef(false);
+
+  const onUpdateRef = useRef(onUpdate);
+  useEffect(() => {
+    onUpdateRef.current = onUpdate;
+  }, [onUpdate]);
+  const lastRepsRef = useRef(0);
 
   // Keep isActiveRef synced with state
   useEffect(() => {
@@ -158,35 +181,37 @@ export default function CameraWorkout({
     if (!landmarks || landmarks.length === 0) return;
 
     // 1. Draw connections
-    ctx.lineWidth = 3;
     ctx.strokeStyle = '#10B981';
+    ctx.lineWidth = 3;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
 
-    for (const [a, b] of SKELETON_CONNECTIONS) {
-      const p1 = landmarks[a];
-      const p2 = landmarks[b];
-      if (p1 && p2 && (p1.visibility ?? 1) > 0.35 && (p2.visibility ?? 1) > 0.35) {
-        ctx.beginPath();
-        ctx.moveTo(p1.x * width, p1.y * height);
-        ctx.lineTo(p2.x * width, p2.y * height);
-        ctx.stroke();
-      }
-    }
-
-    // 2. Draw anatomical landmark joints
-    for (let i = 0; i < landmarks.length; i++) {
-      if (i > 32) break;
-      const lm = landmarks[i];
-      if (!lm || (lm.visibility ?? 1) <= 0.35) continue;
-
-      const isKeyJoint = [11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28].includes(i);
-      ctx.fillStyle = isKeyJoint ? '#06B6D4' : 'rgba(255, 255, 255, 0.75)';
+    SKELETON_CONNECTIONS.forEach(([startIdx, endIdx]: [number, number]) => {
+      const start = landmarks[startIdx];
+      const end = landmarks[endIdx];
+      if (!start || !end) return;
+      if ((start.visibility ?? 1) < 0.35 || (end.visibility ?? 1) < 0.35) return;
 
       ctx.beginPath();
-      ctx.arc(lm.x * width, lm.y * height, isKeyJoint ? 5 : 3, 0, 2 * Math.PI);
+      ctx.moveTo(start.x * width, start.y * height);
+      ctx.lineTo(end.x * width, end.y * height);
+      ctx.stroke();
+    });
+
+    // 2. Draw landmarks
+    ctx.fillStyle = '#FFFFFF';
+    ctx.strokeStyle = '#059669';
+    ctx.lineWidth = 2;
+
+    landmarks.forEach((lm) => {
+      if ((lm.visibility ?? 1) < 0.35) return;
+      const x = lm.x * width;
+      const y = lm.y * height;
+      ctx.beginPath();
+      ctx.arc(x, y, 4, 0, 2 * Math.PI);
       ctx.fill();
-    }
+      ctx.stroke();
+    });
   }, []);
 
   // Main real-time computer vision inference loop
@@ -229,10 +254,11 @@ export default function CameraWorkout({
 
           // Throttle React state updates to avoid unnecessary render spam (max 20fps UI update)
           const currentTime = Date.now();
-          if (currentTime - lastStateUpdateRef.current >= 45 || newState.reps !== repState.reps) {
+          if (currentTime - lastStateUpdateRef.current >= 45 || newState.reps !== lastRepsRef.current) {
+            lastRepsRef.current = newState.reps;
             lastStateUpdateRef.current = currentTime;
             setRepState(newState);
-            onUpdate?.(newState);
+            onUpdateRef.current?.(newState);
           }
         }
       } else {
@@ -253,7 +279,7 @@ export default function CameraWorkout({
     if (isMountedRef.current) {
       animFrameIdRef.current = requestAnimationFrame(runVisionLoop);
     }
-  }, [checkPositioning, drawRealSkeleton, onUpdate, repState.reps]);
+  }, [checkPositioning, drawRealSkeleton]);
 
   // 1. Initialize Real Camera Stream
   const initializeCamera = useCallback(async () => {
@@ -408,11 +434,21 @@ export default function CameraWorkout({
     }
 
     const state = fsmRef.current.getState();
+    const telemetry = fsmRef.current.getTelemetry(duration);
     onComplete({
       reps: state.reps,
       formScore: state.formScore,
       duration,
       streak: state.bestStreak,
+      validFormReps: telemetry.validFormReps,
+      minAngle: telemetry.minAngle,
+      averageAngle: telemetry.averageAngle,
+      cadenceRepsPerMinute: telemetry.cadenceRepsPerMinute,
+      detectedErrors: telemetry.detectedErrors,
+      feedbackLog: telemetry.feedbackLog,
+      confidence: telemetry.confidence,
+      exerciseId: telemetry.exerciseId,
+      visionVersion: telemetry.visionVersion,
     });
   };
 

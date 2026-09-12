@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
-import CameraWorkout from '../components/CameraWorkout';
+import CameraWorkout, { type WorkoutCompletionResult } from '../components/CameraWorkout';
 import { useWorkout } from '../context/WorkoutContext';
 import { normalizeExerciseId } from '../utils/exerciseUtils';
 import type { WorkoutPlan, Exercise } from '../types';
@@ -110,7 +110,7 @@ export default function CameraWorkoutPage() {
     }
   };
 
-  const handleComplete = async (result: { reps: number; formScore: number; duration: number; streak: number }) => {
+  const handleComplete = async (result: WorkoutCompletionResult) => {
     if (!exercise) return;
     setLastResult(result);
     setIsCompleting(true);
@@ -141,25 +141,30 @@ export default function CameraWorkoutPage() {
 
     try {
       const resolvedExId = exercise.id || exercise.exerciseId || cleanExerciseId;
-      // 1. Ingest Vision telemetry using exact same sessionId
-      await api.submitVisionResult({
+      // 1. Ingest Vision telemetry using exact same sessionId and REAL data from engine
+      const visionPayload: any = {
         sessionId: sId,
         exerciseId: resolvedExId,
         exerciseName: exercise.name,
         reps: result.reps,
         formScore: result.formScore,
         durationSeconds: result.duration,
-        confidence: 0.95,
-        errors: result.formScore < 80 ? [{ code: 'knees_inward', severity: 'medium' }] : [],
+        confidence: typeof result.confidence === 'number' ? result.confidence : 0.9,
+        errors: Array.isArray(result.detectedErrors) ? result.detectedErrors : [],
         metrics: {
-          averageAngle: 90,
-          cadenceRepsPerMinute: Math.round((result.reps / Math.max(1, result.duration)) * 60),
+          averageAngle: typeof result.averageAngle === 'number' ? result.averageAngle : null,
+          minAngle: typeof result.minAngle === 'number' ? result.minAngle : null,
+          cadenceRepsPerMinute: typeof result.cadenceRepsPerMinute === 'number'
+            ? result.cadenceRepsPerMinute
+            : Math.round((result.reps / Math.max(1, result.duration)) * 60),
         },
-        visionVersion: '2.0.0-mediapipe',
-      });
+        visionVersion: result.visionVersion || '2.0.0-mediapipe',
+      };
+
+      await api.submitVisionResult(visionPayload);
 
       // 2. Authoritative session completion using exact same sessionId
-      await api.completeSession(sId, {
+      const compRes: any = await api.completeSession(sId, {
         exerciseId: resolvedExId,
         exerciseName: exercise.name,
         totalReps: result.reps,
@@ -172,6 +177,7 @@ export default function CameraWorkoutPage() {
         state: {
           sessionId: sId,
           result,
+          completionData: compRes?.data,
           exercise,
           planId: cleanPlanId !== 'free' ? cleanPlanId : undefined,
         },

@@ -7,7 +7,7 @@
  */
 
 export function isProduction(): boolean {
-  return process.env.NODE_ENV === 'production';
+  return process.env.NODE_ENV === 'production' || process.env.VERCEL === '1' || process.env.ENVIRONMENT === 'production';
 }
 
 export function isFallbackAllowed(): boolean {
@@ -17,11 +17,15 @@ export function isFallbackAllowed(): boolean {
 /**
  * Throw error if an in-memory or demo fallback is attempted in production
  */
-export function assertProductionSafe(operation: string): void {
+export function assertProductionSafe(operation: string, originalError?: any): void {
   if (isProduction()) {
-    throw new Error(
-      `[Production Invariant Violation] Fallback/mock data is strictly prohibited in production for operation: ${operation}`
+    const detail = originalError ? `: ${(originalError as any).message || originalError}` : '';
+    const err: any = new Error(
+      `[Production Invariant Violation] Fallback/mock data is strictly prohibited in production for operation: ${operation}${detail}`
     );
+    err.statusCode = 500;
+    err.category = 'Production persistence failure';
+    throw err;
   }
 }
 

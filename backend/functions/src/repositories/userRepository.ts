@@ -3,6 +3,7 @@
  * Firestore Data Access for users/{userId}
  */
 import { db, hasFirebaseCredentials } from '../config/firebase';
+import { assertProductionSafe } from '../config/productionSafety';
 import { UserDoc } from '../types';
 import { XPRepository } from './xpRepository';
 import { StreakRepository } from './streakRepository';
@@ -48,6 +49,7 @@ export class UserRepository {
         }
       } catch (err) {
         logger.warn(`[UserRepository] Firestore getById failed for ${userId}:`, err);
+        assertProductionSafe(`UserRepository.getById(${userId})`);
       }
     }
 
@@ -111,7 +113,10 @@ export class UserRepository {
         );
       } catch (err) {
         logger.warn(`[UserRepository] Firestore create failed for ${userId}:`, err);
+        assertProductionSafe(`UserRepository.create(${userId})`);
       }
+    } else {
+      assertProductionSafe(`UserRepository.create(${userId}) (no credentials)`);
     }
 
     return newUser;
@@ -138,7 +143,10 @@ export class UserRepository {
         await withTimeout(db.collection(COLLECTION).doc(userId).update(updatePayload), 2000);
       } catch (err) {
         logger.warn(`[UserRepository] Firestore update failed for ${userId}:`, err);
+        assertProductionSafe(`UserRepository.update(${userId})`);
       }
+    } else {
+      assertProductionSafe(`UserRepository.update(${userId}) (no credentials)`);
     }
   }
 
@@ -216,7 +224,10 @@ export class UserRepository {
         );
       } catch (err) {
         logger.warn(`[UserRepository] Firestore transaction failed for ${userId}:`, err);
+        assertProductionSafe(`UserRepository.applyWorkoutCompletion(${userId})`);
       }
+    } else {
+      assertProductionSafe(`UserRepository.applyWorkoutCompletion(${userId}) (no credentials)`);
     }
 
     // 1. Audit XP Transaction (Replay / Duplicate protection)

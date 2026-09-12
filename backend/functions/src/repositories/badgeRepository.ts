@@ -7,6 +7,8 @@ import { BadgeDoc, UserBadgeDoc } from '../types';
 import { SYSTEM_BADGES } from '../services/gamificationService';
 import * as logger from 'firebase-functions/logger';
 
+import { assertProductionSafe } from '../config/productionSafety';
+
 const BADGES_COLLECTION = 'badges';
 const USER_BADGES_COLLECTION = 'userBadges';
 
@@ -34,6 +36,7 @@ export class BadgeRepository {
       }
       return snap.docs.map((d) => d.data() as BadgeDoc);
     } catch (err) {
+      assertProductionSafe('BadgeRepository.getAllBadges', err);
       return SYSTEM_BADGES;
     }
   }
@@ -78,6 +81,7 @@ export class BadgeRepository {
 
       return snap.docs.map((d) => d.data() as UserBadgeDoc);
     } catch (err) {
+      assertProductionSafe('BadgeRepository.getUserBadges', err);
       logger.error(`Error fetching user badges for ${userId}:`, err);
       return [];
     }

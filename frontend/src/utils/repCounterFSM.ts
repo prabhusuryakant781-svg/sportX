@@ -24,6 +24,26 @@ export interface RepCounterState {
   totalScore: number;
 }
 
+export interface DetectedBiomechanicalError {
+  code: string;
+  severity: 'low' | 'medium' | 'high';
+}
+
+export interface SessionTelemetry {
+  reps: number;
+  validFormReps: number;
+  formScore: number;
+  minAngle: number | null;
+  averageAngle: number | null;
+  cadenceRepsPerMinute: number | null;
+  detectedErrors: DetectedBiomechanicalError[];
+  feedbackLog: string[];
+  confidence: number | null;
+  exerciseId: string;
+  durationSeconds: number;
+  visionVersion: string;
+}
+
 /** Anti-cheat cadence: minimum ms between counted reps */
 const MIN_REP_INTERVAL_MS = 600;
 
@@ -86,6 +106,9 @@ export class RepCounterFSM {
   public repDurations: number[] = [];
   public streak = 0;
   public bestStreak = 0;
+  public detectedErrors: DetectedBiomechanicalError[] = [];
+  public angles: number[] = [];
+  public confidenceScores: number[] = [];
 
   constructor(exerciseType: ExerciseType = 'squat') {
     this.exerciseType = exerciseType;
@@ -98,9 +121,24 @@ export class RepCounterFSM {
     }
   }
 
+  recordError(code: string, severity: 'low' | 'medium' | 'high' = 'medium') {
+    if (!this.detectedErrors.some(e => e.code === code)) {
+      this.detectedErrors.push({ code, severity });
+    }
+  }
+
   /** Process a new frame of pose landmarks */
   processFrame(landmarks: any): RepCounterState {
     if (!landmarks) return this.getState();
+
+    // Track landmark confidence if available
+    if (Array.isArray(landmarks)) {
+      const valid = landmarks.filter((l: any) => l && (typeof l.visibility === 'number' || typeof l.score === 'number'));
+      if (valid.length > 0) {
+        const sum = valid.reduce((acc: number, l: any) => acc + (l.visibility ?? l.score ?? 1.0), 0);
+        this.confidenceScores.push(sum / valid.length);
+      }
+    }
 
     switch (this.exerciseType) {
       case 'squat':
@@ -155,15 +193,28 @@ export class RepCounterFSM {
 
     const kneeAngle = Math.min(...angles);
     this.currentAngle = Math.round(kneeAngle);
+    this.angles.push(this.currentAngle);
 
     if (this.state === 'DESCENDING' || this.state === 'BOTTOM') {
       this.minAngleReached = Math.min(this.minAngleReached, kneeAngle);
+    }
+
+    // Check knee valgus (knees caving inward)
+    if (hipL && hipR && kneeL && kneeR && ankleL && ankleR) {
+      const kneeWidth = Math.abs(kneeR.x - kneeL.x);
+      const hipWidth = Math.abs(hipR.x - hipL.x);
+      const ankleWidth = Math.abs(ankleR.x - ankleL.x);
+      if (kneeAngle < 120 && (kneeWidth < ankleWidth * 0.78 || kneeWidth < hipWidth * 0.7)) {
+        this.recordError('knees_inward', 'medium');
+        this.addFeedback('Push knees outward over toes', -10);
+      }
     }
 
     // Spine check if shoulder & hip visible
     if (shoulderL && hipL && isValidJointSegment(shoulderL, hipL)) {
       const spine = calculateSpineAngle(shoulderL, hipL);
       if (spine > 35) {
+        this.recordError('chest_collapse', 'medium');
         this.addFeedback('Keep your back straight', -10);
       }
     }
@@ -180,6 +231,7 @@ export class RepCounterFSM {
       } else if (kneeAngle > 165) {
         // User stood back up without reaching depth
         this.state = 'UP';
+        this.recordError('shallow_depth', 'low');
         this.addFeedback('Go lower for a valid squat rep', -15);
       }
     } else if (this.state === 'BOTTOM') {
@@ -223,11 +275,13 @@ export class RepCounterFSM {
 
     const elbowAngle = Math.min(...angles);
     this.currentAngle = Math.round(elbowAngle);
+    this.angles.push(this.currentAngle);
 
     // Spine check if hip & shoulder available
     if (shoulderL && hipL && isValidJointSegment(shoulderL, hipL)) {
       const spine = calculateSpineAngle(shoulderL, hipL);
       if (spine > 25) {
+        this.recordError('hip_sag', 'medium');
         this.addFeedback('Keep your core tight! Avoid sagging hips.', -5);
       }
     }
@@ -242,6 +296,10 @@ export class RepCounterFSM {
       this.minAngleReached = Math.min(this.minAngleReached, elbowAngle);
       if (elbowAngle <= 95) {
         this.state = 'INFLECTION';
+      } else if (elbowAngle > 155) {
+        this.state = 'PLANK';
+        this.recordError('shallow_depth', 'low');
+        this.addFeedback('Lower chest closer to ground for full rep', -15);
       }
     } else if (this.state === 'INFLECTION') {
       if (elbowAngle > 105) {
@@ -279,11 +337,17 @@ export class RepCounterFSM {
     const armsOverhead = wristY < shoulderY;
 
     this.currentAngle = Math.round(feetRatio * 100);
+    this.angles.push(this.currentAngle);
 
     // FSM State transitions: NEUTRAL -> EXTENDED -> NEUTRAL
     if (this.state === 'NEUTRAL') {
-      if (feetRatio > 1.35 && armsOverhead) {
-        this.state = 'EXTENDED';
+      if (feetRatio > 1.35) {
+        if (armsOverhead) {
+          this.state = 'EXTENDED';
+        } else {
+          this.recordError('arms_not_overhead', 'low');
+          this.addFeedback('Raise arms fully overhead', -5);
+        }
       }
     } else if (this.state === 'EXTENDED') {
       if (feetRatio < 1.15 && !armsOverhead) {
@@ -349,6 +413,33 @@ export class RepCounterFSM {
     return this.getState();
   }
 
+  getTelemetry(durationSeconds: number): SessionTelemetry {
+    const avgScore = this.getAverageFormScore();
+    const avgConfidence = this.confidenceScores.length > 0
+      ? Math.round((this.confidenceScores.reduce((a, b) => a + b, 0) / this.confidenceScores.length) * 100) / 100
+      : null;
+    const avgAngle = this.angles.length > 0
+      ? Math.round(this.angles.reduce((a, b) => a + b, 0) / this.angles.length)
+      : null;
+    const minAngle = this.minAngleReached < 180 ? Math.round(this.minAngleReached) : null;
+    const cadence = durationSeconds > 0 ? Math.round((this.reps / durationSeconds) * 60) : null;
+
+    return {
+      reps: this.reps,
+      validFormReps: this.validFormReps,
+      formScore: avgScore,
+      minAngle,
+      averageAngle: avgAngle,
+      cadenceRepsPerMinute: cadence,
+      detectedErrors: [...this.detectedErrors],
+      feedbackLog: [...this.feedbackLog],
+      confidence: avgConfidence,
+      exerciseId: this.exerciseType,
+      durationSeconds,
+      visionVersion: '2.0.0-mediapipe',
+    };
+  }
+
   getAverageFormScore(): number {
     if (this.scores.length === 0) return 100;
     const sum = this.scores.reduce((a, b) => a + b, 0);
@@ -373,5 +464,8 @@ export class RepCounterFSM {
     this.bestStreak = 0;
     this.feedbackLog = [];
     this.minAngleReached = 180;
+    this.detectedErrors = [];
+    this.angles = [];
+    this.confidenceScores = [];
   }
 }

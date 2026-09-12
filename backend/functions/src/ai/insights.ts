@@ -12,6 +12,7 @@
 import { db, hasFirebaseCredentials } from '../config/firebase';
 import { sessions as demoSessions, users as demoUsers, demoVisionResults } from '../config/demoStore';
 import { getVisionResults } from '../vision/visionResult';
+import { assertProductionSafe } from '../config/productionSafety';
 import * as logger from 'firebase-functions/logger';
 
 export interface ProgressAnalysis {
@@ -75,10 +76,12 @@ export async function analyzeProgress(userId: string): Promise<ProgressAnalysis>
         sessionDocs = demoSessions.filter(s => s.userId === userId);
       }
     } catch (e) {
+      assertProductionSafe('analyzeProgress', e);
       userProfile = demoUsers.get(userId) || {};
       sessionDocs = demoSessions.filter(s => s.userId === userId);
     }
   } else {
+    assertProductionSafe('analyzeProgress without Firebase credentials');
     userProfile = demoUsers.get(userId) || {};
     sessionDocs = demoSessions.filter(s => s.userId === userId);
   }
@@ -227,10 +230,12 @@ export async function generateConsistencyInsight(userId: string): Promise<Consis
       );
       sessionDocs = sessionsSnap.empty ? demoSessions.filter(s => s.userId === userId) : sessionsSnap.docs.map(d => d.data());
     } catch (e) {
+      assertProductionSafe('generateConsistencyInsight', e);
       userProfile = demoUsers.get(userId) || {};
       sessionDocs = demoSessions.filter(s => s.userId === userId);
     }
   } else {
+    assertProductionSafe('generateConsistencyInsight without Firebase credentials');
     userProfile = demoUsers.get(userId) || {};
     sessionDocs = demoSessions.filter(s => s.userId === userId);
   }

@@ -4,6 +4,7 @@
  * Server-authoritative calculations derived from completed sessions and activity logs.
  */
 import { db, hasFirebaseCredentials } from '../config/firebase';
+import { assertProductionSafe } from '../config/productionSafety';
 import { ProgressDoc, WorkoutSessionDoc } from '../types';
 import { SessionRepository } from './sessionRepository';
 import { ActivityRepository } from './activityRepository';
@@ -309,6 +310,7 @@ export class ProgressRepository {
         }
       } catch (err) {
         logger.warn(`[ProgressRepository] Firestore getByUserId failed for ${userId}:`, err);
+        assertProductionSafe(`ProgressRepository.getByUserId(${userId})`);
       }
     }
 
@@ -365,7 +367,10 @@ export class ProgressRepository {
         );
       } catch (err) {
         logger.warn(`[ProgressRepository] Firestore updateProgress failed for ${userId}:`, err);
+        assertProductionSafe(`ProgressRepository.updateProgress(${userId})`);
       }
+    } else {
+      assertProductionSafe(`ProgressRepository.updateProgress(${userId}) (no credentials)`);
     }
 
     return current;

@@ -78,8 +78,18 @@ export default function AICoachPage() {
     setIsLoading(true);
 
     try {
+      // Extract recent conversation turns (up to 4 turns, excluding initial welcome)
+      const recentHistory = messages
+        .filter(m => m.id !== 'welcome_1')
+        .slice(-4)
+        .map(m => ({
+          role: (m.sender === 'user' ? 'user' : 'assistant') as 'user' | 'assistant',
+          content: m.text || m.structuredResponse?.summary || ''
+        }))
+        .filter(t => t.content.trim().length > 0);
+
       // Connect to real backend API: POST /api/v1/ai/ask-coach
-      const res: any = await api.askCoach({ message });
+      const res: any = await api.askCoach({ message, history: recentHistory });
 
       if (res?.data) {
         const coachMessage: CoachMessage = {

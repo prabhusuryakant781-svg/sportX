@@ -19,10 +19,16 @@ import { SessionRepository } from '../repositories/sessionRepository';
 import { CoachInsightDoc } from '../types';
 import * as logger from 'firebase-functions/logger';
 
+export interface ChatTurn {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
 export interface CoachGenerationOptions {
   apiKey?: string;
   model?: string;
   timeoutMs?: number;
+  history?: ChatTurn[];
   testMockProvider?: (context: CoachUserContext, question: string) => Promise<AICoachResponse>;
 }
 
@@ -64,12 +70,28 @@ function extractJsonPayload(rawText: string): any {
 }
 
 /**
- * Builds the AI prompt combining system rules, user context, and user inquiry.
+ * Builds the AI prompt combining system rules, user context, recent conversation history, and user inquiry.
  */
-function buildPrompt(context: CoachUserContext, userMessage: string): string {
+function buildPrompt(context: CoachUserContext, userMessage: string, history?: ChatTurn[]): string {
+  let conversationSection = '';
+  if (Array.isArray(history) && history.length > 0) {
+    const safeTurns = history
+      .slice(-6)
+      .map(turn => {
+        const role = turn.role === 'assistant' ? 'AI Coach' : 'Student';
+        const text = typeof turn.content === 'string' ? turn.content.substring(0, 300) : '';
+        return `${role}: ${text}`;
+      })
+      .filter(t => t.trim().length > 0)
+      .join('\n');
+    if (safeTurns) {
+      conversationSection = `\n=== RECENT CONVERSATION ===\n${safeTurns}\n`;
+    }
+  }
+
   return `=== STUDENT CONTEXT ===
 ${JSON.stringify(context, null, 2)}
-
+${conversationSection}
 === STUDENT QUESTION ===
 "${userMessage}"
 
@@ -83,16 +105,16 @@ Provide your structured coaching response following the strict JSON schema.`;
 export async function callGeminiApi(
   apiKey: string,
   prompt: string,
-  requestedModel = 'gemini-flash-latest',
+  requestedModel = process.env.AI_MODEL || 'gemini-1.5-flash',
   timeoutMs = 30000,
   systemInstructionText = SYSTEM_INSTRUCTION
 ): Promise<string> {
   const cleanKey = apiKey.trim();
-  const cleanRequested = (requestedModel || 'gemini-flash-latest').trim().replace(/^models\//, '');
+  const cleanRequested = (requestedModel || process.env.AI_MODEL || 'gemini-1.5-flash').trim().replace(/^models\//, '');
 
   // Ordered list of candidate models confirmed available by the Gemini API
   const candidateModels = Array.from(
-    new Set([cleanRequested, 'gemini-flash-latest', 'gemini-3.5-flash-lite', 'gemini-3.6-flash', 'gemini-3.5-flash'])
+    new Set([cleanRequested, 'gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro'])
   );
 
   let lastStatus = 0;
@@ -227,7 +249,7 @@ export async function generateCoachResponse(
   const context = await buildCoachContext(userId);
 
   // 2. Build prompt
-  const prompt = buildPrompt(context, trimmedMessage);
+  const prompt = buildPrompt(context, trimmedMessage, options?.history);
 
   // 3. Obtain AI response (using test mock if provided in testing, or live AI API)
   let rawResponseText = '';
@@ -260,7 +282,7 @@ export async function generateCoachResponse(
     throw configErr;
   }
 
-  const model = options?.model || process.env.AI_MODEL || 'gemini-3.5-flash';
+  const model = options?.model || process.env.AI_MODEL || 'gemini-1.5-flash';
   const timeoutMs = options?.timeoutMs || 20000;
 
   try {
@@ -454,8 +476,11 @@ export async function askCoachHandler(req: any, res: any): Promise<void> {
     // 3. Security: enforce server-authenticated UID (never trust client-supplied userId)
     const authenticatedUid = user.uid;
 
+    // Bounded conversation history if provided
+    const history = Array.isArray(body?.history) ? body.history.slice(-6) : undefined;
+
     // 4. Generate structured response
-    const coachResponse = await generateCoachResponse(authenticatedUid, trimmedMessage);
+    const coachResponse = await generateCoachResponse(authenticatedUid, trimmedMessage, { history });
 
     // 5. Return validated JSON response
     res.status(200).json({
@@ -574,7 +599,7 @@ Generate structured form feedback following the strict JSON schema. Remember: ON
     throw configErr;
   }
 
-  const model = options?.model || process.env.AI_MODEL || 'gemini-3.5-flash';
+  const model = options?.model || process.env.AI_MODEL || 'gemini-1.5-flash';
   const timeoutMs = options?.timeoutMs || 20000;
 
   const rawText = await callGeminiApi(apiKey, prompt, model, timeoutMs, FORM_FEEDBACK_SYSTEM_INSTRUCTION);
@@ -722,7 +747,34 @@ Evaluate this completed session. Highlight what was done well, address detected 
 
   let feedback: AIFormFeedbackResponse;
 
-  if (!apiKey || process.env.NODE_ENV === 'test' || process.env.LOCAL_TEST === 'true') {
+  if (!apiKey) {
+    if (process.env.NODE_ENV === 'test' || process.env.LOCAL_TEST === 'true') {
+      // Local deterministic generator for isolated testing
+      const hasErrors = context.detectedErrors.length > 0;
+      const isPR = context.reps >= context.personalRecordReps && context.reps > 0;
+
+      feedback = {
+        summary: hasErrors
+          ? `Completed ${context.reps} reps of ${context.exerciseName} with an average form score of ${context.formScore}%. Targeted biomechanical adjustments will improve your movement efficiency.`
+          : `Outstanding workout! Completed ${context.reps} reps of ${context.exerciseName} with strong ${context.formScore}% form consistency.`,
+        doneWell: [
+          isPR ? `Hit a personal record of ${context.reps} reps!` : `Completed all ${context.reps} reps with dedicated effort.`,
+          context.formScore >= 80 ? 'Maintained solid postural alignment throughout the session.' : 'Pushed through the working set with determination.'
+        ],
+        areasToImprove: hasErrors
+          ? context.detectedErrors.map(e => `Detected ${e.replace(/_/g, ' ')} during movement execution.`)
+          : ['Maintained consistent form through the entire set.'],
+        actionableCues: hasErrors
+          ? context.detectedErrors.map(e => getActionableCue(context.exerciseId, e))
+          : ['Continue progressive overload by gradually increasing tempo control or reps.'],
+        nextFocus: hasErrors ? context.detectedErrors[0].replace(/_/g, ' ') : 'progressive overload'
+      };
+    } else {
+      const configErr: any = new Error('SportX AI Session Analysis is temporarily unavailable: GEMINI_API_KEY is not configured.');
+      configErr.statusCode = 503;
+      throw configErr;
+    }
+  } else if (process.env.NODE_ENV === 'test' || process.env.LOCAL_TEST === 'true') {
     // Local deterministic generator
     const hasErrors = context.detectedErrors.length > 0;
     const isPR = context.reps >= context.personalRecordReps && context.reps > 0;
@@ -744,7 +796,7 @@ Evaluate this completed session. Highlight what was done well, address detected 
       nextFocus: hasErrors ? context.detectedErrors[0].replace(/_/g, ' ') : 'progressive overload'
     };
   } else {
-    const model = options?.model || process.env.AI_MODEL || 'gemini-3.5-flash';
+    const model = options?.model || process.env.AI_MODEL || 'gemini-1.5-flash';
     const timeoutMs = options?.timeoutMs || 20000;
 
     const rawText = await callGeminiApi(apiKey, prompt, model, timeoutMs, POST_WORKOUT_SYSTEM_INSTRUCTION);

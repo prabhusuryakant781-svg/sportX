@@ -12,6 +12,7 @@
 import { db, hasFirebaseCredentials } from '../config/firebase';
 import { demoVisionResults, sessions as demoSessions, nextId, DemoVisionResult } from '../config/demoStore';
 import { validateVisionResult, ValidatedVisionResult, VisionResultPayload } from './validators';
+import { assertProductionSafe } from '../config/productionSafety';
 import * as logger from 'firebase-functions/logger';
 
 function withTimeout<T>(promise: Promise<T>, ms = 2000): Promise<T> {
@@ -79,8 +80,11 @@ export async function storeVisionResult(
       logger.info(`[Vision] Stored vision result ${recordId} in Firestore for user ${userId}`);
       return record;
     } catch (err) {
+      assertProductionSafe('storeVisionResult', err);
       logger.warn('[Vision] Firestore unavailable, writing to demoStore fallback:', err);
     }
+  } else {
+    assertProductionSafe('storeVisionResult without Firebase credentials');
   }
 
   // Demo store fallback
@@ -151,6 +155,7 @@ export async function getVisionResults(
         return list.sort((a, b) => new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime());
       }
     } catch (err) {
+      assertProductionSafe('getVisionResults', err);
       logger.warn('[Vision] Firestore retrieval failed, checking demo store:', err);
     }
   }
@@ -189,6 +194,7 @@ export async function getVisionResultBySession(
         return snapshot.docs[0].data() as StoredVisionRecord;
       }
     } catch (err) {
+      assertProductionSafe('getVisionResultBySession', err);
       logger.warn('[Vision] Firestore query by sessionId failed:', err);
     }
   }

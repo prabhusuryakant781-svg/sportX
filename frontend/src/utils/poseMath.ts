@@ -16,8 +16,11 @@ export function calculate3PointAngle(a: Landmark, b: Landmark, c: Landmark): num
     Math.atan2(c.y - b.y, c.x - b.x) - Math.atan2(a.y - b.y, a.x - b.x);
   let angle = Math.abs((radians * 180) / Math.PI);
   if (angle > 180) angle = 360 - angle;
-  return angle;
+  return Math.round(angle * 10) / 10;
 }
+
+/** Canonical alias for calculate3PointAngle */
+export const calculateAngle = calculate3PointAngle;
 
 /** Calculate spine angle relative to vertical (0° = perfectly upright) */
 export function calculateSpineAngle(
@@ -27,7 +30,7 @@ export function calculateSpineAngle(
   const dx = shoulder.x - hip.x;
   const dy = shoulder.y - hip.y;
   const angleFromVertical = Math.abs(Math.atan2(dx, -dy) * (180 / Math.PI));
-  return angleFromVertical;
+  return Math.round(angleFromVertical * 10) / 10;
 }
 
 /** Detect knee valgus (knees caving inward) */
@@ -52,6 +55,66 @@ export function detectKneeValgus(
   else if (leftValgus || rightValgus) severity = 'mild';
 
   return { leftValgus, rightValgus, severity };
+}
+
+/** Checks for Knee Valgus (knees caving inward) during Squat depth */
+export function checkKneeValgus(
+  hipL: Landmark | null,
+  hipR: Landmark | null,
+  kneeL: Landmark | null,
+  kneeR: Landmark | null,
+  ankleL: Landmark | null,
+  ankleR: Landmark | null
+): { isValgus: boolean; message: string } {
+  if (!kneeL || !kneeR || !ankleL || !ankleR) return { isValgus: false, message: '' };
+  const kneeWidth = Math.abs(kneeR.x - kneeL.x);
+  const ankleWidth = Math.abs(ankleR.x - ankleL.x);
+  const hipWidth = hipL && hipR ? Math.abs(hipR.x - hipL.x) : ankleWidth;
+
+  if (kneeWidth < ankleWidth * 0.78 || kneeWidth < hipWidth * 0.7) {
+    return { isValgus: true, message: '❗ Push your knees outward! Avoid caving in.' };
+  }
+  return { isValgus: false, message: '' };
+}
+
+/** Validate camera position and framing (canonical keypoint array) */
+export function validateCameraPositioning(
+  keypoints: any[],
+  width = 640,
+  height = 480
+): { isPositioned: boolean; issue: string } {
+  if (!keypoints || keypoints.length === 0) {
+    return { isPositioned: false, issue: '🔍 Searching for body in camera view...' };
+  }
+
+  const kpMap: Record<string, any> = {};
+  if (Array.isArray(keypoints)) {
+    for (let i = 0; i < keypoints.length; i++) {
+      const k = keypoints[i];
+      if (k && k.name) kpMap[k.name] = k;
+      else kpMap[String(i)] = k;
+    }
+  }
+
+  const requiredJoints = ['head', 'shoulder_l', 'shoulder_r', 'hip_l', 'hip_r', 'knee_l', 'knee_r', 'ankle_l', 'ankle_r'];
+  const missingJoints = requiredJoints.filter(j => !kpMap[j] || (kpMap[j].score && kpMap[j].score < 0.45));
+  if (missingJoints.length > 2) {
+    return { isPositioned: false, issue: '⚠️ Step back! Full body (head to feet) must be visible.' };
+  }
+
+  const marginY = height * 0.03;
+  const head = kpMap['head'];
+  const ankleL = kpMap['ankle_l'];
+  const ankleR = kpMap['ankle_r'];
+
+  if (head && head.y < marginY) {
+    return { isPositioned: false, issue: '⚠️ Adjust camera! Head is clipped at top.' };
+  }
+  if ((ankleL && ankleL.y > height - marginY) || (ankleR && ankleR.y > height - marginY)) {
+    return { isPositioned: false, issue: '⚠️ Adjust camera! Feet are clipped at bottom.' };
+  }
+
+  return { isPositioned: true, issue: '✅ Perfect positioning! Ready to start.' };
 }
 
 /** Validate camera position and framing */

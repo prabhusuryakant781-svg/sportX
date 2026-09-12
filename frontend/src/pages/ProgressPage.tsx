@@ -2,6 +2,74 @@ import { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import ProgressChart from '../components/ProgressChart';
 
+function buildChartDataFromHistory(history: any[], period: string): Array<{ label: string; value: number }> {
+  if (!Array.isArray(history) || history.length === 0) {
+    return [];
+  }
+
+  const now = new Date();
+
+  if (period === '7d') {
+    const days: Array<{ dateStr: string; label: string; value: number }> = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(now);
+      d.setDate(d.getDate() - i);
+      const dateStr = d.toISOString().split('T')[0];
+      const label = d.toLocaleDateString(undefined, { weekday: 'short' });
+      days.push({ dateStr, label, value: 0 });
+    }
+
+    for (const item of history) {
+      const itemDate = (item.completedAt || item.loggedAt || item.createdAt || '').split('T')[0];
+      const bucket = days.find(b => b.dateStr === itemDate);
+      if (bucket) {
+        bucket.value += Number(item.xpAwarded || item.xp || 0);
+      }
+    }
+
+    return days.map(d => ({ label: d.label, value: d.value }));
+  }
+
+  if (period === '30d') {
+    const intervals: Array<{ start: number; end: number; label: string; value: number }> = [];
+    for (let i = 5; i >= 0; i--) {
+      const startD = new Date(now);
+      startD.setDate(startD.getDate() - (i * 5 + 4));
+      startD.setHours(0, 0, 0, 0);
+
+      const endD = new Date(now);
+      endD.setDate(endD.getDate() - (i * 5));
+      endD.setHours(23, 59, 59, 999);
+
+      const label = `${startD.getDate()}/${startD.getMonth() + 1}`;
+      intervals.push({ start: startD.getTime(), end: endD.getTime(), label, value: 0 });
+    }
+
+    for (const item of history) {
+      const time = new Date(item.completedAt || item.loggedAt || item.createdAt || 0).getTime();
+      const bucket = intervals.find(b => time >= b.start && time <= b.end);
+      if (bucket) {
+        bucket.value += Number(item.xpAwarded || item.xp || 0);
+      }
+    }
+
+    return intervals.map(b => ({ label: b.label, value: b.value }));
+  }
+
+  // 'all': group by month
+  const monthMap = new Map<string, number>();
+  for (const item of history) {
+    const date = new Date(item.completedAt || item.loggedAt || item.createdAt || 0);
+    if (!isNaN(date.getTime())) {
+      const monthLabel = date.toLocaleDateString(undefined, { month: 'short' });
+      const current = monthMap.get(monthLabel) || 0;
+      monthMap.set(monthLabel, current + Number(item.xpAwarded || item.xp || 0));
+    }
+  }
+
+  return Array.from(monthMap.entries()).map(([label, value]) => ({ label, value }));
+}
+
 export default function ProgressPage() {
   const [period, setPeriod] = useState('7d');
   const [history, setHistory] = useState<any[]>([]);
@@ -15,16 +83,7 @@ export default function ProgressPage() {
       .finally(() => setLoading(false));
   }, [period]);
 
-  // Aggregate mock chart data from history
-  const chartData = [
-    { label: 'Mon', value: 120 },
-    { label: 'Tue', value: 180 },
-    { label: 'Wed', value: 0 },
-    { label: 'Thu', value: 240 },
-    { label: 'Fri', value: 310 },
-    { label: 'Sat', value: 150 },
-    { label: 'Sun', value: 420 },
-  ];
+  const chartData = buildChartDataFromHistory(history, period);
 
   return (
     <div className="min-h-screen bg-obsidian">
@@ -51,7 +110,16 @@ export default function ProgressPage() {
 
       <div className="section">
         <h3 className="text-white">Activity Volume</h3>
-        <ProgressChart data={chartData} label="XP Earned" color="#06B6D4" height={180} />
+        {loading ? (
+          <div className="card skeleton h-[180px]" />
+        ) : chartData.length === 0 ? (
+          <div className="empty-state">
+            <span className="empty-icon">📊</span>
+            <p className="text-sm text-muted">No activity data recorded in this period.</p>
+          </div>
+        ) : (
+          <ProgressChart data={chartData} label="XP Earned" color="#06B6D4" height={180} />
+        )}
 
         <h3 className="text-white mt-4">Recent History</h3>
         {loading ? (

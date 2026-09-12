@@ -13,7 +13,7 @@ import { BadgeRepository } from '../repositories/badgeRepository';
 
 export async function runMasterSeed(): Promise<void> {
   console.log('================================================================');
-  console.log('🌱 Seeding SportX Master Firestore Database (sportx-ab5f)...');
+  console.log('🌱 Seeding SportX Master Firestore Database (sportx-ab55f)...');
   console.log('================================================================\n');
 
   try {

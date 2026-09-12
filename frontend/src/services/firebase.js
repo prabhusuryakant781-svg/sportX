@@ -1,6 +1,6 @@
 /**
  * SportX Firebase Client SDK Configuration & Initialization
- * Project: sportx-ab5f
+ * Project: sportx-ab55f
  * Strictly uses Vite public variables (VITE_*) for public Firebase configuration.
  * Server secrets (GEMINI_API_KEY, FIREBASE_PRIVATE_KEY, etc.) must NEVER be present here.
  */
@@ -9,7 +9,7 @@ import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import { getStorage } from 'firebase/storage';
 
 const apiKey = import.meta.env.VITE_FIREBASE_API_KEY;
-const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID || 'sportx-ab5f';
+const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID || 'sportx-ab55f';
 const authDomain = import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || `${projectId}.firebaseapp.com`;
 const storageBucket = import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || `${projectId}.appspot.com`;
 const messagingSenderId = import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '936318210167';

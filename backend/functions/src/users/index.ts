@@ -146,7 +146,8 @@ usersRouter.post('/profile/image', verifyAuth, mediaRateLimiter, async (req: Aut
     // 3. Upload to Firebase Storage or generate deterministic URL
     const ext = cleanMime.split('/')[1] || 'jpg';
     const filePath = `users/${uid}/avatar/avatar_${Date.now()}.${ext}`;
-    let publicUrl = `https://storage.googleapis.com/sportx-ab5f.appspot.com/${filePath}`;
+    const bucketName = process.env.FIREBASE_STORAGE_BUCKET || `${process.env.FIREBASE_PROJECT_ID || process.env.GCLOUD_PROJECT || 'sportx-ab55f'}.appspot.com`;
+    let publicUrl = `https://storage.googleapis.com/${bucketName}/${filePath}`;
 
     if (hasFirebaseCredentials) {
       try {

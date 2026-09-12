@@ -13,8 +13,8 @@
  */
 
 process.env.NODE_ENV = 'test';
-process.env.FIREBASE_PROJECT_ID = process.env.FIREBASE_PROJECT_ID || 'sportx-ab5f';
-process.env.GCLOUD_PROJECT = process.env.GCLOUD_PROJECT || 'sportx-ab5f';
+process.env.FIREBASE_PROJECT_ID = process.env.FIREBASE_PROJECT_ID || 'sportx-ab55f';
+process.env.GCLOUD_PROJECT = process.env.GCLOUD_PROJECT || 'sportx-ab55f';
 
 import { GamificationService, SYSTEM_BADGES } from './services/gamificationService';
 import { runAuthTests } from './testAuthEndToEnd';

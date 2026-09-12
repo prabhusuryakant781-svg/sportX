@@ -5,6 +5,7 @@
  */
 import { db, hasFirebaseCredentials } from '../config/firebase';
 import { sessions as demoSessions } from '../config/demoStore';
+import { assertProductionSafe } from '../config/productionSafety';
 import { WorkoutSessionDoc } from '../types';
 import * as logger from 'firebase-functions/logger';
 
@@ -38,8 +39,11 @@ export class SessionRepository {
           2500
         );
       } catch (err) {
-        logger.warn('[Session] Firestore create failed, stored in local cache:', err);
+        logger.warn('[Session] Firestore create failed:', err);
+        assertProductionSafe('SessionRepository.create');
       }
+    } else {
+      assertProductionSafe('SessionRepository.create (no credentials)');
     }
 
     return session;
@@ -61,7 +65,8 @@ export class SessionRepository {
           return doc.data() as WorkoutSessionDoc;
         }
       } catch (err) {
-        logger.warn(`[Session] Firestore getById(${sessionId}) failed, checking local cache:`, err);
+        logger.warn(`[Session] Firestore getById(${sessionId}) failed:`, err);
+        assertProductionSafe(`SessionRepository.getById(${sessionId})`);
       }
     }
 
@@ -90,7 +95,10 @@ export class SessionRepository {
         );
       } catch (err) {
         logger.warn(`[Session] Firestore update(${sessionId}) failed:`, err);
+        assertProductionSafe(`SessionRepository.update(${sessionId})`);
       }
+    } else {
+      assertProductionSafe('SessionRepository.update (no credentials)');
     }
   }
 
@@ -122,8 +130,10 @@ export class SessionRepository {
             return timeB - timeA;
           });
         }
+        return [];
       } catch (err) {
         logger.warn(`[Session] Firestore query user sessions failed for ${userId}:`, err);
+        assertProductionSafe(`SessionRepository.getUserSessions(${userId})`);
       }
     }
 

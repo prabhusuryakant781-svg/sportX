@@ -11,6 +11,7 @@
 
 import { UserRepository } from '../repositories/userRepository';
 import { SessionRepository } from '../repositories/sessionRepository';
+import { assertProductionSafe } from '../config/productionSafety';
 
 export interface CoachUserContext {
   user: {
@@ -57,6 +58,7 @@ export async function buildCoachContext(userId: string): Promise<CoachUserContex
       userData = userDoc;
     }
   } catch (err) {
+    assertProductionSafe('buildCoachContext: fetch user profile', err);
     console.warn(`[contextBuilder] Notice: Could not fetch user ${userId}:`, (err as Error).message);
   }
 
@@ -67,6 +69,7 @@ export async function buildCoachContext(userId: string): Promise<CoachUserContex
       sessionDocsData = sessions;
     }
   } catch (err) {
+    assertProductionSafe('buildCoachContext: query workoutSessions', err);
     console.warn(`[contextBuilder] Notice: Could not query workoutSessions for ${userId}:`, (err as Error).message);
   }
 
@@ -265,9 +268,15 @@ export async function buildSessionAnalysisContext(
   const visionRecord = await getVisionResultBySession(sessionId).catch(() => null);
 
   // 3. Fetch user profile & progress
-  const user = await UserRepository.getById(userId).catch(() => null);
+  const user = await UserRepository.getById(userId).catch((err) => {
+    assertProductionSafe('buildSessionAnalysisContext: fetch user profile', err);
+    return null;
+  });
   const { ProgressRepository } = await import('../repositories/progressRepository');
-  const progress = await ProgressRepository.getByUserId(userId).catch(() => null);
+  const progress = await ProgressRepository.getByUserId(userId).catch((err) => {
+    assertProductionSafe('buildSessionAnalysisContext: fetch progress', err);
+    return null;
+  });
 
   const exerciseId = session.exerciseId || visionRecord?.exerciseId || session.exerciseLogs?.[0]?.exerciseId || 'squat';
   const exerciseName = session.exerciseName || visionRecord?.exerciseId || exerciseId;
