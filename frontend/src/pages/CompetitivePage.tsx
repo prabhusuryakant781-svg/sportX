@@ -38,10 +38,43 @@ const SPORT_ICONS: Record<string, string> = {
   athletics: '🏃',
 };
 
+const ACCOUNT_NEED_DIAGNOSTICS: Record<string, { title: string; focus: string; rationale: string }> = {
+  cricket: {
+    title: 'Hand-Eye Catch Reflexes & Field Positioning',
+    focus: 'High-speed ball tracking, reactive wrist cushion, and clean reception under match pressure.',
+    rationale: 'Based on your enrolled Cricket specialization and rating, your account needs verified catch repeatability to advance to Gold tier.',
+  },
+  football: {
+    title: 'Close-Quarter Agility & Ball Maneuvering',
+    focus: 'Rapid multi-directional cutting, deceleration control, and precise ball touch rhythm.',
+    rationale: 'Based on your enrolled Football specialization and rating, your account needs close-control agility cadence to climb the Platinum division.',
+  },
+  athletics: {
+    title: 'Anaerobic Shuttle Endurance & Deceleration Power',
+    focus: 'Maximum speed intervals, line touch transition, and cadence endurance.',
+    rationale: 'Based on your enrolled Athletics specialization and rating, your account needs sharp deceleration efficiency to qualify for Diamond tier.',
+  },
+};
+
 export default function CompetitivePage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const currentUserId = user?.id || (user as any)?.uid || 'athlete_user';
+
+  // User's enrolled sports from their account profile
+  const rawAccountSports = user?.selectedSports && user.selectedSports.length > 0
+    ? user.selectedSports.map((s) => s.toLowerCase().trim())
+    : ['cricket'];
+
+  // Normalize sports to standard challenge sport IDs
+  const accountSports = Array.from(new Set(rawAccountSports.map((s) => {
+    if (s.includes('crick')) return 'cricket';
+    if (s.includes('foot') || s.includes('socc')) return 'football';
+    if (s.includes('run') || s.includes('athle') || s.includes('track')) return 'athletics';
+    return s;
+  })));
+
+  const primarySport = accountSports[0] || 'cricket';
 
   // State machine
   const [stage, setStage] = useState<FlowStage>('HOME');
@@ -51,9 +84,15 @@ export default function CompetitivePage() {
   // Data
   const [challenges, setChallenges] = useState<CompetitiveChallengeDoc[]>([]);
   const [userRank, setUserRank] = useState<CompetitiveRankDoc | null>(null);
-  const [selectedSport, setSelectedSport] = useState<string>('all');
+  const [selectedSport, setSelectedSport] = useState<string>(primarySport);
   const [activeTicket, setActiveTicket] = useState<QueueTicketDoc | null>(null);
   const [activeMatch, setActiveMatch] = useState<CompetitiveMatchDoc | null>(null);
+
+  useEffect(() => {
+    if (primarySport && (!selectedSport || selectedSport === 'all')) {
+      setSelectedSport(primarySport);
+    }
+  }, [primarySport]);
 
   // Searching state
   const [searchSeconds, setSearchSeconds] = useState(0);
@@ -334,6 +373,10 @@ export default function CompetitivePage() {
   const currentRankTier = userRank?.rankTier || 'Bronze';
   const rankTheme = RANK_COLORS[currentRankTier];
 
+  const accountTargetedChallenge = challenges.find((c) => c.sportId.toLowerCase() === selectedSport.toLowerCase())
+    || challenges.find((c) => c.sportId.toLowerCase() === primarySport.toLowerCase())
+    || challenges[0];
+
   return (
     <div className="min-h-screen bg-obsidian text-slate-100 pb-24">
       {/* ── Top Header Bar ──────────────────────────────────────────────────────── */}
@@ -417,87 +460,116 @@ export default function CompetitivePage() {
             </div>
           </div>
 
-          {/* Sport Preference Selector */}
-          <div>
-            <label className="text-xs uppercase font-bold tracking-wider text-slate-400 mb-2 block">
-              Match Preference
-            </label>
-            <div className="grid grid-cols-4 gap-2">
-              {[
-                { id: 'all', label: 'Auto-Pick' },
-                { id: 'cricket', label: 'Cricket' },
-                { id: 'football', label: 'Football' },
-                { id: 'athletics', label: 'Athletics' },
-              ].map((s) => (
-                <button
-                  key={s.id}
-                  onClick={() => setSelectedSport(s.id)}
-                  className={`py-2.5 px-2 rounded-xl text-xs font-bold transition flex flex-col items-center gap-1 border ${
-                    selectedSport === s.id
-                      ? 'bg-blue-600/20 border-blue-500 text-blue-400 shadow-lg shadow-blue-500/10'
-                      : 'bg-slate-900/60 border-white/5 text-slate-400 hover:border-white/20'
-                  }`}
-                >
-                  <span className="text-base">{SPORT_ICONS[s.id]}</span>
-                  <span>{s.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Big Action CTA: FIND RANDOM MATCH */}
-          <button
-            onClick={handleStartRandomMatch}
-            disabled={loading}
-            className="w-full py-4 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-black text-base uppercase tracking-wider shadow-xl shadow-indigo-600/25 active:scale-[0.98] transition flex items-center justify-center gap-3"
-          >
-            <span>⚔️</span> FIND RANDOM MATCH
-          </button>
-
-          <p className="text-center text-[11px] text-slate-400 -mt-2">
-            Auto-selects challenge & pairs randomly within ±1 rank tier
-          </p>
-
-          {/* Seeded Demo Challenges Showcase */}
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                <span>🎯</span> Eligible Demo Challenges
-              </h3>
-              <span className="text-[10px] px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 font-semibold">
-                3 Official Drills
+          {/* Account Need Diagnostic & Sport Selector */}
+          <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-950/40 via-indigo-950/30 to-slate-900 border border-blue-500/30 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] uppercase font-black tracking-wider text-cyan-400 flex items-center gap-1.5">
+                <span>📋</span> ATHLETE PROFILE DIAGNOSTIC
+              </span>
+              <span className="text-[10px] px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 font-bold">
+                Account Tailored
               </span>
             </div>
 
+            <div>
+              <h3 className="text-base font-black text-white flex items-center gap-2">
+                <span>{SPORT_ICONS[selectedSport] || '🏅'}</span>
+                <span>{ACCOUNT_NEED_DIAGNOSTICS[selectedSport]?.title || 'Athlete Skill Development'}</span>
+              </h3>
+              <p className="text-xs text-slate-300 mt-1">
+                {ACCOUNT_NEED_DIAGNOSTICS[selectedSport]?.rationale || 'Targeted drill specifically prescribed for your account profile.'}
+              </p>
+            </div>
+
+            {/* If user has enrolled sports in account, allow selecting between their enrolled account sports */}
+            <div>
+              <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-1.5 block">
+                Your Account Disciplines
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {accountSports.map((sportId) => (
+                  <button
+                    key={sportId}
+                    onClick={() => setSelectedSport(sportId)}
+                    className={`py-1.5 px-3 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border ${
+                      selectedSport === sportId
+                        ? 'bg-blue-600 border-blue-400 text-white shadow-md shadow-blue-500/20'
+                        : 'bg-slate-900/80 border-white/10 text-slate-300 hover:border-white/30'
+                    }`}
+                  >
+                    <span>{SPORT_ICONS[sportId] || '🏅'}</span>
+                    <span className="capitalize">{sportId}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Big Action CTA: Tailored Match for Account Need */}
+          <button
+            onClick={handleStartRandomMatch}
+            disabled={loading || !accountTargetedChallenge}
+            className="w-full py-4 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-black text-base uppercase tracking-wider shadow-xl shadow-indigo-600/25 active:scale-[0.98] transition flex items-center justify-center gap-3"
+          >
+            <span>⚔️</span> MATCH FOR {selectedSport.toUpperCase()} NEED
+          </button>
+
+          <p className="text-center text-[11px] text-slate-400 -mt-2">
+            Auto-pairs with verified {currentRankTier} athletes in "{accountTargetedChallenge?.title || 'Targeted Challenge'}"
+          </p>
+
+          {/* Prescribed Drill For Your Account Need (Replaces Generic Eligible Demo Challenges) */}
+          {accountTargetedChallenge && (
             <div className="space-y-3">
-              {challenges.map((c) => (
-                <div
-                  key={c.challengeId}
-                  className="p-3.5 rounded-xl bg-slate-900/60 border border-white/5 hover:border-white/10 transition"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <span className="text-2xl">{SPORT_ICONS[c.sportId] || '🏅'}</span>
-                      <div>
-                        <h4 className="font-bold text-sm text-white">{c.title}</h4>
-                        <span className="text-[11px] text-slate-400 capitalize">
-                          {c.sportId} • {c.durationSeconds}s • {c.minRank}-{c.maxRank}
-                        </span>
-                      </div>
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                  <span>🎯</span> Prescribed For Your Account
+                </h3>
+                <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-bold">
+                  Recommended Drill
+                </span>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-slate-900/80 border border-blue-500/30 relative overflow-hidden">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-blue-600/20 border border-blue-500/40 flex items-center justify-center text-2xl">
+                      {SPORT_ICONS[accountTargetedChallenge.sportId] || '🏅'}
                     </div>
-                    <div className="text-right">
-                      <span className="text-xs font-bold text-emerald-400">+{c.rewards.firstPlace.xp} XP</span>
-                      <p className="text-[10px] text-amber-400 font-semibold">+{c.rewards.firstPlace.rankPoints} RP</p>
+                    <div>
+                      <span className="text-[10px] px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 font-extrabold uppercase">
+                        {accountTargetedChallenge.sportId} • {accountTargetedChallenge.durationSeconds}s
+                      </span>
+                      <h4 className="font-black text-base text-white mt-1">{accountTargetedChallenge.title}</h4>
+                      <p className="text-[11px] text-slate-400">
+                        Division: {accountTargetedChallenge.minRank} to {accountTargetedChallenge.maxRank}
+                      </p>
                     </div>
                   </div>
 
-                  <p className="text-xs text-slate-300 mt-2 bg-slate-950/40 p-2 rounded-lg border border-white/5">
-                    <strong className="text-slate-200">Goal:</strong> {c.goal}
-                  </p>
+                  <div className="text-right">
+                    <span className="text-xs font-black text-emerald-400">+{accountTargetedChallenge.rewards.firstPlace.xp} XP</span>
+                    <p className="text-[10px] text-amber-400 font-bold">+{accountTargetedChallenge.rewards.firstPlace.rankPoints} RP</p>
+                  </div>
                 </div>
-              ))}
+
+                {/* Account Need Rationale */}
+                <div className="mt-3 p-3 rounded-xl bg-slate-950/60 border border-white/5 space-y-1.5">
+                  <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-200">
+                    <span>📌</span>
+                    <span>Account Growth Target:</span>
+                  </div>
+                  <p className="text-xs text-slate-300">
+                    {accountTargetedChallenge.goal}
+                  </p>
+                  <div className="pt-2 border-t border-white/5 text-[10px] text-slate-400 flex items-center justify-between">
+                    <span>Scoring: {accountTargetedChallenge.scoringFormula}</span>
+                    <span className="text-cyan-400 font-semibold">Head-to-Head (2 Players)</span>
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       )}
 

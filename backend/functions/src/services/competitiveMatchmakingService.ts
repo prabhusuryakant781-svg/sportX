@@ -150,12 +150,22 @@ export class CompetitiveMatchmakingService {
     sportPreference?: string;
   }): Promise<{ ticket: QueueTicketDoc; match?: CompetitiveMatchDoc }> {
     const { userId, displayName, avatarUrl, sportPreference } = params;
+    let effectiveSport = sportPreference;
+    if (!effectiveSport || effectiveSport === 'all' || effectiveSport === 'account') {
+      try {
+        const { UserRepository } = await import('../repositories/userRepository');
+        const userDoc = await UserRepository.getById(userId);
+        if (userDoc && userDoc.selectedSports && userDoc.selectedSports.length > 0) {
+          effectiveSport = userDoc.selectedSports[0];
+        }
+      } catch (_) {}
+    }
 
     // 1. Get user rank
-    const userRank = await CompetitiveRepository.getUserRank(userId, sportPreference || 'global');
+    const userRank = await CompetitiveRepository.getUserRank(userId, effectiveSport || 'global');
 
-    // 2. Select eligible challenge
-    const challenge = await this.selectEligibleChallenge(sportPreference, userRank.rankTier);
+    // 2. Select eligible challenge tailored to account need & rank
+    const challenge = await this.selectEligibleChallenge(effectiveSport, userRank.rankTier);
 
     // 3. Look for eligible opponent in active queue
     const activeTickets = await CompetitiveRepository.getActiveQueueTickets();
