@@ -192,9 +192,15 @@ export default function CameraWorkoutPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-obsidian flex flex-col items-center justify-center gap-3">
-        <span className="spinner w-8 h-8" />
-        <p className="text-xs text-muted">Preparing workout studio…</p>
+      <div className="min-h-screen bg-obsidian flex flex-col items-center justify-center gap-4 p-6">
+        <div className="relative flex items-center justify-center">
+          <div className="absolute w-24 h-24 bg-neon/20 rounded-full blur-2xl animate-pulse" />
+          <div className="spinner w-10 h-10 border-[3px] border-neon/20 border-t-neon" />
+        </div>
+        <div className="text-center">
+          <h3 className="text-base font-bold text-white tracking-tight">Initializing Vision Studio</h3>
+          <p className="text-xs text-slate-400 mt-1">Calibrating MediaPipe biomechanical models…</p>
+        </div>
       </div>
     );
   }
@@ -202,41 +208,70 @@ export default function CameraWorkoutPage() {
   if (!exercise) {
     return (
       <div className="min-h-screen bg-obsidian flex flex-col items-center justify-center p-6 text-center">
-        <span className="text-6xl mb-4">⚠️</span>
-        <h2 className="text-white font-bold">Exercise not found</h2>
-        <button className="btn btn-primary mt-6" onClick={() => navigate('/workout')}>Back to Library</button>
+        <div className="w-16 h-16 rounded-2xl bg-amber-500/10 text-amber-400 flex items-center justify-center mx-auto mb-4 border border-amber-500/20 text-3xl">
+          ⚠️
+        </div>
+        <h2 className="text-lg font-bold text-white">Exercise Not Found</h2>
+        <p className="text-xs text-slate-400 mt-1 max-w-[280px]">
+          The requested movement drill could not be resolved from your library.
+        </p>
+        <button className="btn btn-primary mt-5" onClick={() => navigate('/workout')}>
+          Back to Workout Library
+        </button>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-obsidian flex flex-col relative overflow-hidden">
-      {/* Header overlaid on camera */}
-      <div className="p-4 z-10 flex justify-between items-center bg-gradient-to-b from-black/80 to-transparent">
-        <button className="btn btn-sm btn-secondary cursor-pointer" onClick={() => navigate(-1)}>✕ Cancel</button>
-        <div className="text-center">
-          <h3 className="text-white font-bold text-sm sm:text-base">{exercise.name}</h3>
-          <span className="text-[11px] text-muted">AI Pose Tracking</span>
-        </div>
-        <div className="w-16" /> {/* spacer for alignment */}
-      </div>
+      {/* Studio Header Overlay */}
+      <header className="px-4 py-3.5 z-20 flex justify-between items-center bg-gradient-to-b from-obsidian/95 via-obsidian/80 to-transparent backdrop-blur-sm border-b border-white/5">
+        <button
+          className="btn btn-sm btn-secondary flex items-center gap-1.5 py-1.5 px-3 text-xs cursor-pointer"
+          onClick={() => navigate(-1)}
+        >
+          <span>✕</span>
+          <span>Exit</span>
+        </button>
 
-      <div className="flex-1 flex flex-col p-4 relative justify-center items-center">
-        <div className="w-full h-full max-w-[500px] mx-auto flex flex-col items-center justify-center animate-in">
+        <div className="text-center">
+          <div className="flex items-center justify-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="text-[10px] font-bold text-neon uppercase tracking-wider">AI Pose Engine</span>
+          </div>
+          <h3 className="text-white font-black text-sm sm:text-base tracking-tight leading-tight">
+            {exercise.name}
+          </h3>
+        </div>
+
+        <div className="w-16 flex justify-end">
+          <span className="text-[10px] font-mono font-bold text-cyan px-2 py-0.5 rounded-full bg-cyan/10 border border-cyan/30">
+            60 FPS
+          </span>
+        </div>
+      </header>
+
+      {/* Main Studio Arena */}
+      <main className="flex-1 flex flex-col p-4 relative justify-center items-center">
+        <div className="w-full h-full max-w-[500px] mx-auto flex flex-col items-center justify-center animate-fade-in">
           {completionError && (
-            <div className="w-full mb-3 p-3 bg-rose-950/80 border border-rose-500/40 rounded-xl text-center text-xs text-rose-200">
-              <p className="mb-2 font-semibold">⚠️ {completionError}</p>
+            <div className="w-full mb-3 p-3.5 bg-rose-950/80 border border-rose-500/40 rounded-2xl text-center text-xs text-rose-200 shadow-lg animate-slide-up">
+              <p className="mb-2 font-bold flex items-center justify-center gap-1.5">
+                <span>⚠️</span>
+                <span>{completionError}</span>
+              </p>
               {lastResult && (
                 <button
                   onClick={() => handleComplete(lastResult)}
                   disabled={isCompleting}
-                  className="btn btn-secondary text-xs px-4 py-1.5 cursor-pointer"
+                  className="btn btn-secondary text-xs px-4 py-2 cursor-pointer shadow"
                 >
-                  {isCompleting ? 'Saving...' : '🔄 Retry Saving Results'}
+                  {isCompleting ? 'Saving Telemetry…' : '🔄 Retry Finalizing Session'}
                 </button>
               )}
             </div>
           )}
+
           <CameraWorkout
             exerciseId={cleanExerciseId as any}
             onComplete={handleComplete}
@@ -248,7 +283,7 @@ export default function CameraWorkoutPage() {
             }
           />
         </div>
-      </div>
+      </main>
     </div>
   );
 }

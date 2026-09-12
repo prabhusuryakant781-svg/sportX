@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import ProgressChart from '../components/ProgressChart';
+import { TrendingUp, Calendar, Dumbbell, Activity, Award, Clock } from 'lucide-react';
 
 function buildChartDataFromHistory(history: any[], period: string): Array<{ label: string; value: number }> {
   if (!Array.isArray(history) || history.length === 0) {
@@ -71,14 +72,14 @@ function buildChartDataFromHistory(history: any[], period: string): Array<{ labe
 }
 
 export default function ProgressPage() {
-  const [period, setPeriod] = useState('7d');
+  const [period, setPeriod] = useState<'7d' | '30d' | 'all'>('7d');
   const [history, setHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setLoading(true);
     api.getHistory(period)
-      .then((r: any) => setHistory(r.data || []))
+      .then((r: any) => setHistory(r?.data || []))
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [period]);
@@ -86,73 +87,122 @@ export default function ProgressPage() {
   const chartData = buildChartDataFromHistory(history, period);
 
   return (
-    <div className="min-h-screen bg-obsidian">
-      <div className="page-header">
-        <h1 className="text-white">Progress</h1>
-        <p className="text-sm mt-1">Track your fitness journey.</p>
-      </div>
-
-      <div className="px-5 mt-5">
-        <div className="flex bg-surface rounded-lg p-1">
-          {(['7d', '30d', 'all'] as const).map(p => (
-            <button
-              key={p}
-              onClick={() => setPeriod(p)}
-              className={`flex-1 py-1.5 text-xs font-bold uppercase tracking-wider rounded-md transition-all ${
-                period === p ? 'bg-card border border-white/10 text-neon shadow-md' : 'text-muted'
-              }`}
-            >
-              {p}
-            </button>
-          ))}
+    <div className="space-y-4 pb-8 animate-fade-in">
+      {/* Header */}
+      <header className="pt-2">
+        <div className="flex items-center gap-2 mb-1">
+          <div className="w-8 h-8 rounded-xl bg-cyan/15 text-cyan flex items-center justify-center">
+            <TrendingUp size={18} />
+          </div>
+          <span className="text-xs font-bold uppercase tracking-wider text-cyan">Performance Telemetry</span>
         </div>
+        <h1 className="text-2xl font-black text-white tracking-tight">Athlete Progress</h1>
+        <p className="text-xs text-slate-400 mt-0.5">
+          Historical volume, workout frequency and XP progression.
+        </p>
+      </header>
+
+      {/* Segmented Time Filter */}
+      <div className="flex rounded-xl p-1 bg-surface border border-white/5">
+        {(['7d', '30d', 'all'] as const).map(p => (
+          <button
+            key={p}
+            type="button"
+            onClick={() => setPeriod(p)}
+            className={`flex-1 py-2 rounded-lg border-none cursor-pointer font-outfit font-bold text-xs tracking-wider uppercase transition-all duration-200 ${
+              period === p
+                ? 'bg-card text-neon shadow-md border border-white/10'
+                : 'bg-transparent text-slate-400 hover:text-white'
+            }`}
+          >
+            {p === '7d' ? 'Last 7 Days' : p === '30d' ? 'Last 30 Days' : 'All-Time'}
+          </button>
+        ))}
       </div>
 
-      <div className="section">
-        <h3 className="text-white">Activity Volume</h3>
+      {/* Activity Volume Chart */}
+      <section>
+        <h2 className="text-sm font-black text-white uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+          <Activity size={15} className="text-cyan" />
+          <span>Activity Volume</span>
+        </h2>
+
         {loading ? (
           <div className="card skeleton h-[180px]" />
-        ) : chartData.length === 0 ? (
-          <div className="empty-state">
-            <span className="empty-icon">📊</span>
-            <p className="text-sm text-muted">No activity data recorded in this period.</p>
-          </div>
         ) : (
-          <ProgressChart data={chartData} label="XP Earned" color="#06B6D4" height={180} />
+          <ProgressChart data={chartData} label="XP Progression" color="#06B6D4" height={170} />
         )}
+      </section>
 
-        <h3 className="text-white mt-4">Recent History</h3>
+      {/* Session History Feed */}
+      <section>
+        <div className="flex justify-between items-center mb-2.5">
+          <h2 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-1.5">
+            <Calendar size={15} className="text-neon" />
+            <span>Completed Sessions ({history.length})</span>
+          </h2>
+          <span className="text-[11px] text-slate-400 font-semibold">
+            {period === '7d' ? 'Past Week' : period === '30d' ? 'Past Month' : 'All Recorded'}
+          </span>
+        </div>
+
         {loading ? (
-          <div className="card skeleton h-24" />
+          <div className="space-y-2">
+            <div className="card skeleton h-16" />
+            <div className="card skeleton h-16" />
+          </div>
         ) : history.length === 0 ? (
-          <div className="empty-state">
-            <span className="empty-icon">📭</span>
-            <p>No activity in this period.</p>
+          <div className="card text-center py-10 border border-white/5">
+            <span className="text-3xl block mb-2">📭</span>
+            <h3 className="text-sm font-bold text-white">No Sessions in this Timeline</h3>
+            <p className="text-xs text-slate-400 mt-1">
+              Complete drills in the camera studio to record real telemetry.
+            </p>
           </div>
         ) : (
-          <div className="flex flex-col gap-2">
-            {history.map(item => (
-              <div key={item.id} className="card py-3 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-surface flex items-center justify-center text-xl">
-                  {item.sportId ? '🏅' : '🏋️'}
-                </div>
-                <div className="flex-1">
-                  <div className="font-semibold text-white">
-                    {item.sportName || item.exerciseId || 'Workout Session'}
+          <div className="space-y-2">
+            {history.map((item, idx) => (
+              <div key={item.id || idx} className="card p-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-surface flex items-center justify-center text-lg text-neon flex-shrink-0">
+                    {item.sportId ? '🏅' : <Dumbbell size={18} />}
                   </div>
-                  <div className="text-xs text-muted">
-                    {new Date(item.completedAt || item.loggedAt).toLocaleDateString()} •
-                    {item.durationMinutes || Math.round(item.durationSeconds / 60)} min
+                  <div>
+                    <h4 className="font-bold text-sm text-white capitalize">
+                      {item.sportName || item.exerciseId?.replace(/_/g, ' ') || 'Workout Session'}
+                    </h4>
+                    <div className="flex items-center gap-2 text-[11px] text-slate-400 mt-0.5">
+                      <span>
+                        {new Date(item.completedAt || item.loggedAt || Date.now()).toLocaleDateString(undefined, {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric'
+                        })}
+                      </span>
+                      <span>•</span>
+                      <span className="flex items-center gap-1">
+                        <Clock size={11} />
+                        <span>{item.durationMinutes || Math.round((item.durationSeconds || 0) / 60)} min</span>
+                      </span>
+                    </div>
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="font-bold text-neon">+{item.xpAwarded} XP</div>
+
+                <div className="text-right flex-shrink-0">
+                  <div className="font-black text-sm text-neon tabular-nums font-outfit">
+                    +{item.xpAwarded || item.xp || 0} XP
+                  </div>
+                  {typeof item.totalReps === 'number' && (
+                    <div className="text-[10px] text-slate-400">
+                      {item.totalReps} reps
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
           </div>
         )}
-      </div>
+      </section>
     </div>
   );
 }

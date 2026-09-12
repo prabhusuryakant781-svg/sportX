@@ -20,9 +20,14 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
   if (loading) {
     return (
-      <div className="h-screen bg-obsidian flex flex-col items-center justify-center gap-4">
-        <div className="spinner w-10 h-10 border-[3px]" />
-        <p className="text-muted text-sm font-medium animate-pulse">Loading SportX…</p>
+      <div className="min-h-screen bg-obsidian flex flex-col items-center justify-center gap-4">
+        <div className="relative flex items-center justify-center">
+          <div className="absolute w-20 h-20 bg-neon/20 rounded-full blur-xl animate-pulse" />
+          <div className="spinner w-10 h-10 border-[3px] border-neon/20 border-t-neon" />
+        </div>
+        <p className="text-slate-400 text-xs font-semibold tracking-wider uppercase animate-pulse">
+          Calibrating SportX Telemetry…
+        </p>
       </div>
     );
   }
@@ -32,9 +37,15 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 function AppShell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="app-shell">
-      <main className="page page-enter">{children}</main>
-      <BottomNav />
+    <div className="min-h-screen bg-obsidian flex justify-center relative overflow-x-hidden">
+      {/* Background ambient lighting matching LoginPage.tsx */}
+      <div className="fixed top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-neon/[0.08] rounded-full blur-[110px] pointer-events-none z-0" />
+      <div className="fixed bottom-1/4 left-1/3 w-72 h-72 bg-cyan/[0.08] rounded-full blur-[100px] pointer-events-none z-0" />
+
+      <div className="app-shell border-x border-white/[0.05] relative z-10">
+        <main className="page page-enter">{children}</main>
+        <BottomNav />
+      </div>
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { RepCounterFSM, type ExerciseType, type RepCounterState } from '../utils
 import { initializePoseLandmarker, detectPose } from '../services/poseLandmarker';
 import type { Landmark } from '../utils/poseMath';
 import GoalRing from './GoalRing';
+import { Clock, Flame, Play, Square, AlertTriangle, RefreshCw, Activity, CheckCircle2 } from 'lucide-react';
 
 export interface WorkoutCompletionResult {
   reps: number;
@@ -465,19 +466,24 @@ export default function CameraWorkout({
   // If camera error / permission denied
   if (cameraStatus === 'denied' || cameraStatus === 'unavailable' || cameraStatus === 'error') {
     return (
-      <div className="w-full card bg-gray-900 border border-rose-500/30 p-6 flex flex-col items-center text-center gap-4 animate-in">
-        <div className="text-4xl">⚠️</div>
-        <h3 className="text-base font-bold text-white">
-          {cameraStatus === 'denied' ? 'Camera Permission Denied' : 'Camera Unavailable'}
-        </h3>
-        <p className="text-xs text-rose-300 max-w-[340px] leading-relaxed">
-          {cameraErrorMessage || 'Unable to access your camera.'}
-        </p>
+      <div className="w-full card-glass bg-obsidian/90 border border-rose-500/40 p-6 flex flex-col items-center text-center gap-4 animate-fade-in shadow-2xl">
+        <div className="w-14 h-14 rounded-2xl bg-rose-500/15 text-rose-400 flex items-center justify-center text-2xl border border-rose-500/30">
+          <AlertTriangle size={28} />
+        </div>
+        <div>
+          <h3 className="text-base font-bold text-white tracking-tight">
+            {cameraStatus === 'denied' ? 'Camera Permission Denied' : 'Camera Feed Unavailable'}
+          </h3>
+          <p className="text-xs text-rose-300/90 max-w-[340px] leading-relaxed mt-1">
+            {cameraErrorMessage || 'Unable to access your camera device. Please ensure browser permissions are enabled.'}
+          </p>
+        </div>
         <button
           onClick={initializeCamera}
-          className="btn btn-primary text-xs px-5 py-2.5 mt-2"
+          className="btn btn-primary text-xs px-5 py-2.5 mt-2 flex items-center gap-2"
         >
-          🔄 Retry Camera
+          <RefreshCw size={14} />
+          <span>Retry Camera Connection</span>
         </button>
       </div>
     );
@@ -486,7 +492,7 @@ export default function CameraWorkout({
   return (
     <div className="relative w-full flex flex-col items-center">
       {/* ── Camera & Canvas Viewport ─────────────────────────── */}
-      <div className="relative w-full aspect-[4/3] max-w-[480px] bg-black rounded-2xl overflow-hidden border border-white/10 shadow-2xl">
+      <div className="relative w-full aspect-[4/3] max-w-[480px] bg-black rounded-3xl overflow-hidden border border-white/10 shadow-2xl">
         {/* Real Webcam Stream */}
         <video
           ref={videoRef}
@@ -507,55 +513,65 @@ export default function CameraWorkout({
 
         {/* ── Live Positioning Cues Banner ──────────────────── */}
         {positioningFeedback && cameraStatus === 'ready' && (
-          <div className="absolute top-3 left-3 right-3 z-30 bg-black/75 backdrop-blur-sm border border-amber-500/40 rounded-xl px-3 py-1.5 flex items-center justify-center gap-2">
+          <div className="absolute top-3 left-3 right-3 z-30 bg-black/80 backdrop-blur-md border border-amber-500/40 rounded-xl px-3 py-2 flex items-center justify-center gap-2 shadow-lg animate-slide-up">
             <span className="text-xs">📐</span>
-            <span className="text-[11px] font-medium text-amber-300">{positioningFeedback}</span>
+            <span className="text-[11px] font-semibold text-amber-300">{positioningFeedback}</span>
           </div>
         )}
 
         {/* ── Real-Time HUD Overlay ─────────────────────────── */}
         {isActive && (
           <>
-            {/* Rep Counter */}
-            <div className="absolute top-12 left-1/2 -translate-x-1/2 text-center pointer-events-none z-20">
-              <div className="text-6xl font-black text-white drop-shadow-md tracking-tight">
+            {/* Center Massive Rep Counter */}
+            <div className="absolute top-10 left-1/2 -translate-x-1/2 text-center pointer-events-none z-20 flex flex-col items-center">
+              <div className="text-7xl font-black text-white drop-shadow-lg tracking-tight tabular-nums font-outfit">
                 {repState.reps}
               </div>
-              <div className="text-xs font-semibold text-slate-300 drop-shadow">
-                / {targetReps} reps
+              <div className="text-xs font-bold text-slate-200 px-3 py-0.5 rounded-full bg-black/60 backdrop-blur-md border border-white/10 mt-0.5 tracking-wider uppercase tabular-nums">
+                Target: {targetReps} reps
               </div>
             </div>
 
-            {/* Form Score Ring */}
-            <div className="absolute top-4 right-4 z-20">
-              <GoalRing progress={repState.formScore} size={54} strokeWidth={4} color={formColor}>
-                <span className="text-xs font-bold" style={{ color: formColor }}>
-                  {repState.formScore}
+            {/* Form Score Ring Top-Right */}
+            <div className="absolute top-3 right-3 z-20">
+              <div className="p-1 rounded-2xl bg-black/65 backdrop-blur-md border border-white/10 shadow-lg">
+                <GoalRing progress={repState.formScore} size={54} strokeWidth={4} color={formColor}>
+                  <div className="flex flex-col items-center justify-center">
+                    <span className="text-xs font-black tabular-nums font-outfit" style={{ color: formColor }}>
+                      {repState.formScore}
+                    </span>
+                    <span className="text-[8px] font-bold text-slate-400 uppercase">FORM</span>
+                  </div>
+                </GoalRing>
+              </div>
+            </div>
+
+            {/* Joint Angle Telemetry Pill Top-Left */}
+            <div className="absolute top-3 left-3 z-20">
+              <div className="px-3 py-1.5 rounded-xl bg-black/65 backdrop-blur-md border border-white/10 text-[11px] font-mono font-bold text-cyan flex items-center gap-1.5 shadow-lg">
+                <Activity size={13} className="text-cyan animate-pulse" />
+                <span className="tabular-nums">
+                  {exerciseId === 'jumping_jacks' ? `Ratio: ${(repState.currentAngle / 100).toFixed(2)}` : `${repState.currentAngle}°`}
                 </span>
-              </GoalRing>
-            </div>
-
-            {/* Current Joint Angle Pill */}
-            <div className="absolute top-4 left-4 z-20">
-              <div className="px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-sm border border-white/10 text-[11px] font-mono text-cyan-300">
-                {exerciseId === 'jumping_jacks' ? `Ratio: ${(repState.currentAngle / 100).toFixed(2)}` : `${repState.currentAngle}°`}
               </div>
             </div>
 
-            {/* Timer & Streak Pills */}
-            <div className="absolute bottom-4 left-4 z-20 flex gap-2">
-              <div className="px-2.5 py-1 rounded-full bg-black/70 backdrop-blur-sm border border-white/10 text-[11px] font-semibold text-white">
-                ⏱️ {formatTime(duration)}
+            {/* Timer & Streak Status Bottom-Left */}
+            <div className="absolute bottom-3 left-3 z-20 flex gap-2">
+              <div className="px-3 py-1.5 rounded-xl bg-black/75 backdrop-blur-md border border-white/10 text-xs font-bold text-white flex items-center gap-1.5 shadow-lg tabular-nums">
+                <Clock size={13} className="text-slate-400" />
+                <span>{formatTime(duration)}</span>
               </div>
-              <div className="px-2.5 py-1 rounded-full bg-black/70 backdrop-blur-sm border border-amber-500/30 text-[11px] font-semibold text-amber-300">
-                🔥 {repState.streak}
+              <div className="px-3 py-1.5 rounded-xl bg-black/75 backdrop-blur-md border border-amber-500/40 text-xs font-bold text-amber-400 flex items-center gap-1.5 shadow-lg tabular-nums">
+                <Flame size={13} className="fill-amber-400/20 text-amber-400" />
+                <span>{repState.streak} Streak</span>
               </div>
             </div>
 
             {/* Biomechanical Form Feedback Banner */}
             {repState.feedback.length > 0 && (
-              <div className="absolute bottom-16 left-3 right-3 z-20 bg-rose-950/80 backdrop-blur-sm border border-rose-500/40 rounded-xl px-3 py-1.5 text-center">
-                <span className="text-[11px] text-rose-200 font-medium">{repState.feedback[0]}</span>
+              <div className="absolute bottom-16 left-3 right-3 z-20 bg-rose-950/85 backdrop-blur-md border border-rose-500/50 rounded-xl px-3.5 py-2 text-center shadow-xl animate-slide-up">
+                <span className="text-xs text-rose-200 font-semibold">{repState.feedback[0]}</span>
               </div>
             )}
           </>
@@ -563,29 +579,42 @@ export default function CameraWorkout({
 
         {/* ── Ready / Start Overlay ─────────────────────────── */}
         {!isActive && cameraStatus === 'ready' && mediaPipeStatus === 'ready' && (
-          <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/50 backdrop-blur-xs gap-3 p-6 text-center">
-            <div className="text-4xl">📸</div>
-            <h3 className="text-base font-bold text-white">Pose Tracking Ready</h3>
-            <p className="text-xs text-slate-300 max-w-[280px]">
-              {isBodyDetected
-                ? 'Full body recognized. Click Start to begin tracking.'
-                : 'Position yourself so your body is visible in the camera frame.'}
-            </p>
+          <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/65 backdrop-blur-xs gap-3 p-6 text-center animate-fade-in">
+            <div className="w-14 h-14 rounded-2xl bg-neon/15 text-neon flex items-center justify-center border border-neon/30 shadow-glow-sm">
+              <Activity size={28} />
+            </div>
+            <div>
+              <h3 className="text-base font-black text-white tracking-tight">Vision Tracking Active</h3>
+              <p className="text-xs text-slate-300 max-w-[280px] mt-1 leading-relaxed">
+                {isBodyDetected
+                  ? 'Biomechanical landmarks acquired. Step back and click start.'
+                  : 'Position yourself so your full body is framed inside the camera.'}
+              </p>
+            </div>
+
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-black/50 border border-white/10">
+              <span className={`w-2 h-2 rounded-full ${isBodyDetected ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
+              <span className={isBodyDetected ? 'text-emerald-400' : 'text-amber-400'}>
+                {isBodyDetected ? 'Body in Frame' : 'Awaiting Full Body'}
+              </span>
+            </div>
+
             <button
               onClick={startWorkout}
-              className="btn btn-primary px-6 py-3 text-sm font-semibold rounded-xl shadow-lg mt-2 cursor-pointer"
+              className="btn btn-primary px-7 py-3 text-sm font-black rounded-xl shadow-glow mt-2 cursor-pointer flex items-center gap-2"
             >
-              ▶️ Start {exerciseId.replace(/_/g, ' ')}
+              <Play size={16} className="fill-current" />
+              <span>Start {exerciseId.replace(/_/g, ' ')}</span>
             </button>
           </div>
         )}
 
         {/* ── Initialization State ─────────────────────────── */}
         {(cameraStatus === 'requesting' || mediaPipeStatus === 'initializing') && (
-          <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/70 gap-3">
-            <div className="spinner w-8 h-8 border-neon" />
-            <span className="text-xs text-muted animate-pulse">
-              {cameraStatus === 'requesting' ? 'Requesting camera...' : 'Loading pose recognition...'}
+          <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/80 gap-3">
+            <div className="spinner w-9 h-9 border-neon" />
+            <span className="text-xs text-slate-300 font-semibold animate-pulse tracking-wide">
+              {cameraStatus === 'requesting' ? 'Requesting Camera Feed…' : 'Calibrating MediaPipe Models…'}
             </span>
           </div>
         )}
@@ -594,17 +623,17 @@ export default function CameraWorkout({
         <div className="absolute bottom-2 right-2 z-40">
           <button
             onClick={() => setShowDiagnostics(v => !v)}
-            className="text-[10px] px-2 py-0.5 rounded bg-black/60 text-slate-400 border border-white/10 hover:text-white"
+            className="text-[10px] px-2 py-0.5 rounded bg-black/70 text-slate-400 border border-white/10 hover:text-white"
           >
-            {showDiagnostics ? '✕ Diag' : '🛠 Diag'}
+            {showDiagnostics ? '✕ Close' : '🛠 Telemetry'}
           </button>
           {showDiagnostics && (
-            <div className="mt-1 p-2 rounded-lg bg-black/90 border border-white/20 text-[10px] font-mono text-left text-slate-200 flex flex-col gap-1 shadow-xl">
+            <div className="mt-1 p-2.5 rounded-xl bg-black/95 border border-white/20 text-[10px] font-mono text-left text-slate-200 flex flex-col gap-1 shadow-2xl">
               <div>Camera: <span className={cameraStatus === 'ready' ? 'text-emerald-400 font-bold' : 'text-amber-400 font-bold'}>{cameraStatus.toUpperCase()}</span></div>
               <div>MediaPipe: <span className={mediaPipeStatus === 'ready' ? 'text-emerald-400 font-bold' : 'text-amber-400 font-bold'}>{mediaPipeStatus.toUpperCase()}</span></div>
               <div>Pose: <span className={isBodyDetected ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold'}>{isBodyDetected ? 'DETECTED' : 'NOT DETECTED'}</span></div>
-              <div>Exercise: <span className="text-cyan-400 font-bold">{exerciseId.toUpperCase()}</span></div>
-              <div>FSM: <span className="text-amber-300 font-bold">{repState.fsmState}</span></div>
+              <div>Exercise: <span className="text-cyan font-bold">{exerciseId.toUpperCase()}</span></div>
+              <div>FSM: <span className="text-amber-400 font-bold">{repState.fsmState}</span></div>
               <div>REP: <span className="text-white font-bold">{repState.reps}</span></div>
             </div>
           )}
@@ -614,10 +643,11 @@ export default function CameraWorkout({
       {/* ── Workout Control Button ─────────────────────────── */}
       {isActive && (
         <button
-          className="btn btn-danger w-full max-w-[480px] py-3 text-xs font-semibold rounded-xl mt-4 cursor-pointer"
+          className="btn btn-danger w-full max-w-[480px] py-3.5 text-xs font-black rounded-2xl mt-4 cursor-pointer shadow-lg flex items-center justify-center gap-2"
           onClick={stopWorkout}
         >
-          ⏹️ End Workout Session
+          <Square size={14} className="fill-current" />
+          <span>Finish Workout Session</span>
         </button>
       )}
     </div>

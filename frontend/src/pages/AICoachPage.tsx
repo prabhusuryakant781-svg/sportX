@@ -2,6 +2,20 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { 
+  Bot, 
+  Send, 
+  Sparkles, 
+  ArrowLeft, 
+  Activity, 
+  CheckCircle2, 
+  ChevronRight, 
+  Target, 
+  Zap, 
+  RotateCcw,
+  Sliders,
+  Dumbbell
+} from 'lucide-react';
 
 interface CoachMessage {
   id: string;
@@ -19,7 +33,7 @@ interface CoachMessage {
 const SUGGESTED_QUESTIONS = [
   'How do I maintain chest depth on pushups?',
   'What should I focus on to improve my squat form?',
-  'How can I build workout consistency around my classes?',
+  'How can I build workout consistency around classes?',
   'Suggest a quick 20-minute bodyweight routine.',
 ];
 
@@ -33,14 +47,14 @@ export default function AICoachPage() {
       structuredResponse: {
         summary: `Hey ${user?.name || 'Athlete'}! I am your SportX AI Coach, grounded in your real workout telemetry, streaks, and form data.`,
         strengths: [
-          user?.currentStreak ? `Active ${user.currentStreak}-day workout streak` : 'Ready to start your next training block',
-          user?.totalXp ? `${user.totalXp} XP accumulated toward your fitness goals` : 'Equipped with computer vision movement analysis'
+          user?.currentStreak ? `Active ${user.currentStreak}-day workout streak` : 'Ready to begin your athletic conditioning block',
+          user?.totalXp ? `${user.totalXp} XP accumulated toward your fitness goals` : 'Computer vision movement tracking calibrated'
         ],
         recommendations: [
-          'Ask me for biomechanical feedback on your squats, pushups, or curls.',
-          'Request a personalized workout plan matched to your available time.'
+          'Ask for biomechanical form corrections on squats, pushups, or jumping jacks.',
+          'Request an adaptive routine matched to your available training window.'
         ],
-        nextFocus: 'consistency & form quality'
+        nextFocus: 'consistency & movement depth'
       },
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }
@@ -78,7 +92,6 @@ export default function AICoachPage() {
     setIsLoading(true);
 
     try {
-      // Extract recent conversation turns (up to 4 turns, excluding initial welcome)
       const recentHistory = messages
         .filter(m => m.id !== 'welcome_1')
         .slice(-4)
@@ -88,7 +101,7 @@ export default function AICoachPage() {
         }))
         .filter(t => t.content.trim().length > 0);
 
-      // Connect to real backend API: POST /api/v1/ai/ask-coach
+      // Connect to authoritative backend endpoint: POST /api/v1/ai/ask-coach
       const res: any = await api.askCoach({ message, history: recentHistory });
 
       if (res?.data) {
@@ -163,7 +176,7 @@ export default function AICoachPage() {
           sender: 'coach',
           structuredResponse: {
             summary: `Custom Plan Generated: "${plan.title || 'Athletic Conditioning'}" (${plan.difficulty || 'Intermediate'}, ~${plan.estimatedDurationMinutes || 20}m).`,
-            strengths: [`Tailored for ${user?.selectedSports?.[0] || 'college athletics'}`],
+            strengths: [`Tailored for ${user?.selectedSports?.[0] || 'collegiate athletics'}`],
             recommendations: (plan.exercises || []).map((e: any) => `${e.name || e.exerciseId}: ${e.sets} sets × ${e.reps} reps`),
             nextFocus: 'controlled execution'
           },
@@ -181,82 +194,100 @@ export default function AICoachPage() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-obsidian text-white relative">
+    <div className="flex flex-col h-[calc(100vh-90px)] bg-obsidian text-white relative -mx-4 -mt-3">
       {/* ── Top Header ────────────────────────────────────────── */}
-      <div className="sticky top-0 z-20 px-4 py-3 bg-gray-900/95 backdrop-blur-md border-b border-white/10 flex items-center justify-between">
+      <header className="sticky top-0 z-20 px-4 py-3 bg-obsidian/95 backdrop-blur-md border-b border-white/10 flex items-center justify-between shadow-md">
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate('/dashboard')}
-            className="p-1.5 text-muted hover:text-white rounded-lg bg-white/5 border border-white/10"
+            className="p-2 text-slate-400 hover:text-white rounded-xl bg-surface border border-white/5 transition-colors cursor-pointer"
             aria-label="Back to dashboard"
           >
-            ←
+            <ArrowLeft size={16} />
           </button>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-xl">🤖</span>
-              <h1 className="text-base font-bold text-white tracking-tight">SportX AI Coach</h1>
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                Live
-              </span>
+          
+          <div className="flex items-center gap-2.5">
+            <div className="w-10 h-10 rounded-2xl bg-cyan/15 text-cyan flex items-center justify-center border border-cyan/30 shadow-glow-cyan-sm">
+              <Bot size={22} />
             </div>
-            <p className="text-[11px] text-muted">Google Gemini • Server-Side Intelligence</p>
+            <div>
+              <div className="flex items-center gap-1.5">
+                <h1 className="text-sm font-black text-white tracking-tight">SportX Coach</h1>
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <span>Online</span>
+                </span>
+              </div>
+              <p className="text-[10px] text-slate-400 font-medium">Google Gemini • Movement Intelligence</p>
+            </div>
           </div>
         </div>
 
-        <div className="flex gap-1.5">
+        {/* Action Pills */}
+        <div className="flex items-center gap-1.5">
           <button
+            type="button"
             onClick={handleQuickInsight}
             disabled={isLoading}
-            className="px-2.5 py-1 text-[11px] font-medium rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 transition-colors"
+            className="px-2.5 py-1.5 text-[11px] font-bold rounded-xl bg-surface hover:bg-surface-light text-slate-300 border border-white/5 transition-colors flex items-center gap-1 cursor-pointer disabled:opacity-50"
           >
-            📊 Insights
+            <Activity size={12} className="text-cyan" />
+            <span>Telemetry</span>
           </button>
+          
           <button
+            type="button"
             onClick={handleQuickWorkout}
             disabled={isLoading}
-            className="px-2.5 py-1 text-[11px] font-medium rounded-lg bg-neon/10 hover:bg-neon/20 text-neon border border-neon/30 transition-colors"
+            className="px-2.5 py-1.5 text-[11px] font-bold rounded-xl bg-neon/15 hover:bg-neon/25 text-neon border border-neon/30 transition-colors flex items-center gap-1 cursor-pointer disabled:opacity-50 shadow-glow-sm"
           >
-            ⚡ Plan
+            <Zap size={12} />
+            <span>AI Routine</span>
           </button>
         </div>
-      </div>
+      </header>
 
-      {/* ── Chat Messages Stream ──────────────────────────────── */}
+      {/* ── Chat Feed ─────────────────────────────────────────── */}
       <div className="flex-1 p-4 space-y-4 overflow-y-auto">
         {messages.map(msg => (
           <div
             key={msg.id}
-            className={`flex flex-col ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}
+            className={`flex flex-col animate-fade-in ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}
           >
             {msg.sender === 'user' ? (
-              <div className="max-w-[85%] rounded-2xl rounded-tr-sm bg-gradient-hero px-4 py-2.5 text-white text-sm shadow-md">
+              <div className="max-w-[85%] rounded-2xl rounded-tr-xs bg-gradient-hero px-4 py-3 text-white text-xs sm:text-sm font-medium shadow-md">
                 <p className="text-white leading-relaxed">{msg.text}</p>
-                <span className="block text-[10px] text-white/70 text-right mt-1">{msg.timestamp}</span>
+                <span className="block text-[9px] text-white/70 text-right mt-1.5 tabular-nums">
+                  {msg.timestamp}
+                </span>
               </div>
             ) : (
-              <div className="max-w-[92%] rounded-2xl rounded-tl-sm bg-gray-900 border border-white/10 p-4 shadow-lg space-y-3">
-                <div className="flex items-center justify-between">
+              <div className="max-w-[92%] rounded-2xl rounded-tl-xs card-glass border-white/10 p-4 shadow-card space-y-3">
+                <div className="flex items-center justify-between border-b border-white/5 pb-2">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-xs">⚡</span>
-                    <span className="text-xs font-bold text-neon uppercase tracking-wider">Coach Evaluation</span>
+                    <Sparkles size={13} className="text-cyan" />
+                    <span className="text-[10px] font-black text-cyan uppercase tracking-wider">
+                      Biomechanical Evaluation
+                    </span>
                   </div>
-                  <span className="text-[10px] text-muted">{msg.timestamp}</span>
+                  <span className="text-[9px] text-slate-400 tabular-nums">{msg.timestamp}</span>
                 </div>
 
                 {msg.structuredResponse?.summary && (
-                  <p className="text-xs text-slate-200 leading-relaxed font-normal">
+                  <p className="text-xs text-slate-200 leading-relaxed">
                     {msg.structuredResponse.summary}
                   </p>
                 )}
 
                 {msg.structuredResponse?.strengths && msg.structuredResponse.strengths.length > 0 && (
                   <div>
-                    <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">Strengths</span>
-                    <ul className="mt-1 space-y-1">
+                    <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">
+                      Observed Strengths
+                    </span>
+                    <ul className="mt-1.5 space-y-1">
                       {msg.structuredResponse.strengths.map((s, idx) => (
-                        <li key={idx} className="text-xs text-slate-300 flex items-start gap-1.5">
-                          <span className="text-emerald-400 text-xs">✓</span>
+                        <li key={idx} className="text-xs text-slate-300 flex items-start gap-2">
+                          <CheckCircle2 size={13} className="text-emerald-400 flex-shrink-0 mt-0.5" />
                           <span>{s}</span>
                         </li>
                       ))}
@@ -266,11 +297,13 @@ export default function AICoachPage() {
 
                 {msg.structuredResponse?.recommendations && msg.structuredResponse.recommendations.length > 0 && (
                   <div>
-                    <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider">Actionable Recommendations</span>
-                    <ul className="mt-1 space-y-1">
+                    <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider">
+                      Actionable Form Cues
+                    </span>
+                    <ul className="mt-1.5 space-y-1">
                       {msg.structuredResponse.recommendations.map((r, idx) => (
-                        <li key={idx} className="text-xs text-slate-300 flex items-start gap-1.5">
-                          <span className="text-amber-400 text-xs">→</span>
+                        <li key={idx} className="text-xs text-slate-300 flex items-start gap-2">
+                          <ChevronRight size={13} className="text-amber-400 flex-shrink-0 mt-0.5" />
                           <span>{r}</span>
                         </li>
                       ))}
@@ -280,9 +313,12 @@ export default function AICoachPage() {
 
                 {msg.structuredResponse?.nextFocus && (
                   <div className="pt-2 border-t border-white/5 flex items-center justify-between">
-                    <span className="text-[10px] text-muted uppercase tracking-wider">Primary Next Focus:</span>
-                    <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                      🎯 {msg.structuredResponse.nextFocus}
+                    <span className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">
+                      Priority Focus
+                    </span>
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 flex items-center gap-1">
+                      <Target size={11} />
+                      <span className="capitalize">{msg.structuredResponse.nextFocus}</span>
                     </span>
                   </div>
                 )}
@@ -292,26 +328,30 @@ export default function AICoachPage() {
         ))}
 
         {isLoading && (
-          <div className="flex items-start">
-            <div className="rounded-2xl rounded-tl-sm bg-gray-900 border border-white/10 p-3.5 flex items-center gap-3">
-              <div className="spinner w-4 h-4 border-neon" />
-              <span className="text-xs text-muted animate-pulse">AI Coach is analyzing telemetry & formulating cues…</span>
+          <div className="flex items-start animate-fade-in">
+            <div className="rounded-2xl rounded-tl-xs card-glass border-white/10 p-3.5 flex items-center gap-3">
+              <div className="spinner w-4 h-4 border-cyan" />
+              <span className="text-xs text-slate-300 font-medium animate-pulse">
+                AI Coach analyzing movement telemetry…
+              </span>
             </div>
           </div>
         )}
 
         {errorMessage && (
-          <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex flex-col gap-2">
+          <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex flex-col gap-2">
             <div className="flex items-center gap-2">
               <span>⚠️</span>
               <span>{errorMessage}</span>
             </div>
             {lastFailedMessage && (
               <button
+                type="button"
                 onClick={() => handleSendMessage(lastFailedMessage)}
-                className="self-start px-2.5 py-1 text-[10px] font-semibold rounded bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 border border-rose-500/40 transition-colors"
+                className="self-start px-3 py-1 text-[10px] font-bold rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 border border-rose-500/40 transition-colors flex items-center gap-1 cursor-pointer"
               >
-                🔄 Retry Question
+                <RotateCcw size={11} />
+                <span>Retry Question</span>
               </button>
             )}
           </div>
@@ -320,15 +360,16 @@ export default function AICoachPage() {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* ── Suggested Prompts Chips ────────────────────────────── */}
-      <div className="px-4 py-2 border-t border-white/5 bg-gray-950/80">
-        <div className="flex gap-2 overflow-x-auto no-scrollbar py-1">
+      {/* ── Suggested Questions Chips ─────────────────────────── */}
+      <div className="px-4 py-2 border-t border-white/5 bg-obsidian/95">
+        <div className="flex gap-2 overflow-x-auto no-scrollbar py-0.5">
           {SUGGESTED_QUESTIONS.map((q, idx) => (
             <button
               key={idx}
+              type="button"
               onClick={() => handleSendMessage(q)}
               disabled={isLoading}
-              className="whitespace-nowrap px-3 py-1.5 rounded-full text-[11px] bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 transition-colors"
+              className="whitespace-nowrap px-3 py-1.5 rounded-full text-[11px] font-semibold bg-surface hover:bg-surface-light text-slate-300 border border-white/5 transition-colors cursor-pointer select-none disabled:opacity-50"
             >
               {q}
             </button>
@@ -337,7 +378,7 @@ export default function AICoachPage() {
       </div>
 
       {/* ── Message Input Bar ──────────────────────────────────── */}
-      <div className="p-3 bg-gray-900/95 border-t border-white/10 backdrop-blur-md">
+      <div className="p-3 bg-obsidian border-t border-white/10">
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -349,17 +390,17 @@ export default function AICoachPage() {
             type="text"
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
-            placeholder="Ask your AI Coach (e.g. form, sets, recovery)..."
+            placeholder="Ask AI Coach about reps, depth, recovery…"
             maxLength={500}
             disabled={isLoading}
-            className="flex-1 bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-muted focus:outline-none focus:border-neon transition-colors"
+            className="flex-1 bg-surface border border-white/10 rounded-xl px-4 py-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-neon transition-colors"
           />
           <button
             type="submit"
             disabled={!inputText.trim() || isLoading}
-            className="btn btn-primary px-4 py-2.5 text-xs font-semibold rounded-xl disabled:opacity-40 disabled:cursor-not-allowed"
+            className="btn btn-primary px-4 py-3 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 shadow-md disabled:opacity-40"
           >
-            Send
+            <Send size={15} />
           </button>
         </form>
       </div>

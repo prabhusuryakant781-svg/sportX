@@ -1,3 +1,5 @@
+import React from 'react';
+
 interface GoalRingProps {
   progress: number; // 0–100
   size?: number;
@@ -15,10 +17,14 @@ export default function GoalRing({
 }: GoalRingProps) {
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
-  const offset = circumference - (Math.min(100, progress) / 100) * circumference;
+  const clampedProgress = Math.min(100, Math.max(0, progress));
+  const offset = circumference - (clampedProgress / 100) * circumference;
 
   return (
-    <div className="relative inline-flex items-center justify-center" style={{ width: size, height: size }}>
+    <div
+      className="relative inline-flex items-center justify-center flex-shrink-0 select-none"
+      style={{ width: size, height: size }}
+    >
       <svg width={size} height={size} className="-rotate-90">
         {/* Track */}
         <circle
@@ -26,7 +32,7 @@ export default function GoalRing({
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke="rgba(255,255,255,0.08)"
+          stroke="rgba(255, 255, 255, 0.08)"
           strokeWidth={strokeWidth}
         />
         {/* Progress */}
@@ -40,10 +46,13 @@ export default function GoalRing({
           strokeLinecap="round"
           strokeDasharray={circumference}
           strokeDashoffset={offset}
-          style={{ transition: 'stroke-dashoffset 1s cubic-bezier(0.34,1.56,0.64,1)' }}
+          style={{
+            transition: 'stroke-dashoffset 1s cubic-bezier(0.34, 1.56, 0.64, 1)',
+            filter: `drop-shadow(0 0 6px ${color}66)`,
+          }}
         />
       </svg>
-      <div className="absolute inset-0 flex items-center justify-center flex-col">
+      <div className="absolute inset-0 flex items-center justify-center flex-col pointer-events-none">
         {children}
       </div>
     </div>

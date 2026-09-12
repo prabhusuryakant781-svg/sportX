@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api } from '../services/api';
+import { X, CheckCircle2, Award, Clock, FileText } from 'lucide-react';
 
 interface ManualLogModalProps {
   isOpen: boolean;
@@ -17,7 +18,9 @@ export default function ManualLogModal({ isOpen, onClose, onLogged }: ManualLogM
 
   useEffect(() => {
     if (isOpen) {
-      api.getSports().then((r: any) => setSports(r.data || [])).catch(console.error);
+      api.getSports()
+        .then((r: any) => setSports(r?.data || []))
+        .catch(console.error);
     }
   }, [isOpen]);
 
@@ -27,7 +30,11 @@ export default function ManualLogModal({ isOpen, onClose, onLogged }: ManualLogM
     if (!sportId) return;
     setSubmitting(true);
     try {
-      await api.logManualActivity({ sportId, durationMinutes: duration, notes: notes.trim() || undefined });
+      await api.logManualActivity({
+        sportId,
+        durationMinutes: duration,
+        notes: notes.trim() || undefined
+      });
       setSubmitted(true);
       setTimeout(() => {
         onClose();
@@ -45,82 +52,118 @@ export default function ManualLogModal({ isOpen, onClose, onLogged }: ManualLogM
   };
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+    <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/75 backdrop-blur-sm animate-fade-in" />
       <div
-        className="relative w-full max-w-[420px] rounded-t-2xl sm:rounded-2xl p-5 animate-in"
-        style={{ background: '#131B2E', border: '1px solid rgba(255,255,255,0.08)' }}
+        className="relative w-full max-w-[440px] rounded-t-3xl sm:rounded-3xl p-6 animate-slide-up bg-card border border-white/10 shadow-2xl"
         onClick={e => e.stopPropagation()}
       >
         {submitted ? (
-          <div className="text-center py-8">
-            <div className="text-5xl mb-3">🎉</div>
-            <h3 className="text-white">Activity Logged!</h3>
-            <p className="text-sm text-muted mt-1">XP has been awarded.</p>
+          <div className="text-center py-8 space-y-2">
+            <div className="w-14 h-14 rounded-2xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center mx-auto mb-2 border border-emerald-500/30">
+              <CheckCircle2 size={32} />
+            </div>
+            <h3 className="text-lg font-black text-white">Activity Verified & Logged!</h3>
+            <p className="text-xs text-slate-400">XP and streak progression updated.</p>
           </div>
         ) : (
           <>
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-white">🏅 Log Activity</h3>
-              <button onClick={onClose} className="text-muted hover:text-white text-xl">✕</button>
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-neon/15 text-neon flex items-center justify-center">
+                  <Award size={18} />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-white tracking-tight">Log Campus Activity</h3>
+                  <span className="text-[10px] text-slate-400">Record sport drills outside the studio</span>
+                </div>
+              </div>
+              <button
+                onClick={onClose}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white bg-surface border border-white/5 cursor-pointer"
+              >
+                <X size={16} />
+              </button>
             </div>
 
-            <div className="flex flex-col gap-3">
+            <div className="space-y-4">
+              {/* Sports selection chips */}
               <div className="form-group">
-                <label>Sport / Activity</label>
-                <div className="chip-grid">
+                <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+                  Sport / Activity
+                </label>
+                <div className="chip-grid max-h-[140px] overflow-y-auto no-scrollbar py-0.5">
                   {sports.map((s: any) => {
                     const sid = s.id || s.sportId;
                     const sicon = s.icon || s.iconUrl || '🏅';
+                    const isSelected = sportId === sid;
                     return (
                       <button
                         type="button"
                         key={sid}
                         onClick={() => setSportId(sid)}
-                        className={`chip ${sportId === sid ? 'selected' : ''}`}
+                        className={`chip text-xs py-2 px-3 flex items-center gap-1.5 ${isSelected ? 'selected' : ''}`}
                       >
-                        {sicon} {s.name}
+                        <span>{sicon}</span>
+                        <span>{s.name}</span>
                       </button>
                     );
                   })}
                 </div>
               </div>
 
+              {/* Duration selector */}
               <div className="form-group">
-                <label>Duration (minutes)</label>
-                <div className="flex gap-2">
+                <label className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1">
+                  <Clock size={12} className="text-slate-400" />
+                  <span>Duration (Minutes)</span>
+                </label>
+                <div className="grid grid-cols-5 gap-1.5">
                   {[15, 30, 45, 60, 90].map(t => (
                     <button
                       key={t}
+                      type="button"
                       onClick={() => setDuration(t)}
-                      className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${
+                      className={`py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                         duration === t
-                          ? 'bg-neon/20 text-neon border border-neon/40'
-                          : 'bg-surface text-muted border border-white/5'
+                          ? 'bg-neon text-obsidian shadow-glow-sm'
+                          : 'bg-surface text-slate-300 border border-white/5 hover:border-white/20'
                       }`}
                     >
-                      {t}
+                      {t}m
                     </button>
                   ))}
                 </div>
               </div>
 
+              {/* Notes Input */}
               <div className="form-group">
-                <label>Notes (optional)</label>
+                <label className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1">
+                  <FileText size={12} className="text-slate-400" />
+                  <span>Notes (Optional)</span>
+                </label>
                 <input
-                  className="input"
+                  className="input text-xs py-2.5"
                   value={notes}
                   onChange={e => setNotes(e.target.value)}
-                  placeholder="e.g. Played doubles match"
+                  placeholder="e.g. Doubles scrimmage at campus sports center"
                 />
               </div>
 
               <button
-                className="btn btn-primary btn-full"
+                type="button"
+                className="btn btn-primary btn-full py-3.5 mt-2 font-black shadow-glow"
                 onClick={handleSubmit}
                 disabled={!sportId || submitting}
               >
-                {submitting ? <span className="spinner w-4 h-4" /> : '✅ Log Activity'}
+                {submitting ? (
+                  <span className="flex items-center gap-2">
+                    <span className="spinner w-4 h-4 border-white/30 border-t-white" />
+                    <span>Logging Telemetry…</span>
+                  </span>
+                ) : (
+                  <span>Record Activity & Claim XP</span>
+                )}
               </button>
             </div>
           </>

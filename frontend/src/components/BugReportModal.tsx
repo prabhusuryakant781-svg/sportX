@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { api } from '../services/api';
+import { X, CheckCircle2, Bug, AlertTriangle, Send } from 'lucide-react';
 
 interface BugReportModalProps {
   isOpen: boolean;
@@ -7,10 +8,10 @@ interface BugReportModalProps {
 }
 
 const CATEGORIES = [
-  { id: 'pose_detection', label: '📸 Pose Detection' },
-  { id: 'ui_ux', label: '🎨 UI / UX Issue' },
-  { id: 'crash', label: '💥 Crash / Error' },
-  { id: 'performance', label: '🐌 Performance' },
+  { id: 'pose_detection', label: '📸 Vision / Skeleton' },
+  { id: 'ui_ux', label: '🎨 UI / Display' },
+  { id: 'crash', label: '💥 Error / Crash' },
+  { id: 'performance', label: '⚡ Performance' },
   { id: 'other', label: '💬 Other' },
 ];
 
@@ -34,7 +35,12 @@ export default function BugReportModal({ isOpen, onClose }: BugReportModalProps)
         deviceInfo: `${navigator.userAgent} | ${window.innerWidth}x${window.innerHeight}`,
       });
       setSubmitted(true);
-      setTimeout(() => { onClose(); setSubmitted(false); setCategory(''); setDescription(''); }, 1500);
+      setTimeout(() => {
+        onClose();
+        setSubmitted(false);
+        setCategory('');
+        setDescription('');
+      }, 1500);
     } catch (err) {
       console.error(err);
     } finally {
@@ -43,35 +49,53 @@ export default function BugReportModal({ isOpen, onClose }: BugReportModalProps)
   };
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+    <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/75 backdrop-blur-sm animate-fade-in" />
       <div
-        className="relative w-full max-w-[420px] rounded-t-2xl sm:rounded-2xl p-5 animate-in"
-        style={{ background: '#131B2E', border: '1px solid rgba(255,255,255,0.08)' }}
+        className="relative w-full max-w-[440px] rounded-t-3xl sm:rounded-3xl p-6 animate-slide-up bg-card border border-white/10 shadow-2xl"
         onClick={e => e.stopPropagation()}
       >
         {submitted ? (
-          <div className="text-center py-8">
-            <div className="text-5xl mb-3">✅</div>
-            <h3 className="text-white">Thanks for the report!</h3>
-            <p className="text-sm text-muted mt-1">We'll look into it.</p>
+          <div className="text-center py-8 space-y-2">
+            <div className="w-14 h-14 rounded-2xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center mx-auto mb-2 border border-emerald-500/30">
+              <CheckCircle2 size={32} />
+            </div>
+            <h3 className="text-lg font-black text-white">Diagnostic Report Logged!</h3>
+            <p className="text-xs text-slate-400">Our engineering team has received your telemetry data.</p>
           </div>
         ) : (
           <>
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-white">🐛 Report a Bug</h3>
-              <button onClick={onClose} className="text-muted hover:text-white text-xl">✕</button>
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-rose-500/15 text-rose-400 flex items-center justify-center">
+                  <Bug size={18} />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-white tracking-tight">Report Telemetry Issue</h3>
+                  <span className="text-[10px] text-slate-400">Help improve SportX pose recognition</span>
+                </div>
+              </div>
+              <button
+                onClick={onClose}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white bg-surface border border-white/5 cursor-pointer"
+              >
+                <X size={16} />
+              </button>
             </div>
 
-            <div className="flex flex-col gap-3">
+            <div className="space-y-3.5">
+              {/* Category pills */}
               <div className="form-group">
-                <label>Category</label>
-                <div className="flex flex-wrap gap-2">
+                <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+                  Issue Category
+                </label>
+                <div className="chip-grid pt-0.5">
                   {CATEGORIES.map(c => (
                     <button
                       key={c.id}
+                      type="button"
                       onClick={() => setCategory(c.id)}
-                      className={`chip ${category === c.id ? 'selected' : ''}`}
+                      className={`chip text-xs py-1.5 px-3 ${category === c.id ? 'selected' : ''}`}
                     >
                       {c.label}
                     </button>
@@ -79,36 +103,53 @@ export default function BugReportModal({ isOpen, onClose }: BugReportModalProps)
                 </div>
               </div>
 
+              {/* Related Exercise */}
               <div className="form-group">
-                <label>Exercise (optional)</label>
+                <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+                  Exercise Drill (Optional)
+                </label>
                 <select
-                  className="input"
+                  className="input text-xs py-2 bg-surface border border-white/10"
                   value={exerciseId}
                   onChange={e => setExerciseId(e.target.value)}
                 >
-                  <option value="">Select exercise...</option>
-                  <option value="squat">Squat</option>
-                  <option value="pushup">Push-up</option>
-                  <option value="bicep_curl">Bicep Curl</option>
+                  <option value="">Select drill if applicable…</option>
+                  <option value="squat">Bodyweight Squat</option>
+                  <option value="pushup">Push-Up</option>
+                  <option value="jumping_jacks">Jumping Jacks</option>
                 </select>
               </div>
 
+              {/* Description */}
               <div className="form-group">
-                <label>Description</label>
+                <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+                  Description & Observations
+                </label>
                 <textarea
-                  className="input min-h-[100px] resize-none"
+                  className="input min-h-[90px] resize-none text-xs leading-relaxed"
                   value={description}
                   onChange={e => setDescription(e.target.value)}
-                  placeholder="Describe what happened..."
+                  placeholder="Describe what occurred (e.g. rep not counted at deep angle, camera lag)…"
                 />
               </div>
 
               <button
-                className="btn btn-primary btn-full"
+                type="button"
+                className="btn btn-primary btn-full py-3.5 mt-2 font-black shadow-glow flex items-center justify-center gap-2"
                 onClick={handleSubmit}
                 disabled={!category || !description.trim() || submitting}
               >
-                {submitting ? <span className="spinner w-4 h-4" /> : '📤 Submit Report'}
+                {submitting ? (
+                  <span className="flex items-center gap-2">
+                    <span className="spinner w-4 h-4 border-white/30 border-t-white" />
+                    <span>Submitting Diagnostics…</span>
+                  </span>
+                ) : (
+                  <>
+                    <Send size={15} />
+                    <span>Submit Diagnostic Report</span>
+                  </>
+                )}
               </button>
             </div>
           </>

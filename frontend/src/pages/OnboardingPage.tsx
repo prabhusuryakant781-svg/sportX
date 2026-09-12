@@ -2,12 +2,13 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { Target, Clock, Trophy, ArrowRight, ArrowLeft, Check, Sparkles, AlertCircle, Dumbbell, Flame, Zap, Activity } from 'lucide-react';
 
 const GOALS = [
-  { id: 'fitness', label: '🏃 General Fitness', desc: 'Stay active and healthy' },
-  { id: 'strength', label: '💪 Build Strength', desc: 'Get stronger each week' },
-  { id: 'endurance', label: '⚡ Endurance', desc: 'Improve stamina & cardio' },
-  { id: 'weight_loss', label: '🔥 Weight Loss', desc: 'Burn calories efficiently' },
+  { id: 'fitness', label: 'General Athletic Fitness', desc: 'Stay mobile, conditioned and energized for campus life', icon: Activity },
+  { id: 'strength', label: 'Build Muscular Strength', desc: 'Increase calibrated resistance, volume and power', icon: Dumbbell },
+  { id: 'endurance', label: 'Stamina & Aerobic Capacity', desc: 'Sustain peak athletic output with higher rep density', icon: Zap },
+  { id: 'weight_loss', label: 'Fat Loss & Conditioning', desc: 'High metabolic burn with real-time cadence tracking', icon: Flame },
 ];
 
 const TIMES = [10, 20, 30, 45, 60];
@@ -17,7 +18,7 @@ const DEFAULT_SPORTS = [
   { id: 'football', sportId: 'football', name: 'Football / Soccer', icon: '⚽', iconUrl: '⚽' },
   { id: 'cricket', sportId: 'cricket', name: 'Cricket', icon: '🏏', iconUrl: '🏏' },
   { id: 'basketball', sportId: 'basketball', name: 'Basketball', icon: '🏀', iconUrl: '🏀' },
-  { id: 'running', sportId: 'running', name: 'Campus Athletics & Running', icon: '🏃', iconUrl: '🏃' },
+  { id: 'running', sportId: 'running', name: 'Campus Athletics & Track', icon: '🏃', iconUrl: '🏃' },
   { id: 'table_tennis', sportId: 'table_tennis', name: 'Table Tennis', icon: '🏓', iconUrl: '🏓' },
 ];
 
@@ -95,159 +96,260 @@ export default function OnboardingPage() {
     }
   };
 
-  const steps = [
-    // Step 0: Goal
-    <div key="goal" className="section animate-in">
-      <div className="text-center py-2 pb-4">
-        <div className="text-5xl">🎯</div>
-        <h2 className="text-white mt-2">What's your goal?</h2>
-        <p className="text-sm text-muted mt-1">We'll personalize your plan for you</p>
-      </div>
-      <div className="flex flex-col gap-2.5">
-        {GOALS.map(g => (
-          <button
-            type="button"
-            key={g.id}
-            onClick={() => setGoal(g.id)}
-            className={`w-full text-left p-4 rounded-xl transition-all cursor-pointer ${
-              goal === g.id
-                ? 'bg-neon/10 border-[1.5px] border-neon/40 shadow-glow-sm'
-                : 'bg-card border-[1.5px] border-white/5 hover:border-white/20'
-            }`}
-          >
-            <div className="font-bold text-base text-white">{g.label}</div>
-            <div className="text-sm text-muted mt-0.5">{g.desc}</div>
-          </button>
-        ))}
-      </div>
-      <button type="button" className="btn btn-primary btn-full mt-4" onClick={() => setStep(1)}>
-        Next →
-      </button>
-    </div>,
+  return (
+    <div className="min-h-screen bg-obsidian text-white flex flex-col justify-between py-6 px-4 sm:px-6 relative overflow-hidden">
+      {/* Ambient background glow */}
+      <div className="absolute top-10 left-1/2 -translate-x-1/2 w-96 h-96 bg-neon/5 rounded-full blur-[120px] pointer-events-none" />
 
-    // Step 1: Time
-    <div key="time" className="section animate-in">
-      <div className="text-center py-2 pb-4">
-        <div className="text-5xl">⏱️</div>
-        <h2 className="text-white mt-2">Daily time available?</h2>
-        <p className="text-sm text-muted mt-1">We'll fit workouts to your schedule</p>
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        {TIMES.map(t => (
-          <button
-            type="button"
-            key={t}
-            onClick={() => setTime(t)}
-            className={`py-5 px-3 rounded-xl text-center transition-all cursor-pointer ${
-              time === t
-                ? 'bg-neon/10 border-[1.5px] border-neon/40 shadow-glow-sm'
-                : 'bg-card border-[1.5px] border-white/5 hover:border-white/20'
-            }`}
-          >
-            <div className={`text-2xl font-black ${time === t ? 'text-neon' : 'text-white'}`}>{t}</div>
-            <div className="text-xs text-muted mt-0.5">minutes</div>
-          </button>
-        ))}
-      </div>
-      <div className="flex gap-2 mt-4">
-        <button type="button" className="btn btn-secondary" onClick={() => setStep(0)}>← Back</button>
-        <button type="button" className="btn btn-primary flex-1" onClick={() => setStep(2)}>Next →</button>
-      </div>
-    </div>,
+      {/* Top Header & Step Progress Bar */}
+      <div className="w-full max-w-lg mx-auto relative z-10 pt-2">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold tracking-wider text-neon uppercase">Athlete Calibration</span>
+            <span className="text-slate-600">•</span>
+            <span className="text-xs text-slate-400">Step {step + 1} of 3</span>
+          </div>
+          <span className="text-xs font-semibold text-slate-500">
+            {step === 0 ? 'Goal' : step === 1 ? 'Schedule' : 'Disciplines'}
+          </span>
+        </div>
 
-    // Step 2: Sports
-    <div key="sports" className="section animate-in">
-      <div className="text-center py-2 pb-4">
-        <div className="text-5xl">🏆</div>
-        <h2 className="text-white mt-2">Pick your sports</h2>
-        <p className="text-sm text-muted mt-1">
-          {sports.length > 0
-            ? `${sports.length} sport${sports.length > 1 ? 's' : ''} selected`
-            : "Select the sports you train for"}
-        </p>
-      </div>
-
-      <div className="flex justify-between items-center px-1 mb-2">
-        <span className="text-xs text-muted">Click each sport to select / deselect</span>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={selectAllSports}
-            className="text-xs text-neon hover:underline bg-transparent border-none cursor-pointer"
-          >
-            Select All
-          </button>
-          <span className="text-xs text-muted">•</span>
-          <button
-            type="button"
-            onClick={clearAllSports}
-            className="text-xs text-muted hover:text-white bg-transparent border-none cursor-pointer"
-          >
-            Clear
-          </button>
+        {/* Progress Track */}
+        <div className="grid grid-cols-3 gap-2">
+          {[0, 1, 2].map(i => (
+            <div
+              key={i}
+              className={`h-1.5 rounded-full transition-all duration-300 ${
+                i <= step ? 'bg-gradient-hero shadow-glow-sm' : 'bg-surface'
+              }`}
+            />
+          ))}
         </div>
       </div>
 
-      <div className="chip-grid">
-        {sportsCatalogue.map(s => {
-          const sId = s.id || s.sportId;
-          const sName = s.name;
-          const sIcon = s.icon || s.iconUrl || '🏅';
-          const isSelected = sports.includes(sId);
-          return (
+      {/* Wizard Content */}
+      <div className="w-full max-w-lg mx-auto flex-1 flex flex-col justify-center py-6 relative z-10">
+        {step === 0 && (
+          <div className="animate-in">
+            <div className="text-center mb-6">
+              <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-neon/15 text-neon mb-3 shadow-glow-sm">
+                <Target size={24} />
+              </div>
+              <h2 className="text-2xl font-black text-white tracking-tight">Select Primary Focus</h2>
+              <p className="text-slate-400 text-xs sm:text-sm mt-1">
+                SportX AI calibrates movement thresholds and routines to this goal.
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-3">
+              {GOALS.map(g => {
+                const Icon = g.icon;
+                const isSelected = goal === g.id;
+                return (
+                  <button
+                    type="button"
+                    key={g.id}
+                    onClick={() => setGoal(g.id)}
+                    className={`w-full text-left p-4 rounded-2xl transition-all cursor-pointer flex items-center gap-4 ${
+                      isSelected
+                        ? 'bg-neon/15 border-[1.5px] border-neon text-white shadow-glow-sm'
+                        : 'card hover:border-white/20 text-slate-300'
+                    }`}
+                  >
+                    <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                      isSelected ? 'bg-neon text-obsidian font-bold' : 'bg-surface text-slate-400'
+                    }`}>
+                      <Icon size={22} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-bold text-sm text-white">{g.label}</div>
+                      <div className="text-xs text-slate-400 mt-0.5 leading-snug">{g.desc}</div>
+                    </div>
+                    {isSelected && (
+                      <div className="w-6 h-6 rounded-full bg-neon text-obsidian flex items-center justify-center flex-shrink-0">
+                        <Check size={14} strokeWidth={3} />
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
             <button
               type="button"
-              key={sId}
-              onClick={() => toggleSport(sId)}
-              className={`chip ${isSelected ? 'selected' : ''}`}
+              className="btn btn-primary btn-full mt-6 py-3.5"
+              onClick={() => setStep(1)}
             >
-              {sIcon} {sName}
+              <span>Continue to Schedule</span>
+              <ArrowRight size={16} />
             </button>
-          );
-        })}
+          </div>
+        )}
+
+        {step === 1 && (
+          <div className="animate-in">
+            <div className="text-center mb-6">
+              <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-cyan/15 text-cyan mb-3 shadow-glow-cyan-sm">
+                <Clock size={24} />
+              </div>
+              <h2 className="text-2xl font-black text-white tracking-tight">Daily Training Window</h2>
+              <p className="text-slate-400 text-xs sm:text-sm mt-1">
+                How much active time do you have per day between classes and study?
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {TIMES.map(t => {
+                const isSelected = time === t;
+                return (
+                  <button
+                    type="button"
+                    key={t}
+                    onClick={() => setTime(t)}
+                    className={`py-5 px-3 rounded-2xl text-center transition-all cursor-pointer flex flex-col items-center justify-center ${
+                      isSelected
+                        ? 'bg-cyan/15 border-[1.5px] border-cyan shadow-glow-cyan-sm'
+                        : 'card hover:border-white/20'
+                    }`}
+                  >
+                    <div className={`text-3xl font-black tabular-nums ${isSelected ? 'text-cyan' : 'text-white'}`}>
+                      {t}
+                    </div>
+                    <div className="text-xs font-semibold text-slate-400 mt-1 uppercase tracking-wider">
+                      Minutes
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                type="button"
+                className="btn btn-secondary px-5"
+                onClick={() => setStep(0)}
+              >
+                <ArrowLeft size={16} />
+                <span>Back</span>
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary flex-1"
+                onClick={() => setStep(2)}
+              >
+                <span>Select Disciplines</span>
+                <ArrowRight size={16} />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {step === 2 && (
+          <div className="animate-in">
+            <div className="text-center mb-5">
+              <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-amber/15 text-amber mb-3 shadow-glow-amber">
+                <Trophy size={24} />
+              </div>
+              <h2 className="text-2xl font-black text-white tracking-tight">Active Sports & Disciplines</h2>
+              <p className="text-slate-400 text-xs sm:text-sm mt-1">
+                {sports.length > 0
+                  ? `${sports.length} sport${sports.length > 1 ? 's' : ''} selected for athletic calibration`
+                  : 'Choose the sports you play or train for on campus'}
+              </p>
+            </div>
+
+            <div className="flex justify-between items-center px-1 mb-3">
+              <span className="text-xs text-slate-400">Tap to toggle sports</span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={selectAllSports}
+                  className="text-xs font-semibold text-neon hover:underline bg-transparent border-none cursor-pointer"
+                >
+                  Select All
+                </button>
+                <span className="text-slate-600">•</span>
+                <button
+                  type="button"
+                  onClick={clearAllSports}
+                  className="text-xs font-semibold text-slate-400 hover:text-white bg-transparent border-none cursor-pointer"
+                >
+                  Clear
+                </button>
+              </div>
+            </div>
+
+            <div className="chip-grid">
+              {sportsCatalogue.map(s => {
+                const sId = s.id || s.sportId;
+                const sName = s.name;
+                const sIcon = s.icon || s.iconUrl || '🏅';
+                const isSelected = sports.includes(sId);
+                return (
+                  <button
+                    type="button"
+                    key={sId}
+                    onClick={() => toggleSport(sId)}
+                    className={`chip py-2.5 px-4 flex items-center gap-2 text-sm ${isSelected ? 'selected' : ''}`}
+                  >
+                    <span>{sIcon}</span>
+                    <span>{sName}</span>
+                    {isSelected && <Check size={14} className="text-neon ml-1" />}
+                  </button>
+                );
+              })}
+            </div>
+
+            {sports.length === 0 && (
+              <div className="flex items-center justify-center gap-2 text-xs text-amber-300 bg-amber-500/10 border border-amber-500/25 rounded-xl p-3 mt-4">
+                <AlertCircle size={15} />
+                <span>Tip: Select at least 1 sport to customize your telemetry & AI plans.</span>
+              </div>
+            )}
+
+            {error && (
+              <div className="text-rose-300 text-xs p-3 bg-rose-500/10 rounded-xl border border-rose-500/30 mt-3">
+                {error}
+              </div>
+            )}
+
+            <div className="flex gap-3 mt-6">
+              <button
+                type="button"
+                className="btn btn-secondary px-5"
+                onClick={() => setStep(1)}
+              >
+                <ArrowLeft size={16} />
+                <span>Back</span>
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary flex-1 py-3.5"
+                onClick={finish}
+                disabled={saving}
+              >
+                {saving ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <span className="spinner w-4 h-4 border-white/30 border-t-white" />
+                    <span>Calibrating Engine…</span>
+                  </span>
+                ) : (
+                  <span className="flex items-center justify-center gap-2">
+                    <Sparkles size={16} />
+                    <span>Complete Calibration</span>
+                  </span>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
-      {sports.length === 0 && (
-        <p className="text-xs text-amber-400/90 text-center mt-3">
-          💡 Tip: Pick at least 1 sport to personalize your drills and workouts.
+      {/* Bottom Security Note */}
+      <div className="w-full max-w-lg mx-auto text-center relative z-10 pt-2 pb-1">
+        <p className="text-[11px] text-slate-500">
+          Settings can be fine-tuned anytime in Athlete Profile.
         </p>
-      )}
-
-      {error && (
-        <div className="text-crimson text-sm p-2 bg-crimson/10 rounded-lg border border-crimson/30 mt-2">
-          {error}
-        </div>
-      )}
-
-      <div className="flex gap-2 mt-4">
-        <button type="button" className="btn btn-secondary" onClick={() => setStep(1)}>← Back</button>
-        <button
-          type="button"
-          className="btn btn-primary flex-1"
-          onClick={finish}
-          disabled={saving}
-        >
-          {saving ? <span className="spinner w-4 h-4" /> : "Let's Go! 🚀"}
-        </button>
-      </div>
-    </div>,
-  ];
-
-  return (
-    <div className="min-h-screen bg-obsidian pt-6 pb-12">
-      {/* Progress dots */}
-      <div className="flex justify-center gap-1.5 mb-4">
-        {[0, 1, 2].map(i => (
-          <div
-            key={i}
-            className={`h-2 rounded-full transition-all duration-300 ${
-              i <= step ? 'bg-neon' : 'bg-surface'
-            } ${i === step ? 'w-6' : 'w-2'}`}
-          />
-        ))}
-      </div>
-      <div className="max-w-md mx-auto">
-        {steps[step]}
       </div>
     </div>
   );
