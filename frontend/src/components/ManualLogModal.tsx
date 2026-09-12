@@ -69,15 +69,20 @@ export default function ManualLogModal({ isOpen, onClose, onLogged }: ManualLogM
               <div className="form-group">
                 <label>Sport / Activity</label>
                 <div className="chip-grid">
-                  {sports.map(s => (
-                    <button
-                      key={s.id}
-                      onClick={() => setSportId(s.id)}
-                      className={`chip ${sportId === s.id ? 'selected' : ''}`}
-                    >
-                      {s.icon} {s.name}
-                    </button>
-                  ))}
+                  {sports.map((s: any) => {
+                    const sid = s.id || s.sportId;
+                    const sicon = s.icon || s.iconUrl || '🏅';
+                    return (
+                      <button
+                        type="button"
+                        key={sid}
+                        onClick={() => setSportId(sid)}
+                        className={`chip ${sportId === sid ? 'selected' : ''}`}
+                      >
+                        {sicon} {s.name}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 

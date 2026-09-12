@@ -14,7 +14,12 @@ export const sportsRouter = Router();
 sportsRouter.get('/', async (_req, res) => {
   try {
     const sports = await SportRepository.getAll();
-    res.status(200).json({ success: true, count: sports.length, data: sports });
+    const formatted = sports.map((s) => ({
+      ...s,
+      id: s.sportId,
+      icon: s.iconUrl || '🏅',
+    }));
+    res.status(200).json({ success: true, count: formatted.length, data: formatted });
   } catch (err: any) {
     logger.error('Error in /sports:', err);
     res.status(500).json({ success: false, error: err.message });
@@ -28,7 +33,12 @@ sportsRouter.get('/:id', async (req, res) => {
     if (!sport) {
       return res.status(404).json({ success: false, error: 'Sport not found' });
     }
-    return res.status(200).json({ success: true, data: sport });
+    const formatted = {
+      ...sport,
+      id: sport.sportId,
+      icon: sport.iconUrl || '🏅',
+    };
+    return res.status(200).json({ success: true, data: formatted });
   } catch (err: any) {
     return res.status(500).json({ success: false, error: err.message });
   }
