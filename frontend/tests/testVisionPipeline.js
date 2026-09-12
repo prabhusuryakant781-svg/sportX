@@ -240,6 +240,55 @@ const jjResult = jjFsm.processFrame(createJumpingJackFrame(false));
 assert(jjFsm.state === 'NEUTRAL', 'Phase 3: Return to start -> NEUTRAL');
 assert(jjResult.reps === 1, 'Jumping Jack Rep successfully counted: reps === 1');
 
+
+// -------------------------------------------------------------
+// Test Group 6: Edge Cases, Incomplete Movements & Raw Arrays
+// -------------------------------------------------------------
+console.log('\n--- Test Group 6: Edge Cases & Raw 33-Array Processing ---');
+
+// 1. Incomplete squat: Standing tall, small dip to 155°, then standing tall again -> 0 reps
+const incompleteSquatFsm = new RepCounterFSM('squat');
+incompleteSquatFsm.processFrame(createSquatFrame(170));
+incompleteSquatFsm.processFrame(createSquatFrame(155));
+const shallowResult = incompleteSquatFsm.processFrame(createSquatFrame(170));
+assert(shallowResult.reps === 0, 'Incomplete/shallow squat does NOT count a rep');
+assert(incompleteSquatFsm.state === 'UP', 'Returns to UP state after shallow dip');
+
+// 2. Continuous extended frame in Jumping Jacks must NOT count multiple reps
+const staticJjFsm = new RepCounterFSM('jumping_jacks');
+staticJjFsm.processFrame(createJumpingJackFrame(false));
+staticJjFsm.processFrame(createJumpingJackFrame(true));
+assert(staticJjFsm.state === 'EXTENDED', 'Jumping jack extended');
+staticJjFsm.processFrame(createJumpingJackFrame(true));
+staticJjFsm.processFrame(createJumpingJackFrame(true));
+const staticExtendedStatus = staticJjFsm.getStatus();
+assert(staticExtendedStatus.reps === 0, 'Stationary extended position does not increment reps');
+assert(staticJjFsm.state === 'EXTENDED', 'Remains in EXTENDED while arms stay overhead');
+const closedResult = staticJjFsm.processFrame(createJumpingJackFrame(false));
+assert(closedResult.reps === 1, 'Closing posture counts exactly 1 rep');
+
+// 3. Raw 33-landmark array direct processing in RepCounterFSM
+const rawArrayFsm = new RepCounterFSM('squat');
+function createRawMediaPipeArray(kneeAngleDeg) {
+  const arr = new Array(33).fill(null).map(() => ({ x: 0.5, y: 0.5, z: 0, visibility: 0.95 }));
+  arr[23] = { x: 0.42, y: 0.45, z: 0, visibility: 0.95 };
+  arr[25] = { x: 0.42, y: 0.65, z: 0, visibility: 0.95 };
+  const rad = (kneeAngleDeg * Math.PI) / 180;
+  arr[27] = { x: 0.42 + Math.sin(Math.PI - rad) * 0.2, y: 0.65 + Math.cos(Math.PI - rad) * 0.2, z: 0, visibility: 0.95 };
+  return arr;
+}
+rawArrayFsm.processFrame(createRawMediaPipeArray(170));
+rawArrayFsm.processFrame(createRawMediaPipeArray(130));
+rawArrayFsm.processFrame(createRawMediaPipeArray(90));
+rawArrayFsm.processFrame(createRawMediaPipeArray(120));
+const rawArrayResult = rawArrayFsm.processFrame(createRawMediaPipeArray(165));
+assert(rawArrayResult.reps === 1, 'RepCounterFSM successfully processes raw MediaPipe 33-landmark arrays');
+
+// 4. Reset logic
+rawArrayFsm.reset();
+assert(rawArrayFsm.reps === 0, 'reset() clears reps back to 0');
+assert(rawArrayFsm.state === 'UP', 'reset() restores starting FSM state to UP');
+
 // -------------------------------------------------------------
 // Summary
 // -------------------------------------------------------------
