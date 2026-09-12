@@ -463,7 +463,7 @@ export default function CompetitivePage() {
         <CompetitiveMatchLoading
           ticket={activeTicket}
           initialMatch={activeMatch}
-          targetPlayers={2}
+          targetPlayers={8}
           countdownDuration={4}
           onMatchReady={(readyMatch) => {
             setActiveMatch(readyMatch);

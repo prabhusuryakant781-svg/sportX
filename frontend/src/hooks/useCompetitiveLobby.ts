@@ -57,10 +57,21 @@ function playMatchFoundSound() {
   } catch (_) {}
 }
 
+const DEV_BOT_POOL = [
+  { name: 'DevBot_Arjun', rank: 'Bronze', rp: 120 },
+  { name: 'DevBot_Priya', rank: 'Silver', rp: 210 },
+  { name: 'DevBot_Rohan', rank: 'Gold', rp: 330 },
+  { name: 'DevBot_Ananya', rank: 'Bronze', rp: 140 },
+  { name: 'DevBot_Vikram', rank: 'Silver', rp: 225 },
+  { name: 'DevBot_Neha', rank: 'Gold', rp: 310 },
+  { name: 'DevBot_Kabir', rank: 'Platinum', rp: 410 },
+  { name: 'DevBot_Siddharth', rank: 'Diamond', rp: 520 },
+];
+
 export function useCompetitiveLobby({
   ticket,
   initialMatch = null,
-  targetPlayers = 2,
+  targetPlayers = 8,
   countdownDuration = 4,
   onMatchReady,
   onCancel,
@@ -248,22 +259,88 @@ export function useCompetitiveLobby({
     }
   }, [ticket?.ticketId, onCancel]);
 
+  // Fill all target slots with opponents
   const simulateDevOpponent = useCallback(async () => {
     if (!ticket?.ticketId) return;
     try {
       const res = await competitiveApi.simulateDevOpponent(ticket.ticketId);
       if (res.match) {
+        if (targetPlayers > 2 && res.match.players.length < targetPlayers) {
+          const now = new Date().toISOString();
+          const needed = targetPlayers - res.match.players.length;
+          const extraBots = DEV_BOT_POOL.slice(0, needed).map((bot, idx) => ({
+            userId: `sim_bot_${Date.now()}_${idx}`,
+            displayName: `⚡ ${bot.name}`,
+            rankTier: bot.rank as any,
+            rankPoints: bot.rp,
+            isSimulated: true,
+            ready: true,
+            telemetry: { reps: 0, formScore: 85, verifiedScore: 0, lastUpdated: now },
+            completed: false,
+          }));
+          const fullMatch: CompetitiveMatchDoc = {
+            ...res.match,
+            targetPlayers,
+            players: [...res.match.players, ...extraBots],
+          };
+          setMatch(fullMatch);
+          return;
+        }
         setMatch(res.match);
       }
     } catch (err) {
       console.warn('Dev simulate opponent failed:', err);
     }
-  }, [ticket?.ticketId]);
+  }, [ticket?.ticketId, targetPlayers]);
 
+  // Add a single simulated opponent (+1 slot)
+  const simulateAddOpponent = useCallback(async () => {
+    if (!ticket?.ticketId) return;
+    if (!match) {
+      try {
+        const res = await competitiveApi.simulateDevOpponent(ticket.ticketId);
+        if (res.match) {
+          setMatch({ ...res.match, targetPlayers });
+        }
+      } catch (err) {
+        console.warn('Dev simulate opponent failed:', err);
+      }
+      return;
+    }
+
+    if (match.players.length < targetPlayers) {
+      const now = new Date().toISOString();
+      const botIdx = match.players.length - 1;
+      const bot = DEV_BOT_POOL[botIdx % DEV_BOT_POOL.length];
+      const newBot = {
+        userId: `sim_bot_${Date.now()}_${botIdx}`,
+        displayName: `⚡ ${bot.name}`,
+        rankTier: bot.rank as any,
+        rankPoints: bot.rp,
+        isSimulated: true,
+        ready: true,
+        telemetry: { reps: 0, formScore: 85, verifiedScore: 0, lastUpdated: now },
+        completed: false,
+      };
+      setMatch({
+        ...match,
+        targetPlayers,
+        players: [...match.players, newBot],
+      });
+    }
+  }, [ticket?.ticketId, match, targetPlayers]);
+
+  // Opponent leaves (steps down by 1 player to test abort & auto-recovery)
   const simulateDevOpponentLeave = useCallback(() => {
-    // Drop opponent and return to waiting mode with 1/2 players
     if (match) {
-      setMatch(null);
+      if (match.players.length > 2) {
+        setMatch({
+          ...match,
+          players: match.players.slice(0, match.players.length - 1),
+        });
+      } else {
+        setMatch(null);
+      }
     }
   }, [match]);
 
@@ -278,6 +355,7 @@ export function useCompetitiveLobby({
     match,
     cancelSearch,
     simulateDevOpponent,
+    simulateAddOpponent,
     simulateDevOpponentLeave,
   };
 }

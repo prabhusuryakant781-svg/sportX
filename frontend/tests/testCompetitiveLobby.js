@@ -127,6 +127,12 @@ test('useCompetitiveLobby stops countdown & returns to waiting mode if player le
 test('useCompetitiveLobby provides simulateDevOpponent and dev leave abort for verification', () => {
   assert(hookSource.includes('simulateDevOpponent'), 'Provides simulateDevOpponent');
   assert(hookSource.includes('simulateDevOpponentLeave'), 'Provides simulateDevOpponentLeave');
+  assert(hookSource.includes('simulateAddOpponent'), 'Provides simulateAddOpponent (+1 slot)');
+});
+
+test('Lobby defaults to 8 slots for expanded competitive matchmaking', () => {
+  assert(hookSource.includes('targetPlayers = 8'), 'useCompetitiveLobby defaults to 8 slots');
+  assert(loadingSource.includes('targetPlayers = 8'), 'CompetitiveMatchLoading defaults to 8 slots');
 });
 
 console.log('\n================================================================');

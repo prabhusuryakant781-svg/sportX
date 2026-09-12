@@ -28,7 +28,7 @@ interface CompetitiveMatchLoadingProps {
 export const CompetitiveMatchLoading: React.FC<CompetitiveMatchLoadingProps> = ({
   ticket,
   initialMatch = null,
-  targetPlayers = 2,
+  targetPlayers = 8,
   countdownDuration = 4,
   onMatchReady,
   onCancel,
@@ -42,6 +42,7 @@ export const CompetitiveMatchLoading: React.FC<CompetitiveMatchLoadingProps> = (
     searchElapsedSeconds,
     cancelSearch,
     simulateDevOpponent,
+    simulateAddOpponent,
     simulateDevOpponentLeave,
   } = useCompetitiveLobby({
     ticket,
@@ -62,7 +63,7 @@ export const CompetitiveMatchLoading: React.FC<CompetitiveMatchLoadingProps> = (
   };
 
   return (
-    <div className="px-4 py-6 max-w-lg mx-auto flex flex-col items-center text-center space-y-6 animate-fadeIn">
+    <div className="px-4 py-6 max-w-4xl mx-auto flex flex-col items-center text-center space-y-6 animate-fadeIn">
       {/* ── Top Header & Live Counter ────────────────────────────────────────── */}
       <div className="w-full space-y-2">
         <div className="flex items-center justify-between">
@@ -170,7 +171,7 @@ export const CompetitiveMatchLoading: React.FC<CompetitiveMatchLoadingProps> = (
           </span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 w-full">
           {Array.from({ length: targetPlayers }).map((_, slotIdx) => {
             const player = players[slotIdx] || null;
             const isEmpty = !player;
@@ -190,15 +191,23 @@ export const CompetitiveMatchLoading: React.FC<CompetitiveMatchLoadingProps> = (
       </div>
 
       {/* ── Controls & Dev Mode ──────────────────────────────────────────────── */}
-      <div className="w-full space-y-3 pt-2">
+      <div className="w-full space-y-2.5 pt-2 max-w-md mx-auto">
         {/* Development simulated pairing / leave button */}
         {!isLobbyFull ? (
-          <button
-            onClick={simulateDevOpponent}
-            className="w-full py-2.5 px-4 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-400 text-xs font-bold uppercase tracking-wider transition flex items-center justify-center gap-2"
-          >
-            <span>🤖</span> Instant Pair (Simulate Opponent)
-          </button>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={simulateAddOpponent}
+              className="py-2.5 px-3 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 text-xs font-bold uppercase tracking-wider transition flex items-center justify-center gap-1.5"
+            >
+              <span>➕</span> Add Bot (+1)
+            </button>
+            <button
+              onClick={simulateDevOpponent}
+              className="py-2.5 px-3 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-400 text-xs font-bold uppercase tracking-wider transition flex items-center justify-center gap-1.5"
+            >
+              <span>🤖</span> Fill All {targetPlayers}
+            </button>
+          </div>
         ) : (
           <button
             onClick={simulateDevOpponentLeave}
