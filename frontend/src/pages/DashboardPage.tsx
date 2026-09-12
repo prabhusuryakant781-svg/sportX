@@ -119,21 +119,42 @@ export default function DashboardPage() {
           </div>
         ) : null}
 
+        {/* Competitive Mode Showcase */}
+        <div 
+          onClick={() => navigate('/competitive')}
+          className="card cursor-pointer p-4 mb-4 rounded-2xl relative overflow-hidden transition hover:border-blue-500/50"
+          style={{ background: 'linear-gradient(135deg, rgba(59,130,246,0.15) 0%, rgba(147,51,234,0.15) 100%)', border: '1px solid rgba(99,102,241,0.3)' }}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className="text-3xl">⚔️</span>
+              <div>
+                <span className="text-[10px] uppercase font-bold tracking-wider text-cyan-400">Global Matchmaking</span>
+                <h4 className="text-base font-black text-white">Random Match Arena</h4>
+                <p className="text-xs text-slate-300">Head-to-head verified sports challenges</p>
+              </div>
+            </div>
+            <span className="text-xs font-bold px-3 py-1.5 rounded-xl bg-blue-600 text-white shadow-md">
+              Battle →
+            </span>
+          </div>
+        </div>
+
         {/* Quick Actions */}
         <h3 className="text-white">Quick Access</h3>
         <div className="grid grid-cols-2 gap-3">
           {[
+            { icon: '⚔️', label: 'Random Match', path: '/competitive' },
+            { icon: '🏷️', label: 'Room Lobby', path: '/lobby' },
             { icon: '📋', label: 'All Plans', path: '/workout' },
             { icon: '📊', label: 'My Progress', path: '/progress' },
-            { icon: '⚡', label: 'Compete', path: '/lobby' },
             { icon: '🏆', label: 'Leaderboard', path: '/leaderboard' },
-            { icon: '🏅', label: 'Log Activity', action: () => setShowManualLog(true) },
             { icon: '📸', label: 'Free Camera', path: '/camera/free/squat' },
           ].map(a => (
             <button
               key={a.label}
               className="card cursor-pointer flex flex-col items-center gap-1.5 py-4 hover:border-neon/20"
-              onClick={() => a.action ? a.action() : a.path && navigate(a.path)}
+              onClick={() => (a as any).action ? (a as any).action() : (a as any).path && navigate((a as any).path)}
             >
               <span className="text-3xl">{a.icon}</span>
               <span className="font-semibold text-sm text-white">{a.label}</span>

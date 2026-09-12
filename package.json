@@ -14,6 +14,7 @@
     "test:p2": "npm --prefix backend/functions run test:p2 && npm --prefix frontend run test:p2",
     "test:unit": "npm --prefix backend/functions test",
     "test:emulator": "npm --prefix backend/functions run test:emulator",
+    "seed:competitive": "npm --prefix backend/functions run seed:competitive",
     "ci": "npm run typecheck && npm run test",
     "build": "cd backend/functions && npm install --include=dev && npm run build && cd ../../frontend && npm install --include=dev && npm run build",
     "vercel-build": "cd backend/functions && npm install --include=dev && npm run build && cd ../../frontend && npm install --include=dev && npm run build"
