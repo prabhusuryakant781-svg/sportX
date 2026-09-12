@@ -4,6 +4,8 @@ import {
   createUserWithEmailAndPassword,
   updateProfile,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signOut,
   onAuthStateChanged,
   sendPasswordResetEmail,
@@ -25,6 +27,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string>(() => localStorage.getItem('sportx_token') || '');
   const [loading, setLoading] = useState(true);
+
+  // Check for redirect result from Google OAuth (mobile/popup-blocked fallback)
+  useEffect(() => {
+    if (!auth) return;
+    getRedirectResult(auth)
+      .then(async (cred) => {
+        if (cred && cred.user) {
+          try {
+            const idToken = await cred.user.getIdToken();
+            localStorage.setItem('sportx_token', idToken);
+            setToken(idToken);
+            setFirebaseUser(cred.user);
+
+            let profileData: any = null;
+            try {
+              const res: any = await api.loginWithGoogle({ idToken });
+              if (res?.data?.user) profileData = res.data.user;
+            } catch (_) {
+              const profileRes: any = await api.getProfile().catch(() => null);
+              if (profileRes?.data) profileData = profileRes.data;
+            }
+
+            if (profileData) {
+              setUser(profileData);
+            }
+          } catch (e) {
+            console.error('[AuthContext] Redirect result processing error:', e);
+          }
+        }
+      })
+      .catch((err) => {
+        console.warn('[AuthContext] Redirect sign-in notice:', err.message);
+      });
+  }, []);
 
   // Source of Truth: Listen to Firebase Auth state changes
   useEffect(() => {
@@ -135,24 +171,100 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!auth) {
       throw new Error('Firebase Authentication is not configured. Missing VITE_FIREBASE_API_KEY.');
     }
+
+    // Development fallback when real Firebase credentials are not provided in local environment
+    if (!isRealFirebaseConfigured && import.meta.env.DEV) {
+      console.info('[SportX Auth] Development Google login active.');
+      const devId = 'athlete_google_' + Date.now();
+      const devToken = 'dev_google_token_' + Date.now();
+      const devUser: User = {
+        id: devId,
+        name: 'Google Athlete (Dev)',
+        email: 'google.athlete@sportx.app',
+        collegeName: 'Campus University',
+        department: 'Athletics',
+        fitnessLevel: 'intermediate',
+        fitnessGoal: 'general_fitness',
+        availableTimeMinutes: 30,
+        selectedSports: ['basketball', 'badminton'],
+        totalXp: 150,
+        currentStreak: 3,
+        longestStreak: 5,
+        lastWorkoutDate: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
+      };
+      localStorage.setItem('sportx_token', devToken);
+      setToken(devToken);
+      setUser(devUser);
+      return;
+    }
+
     try {
-      const cred = await signInWithPopup(auth, googleProvider);
+      let cred: any;
+      try {
+        cred = await signInWithPopup(auth, googleProvider);
+      } catch (popupErr: any) {
+        // If popup was blocked by browser or adblocker, fallback to redirect
+        if (popupErr.code === 'auth/popup-blocked' || popupErr.code === 'auth/cancelled-popup-request') {
+          await signInWithRedirect(auth, googleProvider);
+          return;
+        }
+        throw popupErr;
+      }
+
       const idToken = await cred.user.getIdToken();
       localStorage.setItem('sportx_token', idToken);
       setToken(idToken);
       setFirebaseUser(cred.user);
 
-      const profileRes: any = await api.getProfile().catch(() => null);
-      if (profileRes?.data) {
-        setUser(profileRes.data);
+      // Synchronize with backend Google login endpoint to ensure Firestore user document exists
+      let profileData: User | null = null;
+      try {
+        const backendRes: any = await api.loginWithGoogle({ idToken });
+        if (backendRes?.data?.user) {
+          profileData = backendRes.data.user;
+        }
+      } catch (backendErr: any) {
+        console.warn('[AuthContext] Backend /auth/google notice:', backendErr.message);
+        const profileRes: any = await api.getProfile().catch(() => null);
+        if (profileRes?.data) {
+          profileData = profileRes.data;
+        }
+      }
+
+      if (profileData) {
+        setUser(profileData);
+      } else {
+        setUser({
+          id: cred.user.uid,
+          name: cred.user.displayName || 'Google Athlete',
+          email: cred.user.email || '',
+          profileImage: cred.user.photoURL || undefined,
+          collegeName: 'Campus University',
+          department: 'General',
+          fitnessLevel: 'beginner',
+          fitnessGoal: 'general_fitness',
+          availableTimeMinutes: 30,
+          selectedSports: [],
+          totalXp: 0,
+          currentStreak: 0,
+          longestStreak: 0,
+          lastWorkoutDate: null,
+          createdAt: new Date().toISOString(),
+        });
       }
     } catch (err: any) {
-      if (err.code === 'auth/popup-blocked') {
-        throw new Error('Sign-in popup was blocked by your browser. Please allow popups for this site and try again.');
-      } else if (err.code === 'auth/popup-closed-by-user') {
-        throw new Error('Sign-in cancelled by user.');
-      } else if (err.code === 'auth/cancelled-popup-request') {
-        return;
+      console.error('[AuthContext] Google Sign-In error:', err);
+      if (err.code === 'auth/popup-closed-by-user') {
+        throw new Error('Google sign-in was cancelled.');
+      } else if (err.code === 'auth/unauthorized-domain') {
+        throw new Error('Current domain is not authorized in Firebase Console (Authentication -> Settings -> Authorized Domains).');
+      } else if (err.code === 'auth/operation-not-allowed') {
+        throw new Error('Google sign-in is not enabled in Firebase Console (Authentication -> Sign-in method).');
+      } else if (err.code === 'auth/invalid-api-key' || err.code === 'auth/api-key-not-valid') {
+        throw new Error('Invalid Firebase API key. Please check your VITE_FIREBASE_API_KEY.');
+      } else if (err.code === 'auth/network-request-failed') {
+        throw new Error('Network error during Google sign-in. Please check your connection.');
       }
       throw new Error(err.message || 'Failed to sign in with Google');
     }

@@ -4,6 +4,8 @@ export interface User {
   id: string;
   name: string;
   email: string;
+  profileImage?: string;
+  avatarUrl?: string;
   collegeName: string;
   department: string;
   fitnessLevel: 'beginner' | 'intermediate' | 'advanced';
@@ -11,6 +13,7 @@ export interface User {
   availableTimeMinutes: number;
   selectedSports: string[];
   totalXp: number;
+  level?: number;
   currentStreak: number;
   longestStreak: number;
   lastWorkoutDate: string | null;

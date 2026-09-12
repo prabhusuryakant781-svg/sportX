@@ -2,7 +2,7 @@ import * as admin from 'firebase-admin';
 import { getFirestore } from 'firebase-admin/firestore';
 
 // Read project ID from environment variables
-const projectId = process.env.FIREBASE_PROJECT_ID || process.env.GCLOUD_PROJECT || 'sportx-ab55f';
+const projectId = process.env.FIREBASE_PROJECT_ID || process.env.GCLOUD_PROJECT || 'sportx-ab5f';
 
 // Parse optional Firebase Admin credentials for Vercel serverless / production
 let credential: admin.credential.Credential | undefined = undefined;
@@ -44,7 +44,7 @@ export const hasFirebaseCredentials = Boolean(
   process.env.FIRESTORE_EMULATOR_HOST
 );
 
-// Support named database 'default' (without parentheses) configured on Google Cloud project sportx-ab55f
+// Support named database 'default' (without parentheses) configured on Google Cloud project sportx-ab5f
 const firestoreDbName = process.env.FIRESTORE_DATABASE_ID || 'default';
 export const db = getFirestore(admin.app(), firestoreDbName);
 export const auth = admin.auth();
