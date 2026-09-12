@@ -25,7 +25,7 @@ async function getToken(): Promise<string> {
   return storedToken;
 }
 
-async function request<T = any>(method: string, path: string, body?: unknown, requireAuth = true): Promise<T> {
+export async function request<T = any>(method: string, path: string, body?: unknown, requireAuth = true): Promise<T> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   const token = await getToken();
   

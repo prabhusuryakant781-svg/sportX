@@ -30,8 +30,26 @@ export default function LobbyPage() {
         <p className="text-xs text-slate-400 mt-0.5">
           Real-time synchronized computer-vision rep competitions.
         </p>
+
+        {/* Mode Selector Tabs */}
+        <div className="flex rounded-xl p-1 mt-3 bg-surface/60 border border-white/5">
+          <button
+            type="button"
+            className="flex-1 py-2 rounded-lg border-none cursor-pointer font-outfit font-bold text-xs tracking-wider uppercase bg-gradient-hero text-white shadow-glow-sm transition-all"
+          >
+            🏷️ Room Code Lobby
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate('/competitive')}
+            className="flex-1 py-2 rounded-lg border-none cursor-pointer font-outfit font-bold text-xs tracking-wider uppercase bg-transparent text-slate-400 hover:text-white transition-all"
+          >
+            ⚡ Global Matchmaking
+          </button>
+        </div>
       </header>
 
+      {/* Existing Room-Code Lobby Component Preserved Exactly As Is */}
       <CompetitiveLobby
         currentUser={user}
         onExit={() => navigate('/dashboard')}

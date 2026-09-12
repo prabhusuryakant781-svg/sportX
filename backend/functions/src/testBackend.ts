@@ -23,6 +23,7 @@ import { runSecurityRulesTests } from './testSecurityRules';
 import { runValidationTests } from './testValidation';
 import { runProgressAndHistoryTests } from './testProgressAndHistory';
 import { runEmulatorIntegrationTests } from './testEmulatorIntegration';
+import { runCompetitiveTests } from './testCompetitive';
 
 let testsPassed = 0;
 let testsFailed = 0;
@@ -344,10 +345,16 @@ async function runTests() {
   testsFailed += progressResults.failed;
 
   // ── TEST 14: Production-Quality Verification & Integration Tests ─────────────
-  console.log('\n[14/14] Running Production-Quality Verification & Integration Tests...');
+  console.log('\n[14/15] Running Production-Quality Verification & Integration Tests...');
   const emulatorResults = await runEmulatorIntegrationTests();
   testsPassed += emulatorResults.passed;
   testsFailed += emulatorResults.failed;
+
+  // ── TEST 15: Global Matchmaking & Athlete-Development Challenges ────────────
+  console.log('\n[15/15] Running Competitive Matchmaking & Challenges Tests...');
+  const competitiveResults = await runCompetitiveTests();
+  testsPassed += competitiveResults.passed;
+  testsFailed += competitiveResults.failed;
 
   console.log('\n================================================================');
   console.log(`📊 Test Summary: ${testsPassed} passed, ${testsFailed} failed.`);

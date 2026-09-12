@@ -22,7 +22,9 @@
     "test:p2": "npm run build && node lib/testPriority2.js",
     "test:rules": "npm run build && firebase emulators:exec --only firestore,storage \"node lib/testSecurityRules.js\"",
     "seed": "npm run build && node lib/scripts/seed.js",
-    "seed:ts": "npx ts-node --transpile-only src/scripts/seed.ts"
+    "seed:ts": "npx ts-node --transpile-only src/scripts/seed.ts",
+    "seed:competitive": "npm run build && node lib/scripts/seedCompetitive.js",
+    "seed:competitive:ts": "npx ts-node --transpile-only src/scripts/seedCompetitive.ts"
   },
   "engines": {
     "node": ">=18"

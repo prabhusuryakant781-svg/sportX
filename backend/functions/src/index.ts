@@ -26,6 +26,7 @@ import { leaderboardRouter } from './leaderboard';
 import { aiCoachRouter } from './aiCoach';
 import { challengesRouter } from './challenges';
 import { lobbiesRouter } from './lobbies';
+import { competitiveRouter } from './competitive';
 import { bugsRouter } from './bugs';
 import { notificationsRouter } from './notifications';
 import { progressRouter } from './progress';
@@ -178,6 +179,7 @@ v1.get('/ai/consistency', consistencyInsightHandler);   // Phase 4: AI Consisten
 v1.post('/ai/session-analysis', sessionAnalysisHandler); // Priority 2: Grounded post-workout session analysis
 v1.use('/challenges', challengesRouter); // CF25: Peer Challenges
 v1.use('/lobbies', lobbiesRouter);     // CF23: Multiplayer Workout Mode
+v1.use('/competitive', competitiveRouter); // Global Matchmaking & Athlete-Development Challenges
 v1.use('/bugs', bugsRouter);           // CF30: Bug Reporting
 v1.use('/vision', visionRouter);       // Phase 3: Computer Vision Integration & Form Feedback
 
@@ -277,6 +279,7 @@ v1.get('/', (_req, res) => {
       'GET  /api/v1/notifications', 'GET  /api/v1/progress/summary',
       'POST /api/v1/challenges', 'GET  /api/v1/challenges', 'PATCH /api/v1/challenges/:id/respond',
       'POST /api/v1/lobbies', 'POST /api/v1/lobbies/:id/join', 'GET  /api/v1/lobbies/:id', 'POST /api/v1/lobbies/:id/start',
+      'GET  /api/v1/competitive/challenges', 'GET  /api/v1/competitive/rank', 'POST /api/v1/competitive/matchmaking/join', 'GET  /api/v1/competitive/matchmaking/status/:ticketId', 'POST /api/v1/competitive/matchmaking/cancel', 'GET  /api/v1/competitive/matches/:id', 'POST /api/v1/competitive/matches/:id/ready', 'POST /api/v1/competitive/matches/:id/telemetry', 'POST /api/v1/competitive/matches/:id/finish',
       'POST /api/v1/bugs', 'GET  /api/v1/bugs',
       'POST /api/v1/vision/results', 'GET  /api/v1/vision/results', 'GET  /api/v1/vision/results/:sessionId', 'POST /api/v1/vision/feedback',
     ],
