@@ -1,4 +1,22 @@
 /**
+ * Set of exercises genuinely supported by the real-time MediaPipe computer vision FSM.
+ */
+export const CAMERA_SUPPORTED_EXERCISES = new Set<string>([
+  'squat',
+  'pushup',
+  'jumping_jacks'
+]);
+
+/**
+ * Checks whether an exercise identifier has genuine computer-vision camera support.
+ */
+export function isCameraSupported(exerciseId?: string | null): boolean {
+  if (!exerciseId || typeof exerciseId !== 'string') return false;
+  const normalized = normalizeExerciseId(exerciseId);
+  return CAMERA_SUPPORTED_EXERCISES.has(normalized);
+}
+
+/**
  * Normalizes any raw exercise identifier into one of the canonical SportX exercise IDs:
  * - 'squat'
  * - 'pushup'

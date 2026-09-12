@@ -41,6 +41,8 @@ export interface Exercise {
   description?: string;
   targetMuscles?: string[];
   difficulty?: string;
+  aiSupported?: boolean;
+  instructions?: string[];
 }
 
 export interface WorkoutPlan {

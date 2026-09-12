@@ -109,7 +109,7 @@ export const INITIAL_EXERCISES: ExerciseDoc[] = [
     },
     calorieFactor: 0.25,
     baseRepXP: 8,
-    aiSupported: true,
+    aiSupported: false,
     category: 'upper_body',
     isActive: true,
     createdAt: new Date().toISOString()
@@ -139,7 +139,7 @@ export const INITIAL_EXERCISES: ExerciseDoc[] = [
     },
     calorieFactor: 0.15,
     baseRepXP: 15,
-    aiSupported: true,
+    aiSupported: false,
     category: 'core',
     isActive: true,
     createdAt: new Date().toISOString()
@@ -207,7 +207,7 @@ export const INITIAL_EXERCISES: ExerciseDoc[] = [
     },
     calorieFactor: 0.38,
     baseRepXP: 10,
-    aiSupported: true,
+    aiSupported: false,
     category: 'lower_body',
     isActive: true,
     createdAt: new Date().toISOString()
@@ -241,7 +241,7 @@ export const INITIAL_EXERCISES: ExerciseDoc[] = [
     },
     calorieFactor: 0.35,
     baseRepXP: 10,
-    aiSupported: true,
+    aiSupported: false,
     category: 'lower_body',
     isActive: true,
     createdAt: new Date().toISOString()
@@ -274,7 +274,7 @@ export const INITIAL_EXERCISES: ExerciseDoc[] = [
     },
     calorieFactor: 0.3,
     baseRepXP: 8,
-    aiSupported: true,
+    aiSupported: false,
     category: 'lower_body',
     isActive: true,
     createdAt: new Date().toISOString()
@@ -306,7 +306,7 @@ export const INITIAL_EXERCISES: ExerciseDoc[] = [
     },
     calorieFactor: 0.2,
     baseRepXP: 6,
-    aiSupported: true,
+    aiSupported: false,
     category: 'lower_body',
     isActive: true,
     createdAt: new Date().toISOString()
@@ -339,7 +339,7 @@ export const INITIAL_EXERCISES: ExerciseDoc[] = [
     },
     calorieFactor: 0.25,
     baseRepXP: 5,
-    aiSupported: true,
+    aiSupported: false,
     category: 'cardio',
     isActive: true,
     createdAt: new Date().toISOString()
@@ -371,7 +371,7 @@ export const INITIAL_EXERCISES: ExerciseDoc[] = [
     },
     calorieFactor: 0.28,
     baseRepXP: 6,
-    aiSupported: true,
+    aiSupported: false,
     category: 'cardio',
     isActive: true,
     createdAt: new Date().toISOString()
@@ -405,7 +405,7 @@ export const INITIAL_EXERCISES: ExerciseDoc[] = [
     },
     calorieFactor: 0.35,
     baseRepXP: 10,
-    aiSupported: true,
+    aiSupported: false,
     category: 'upper_body',
     isActive: true,
     createdAt: new Date().toISOString()
@@ -439,7 +439,7 @@ export const INITIAL_EXERCISES: ExerciseDoc[] = [
     },
     calorieFactor: 0.25,
     baseRepXP: 8,
-    aiSupported: true,
+    aiSupported: false,
     category: 'upper_body',
     isActive: true,
     createdAt: new Date().toISOString()
@@ -473,7 +473,7 @@ export const INITIAL_EXERCISES: ExerciseDoc[] = [
     },
     calorieFactor: 0.25,
     baseRepXP: 8,
-    aiSupported: true,
+    aiSupported: false,
     category: 'upper_body',
     isActive: true,
     createdAt: new Date().toISOString()
@@ -507,7 +507,7 @@ export const INITIAL_EXERCISES: ExerciseDoc[] = [
     },
     calorieFactor: 0.25,
     baseRepXP: 8,
-    aiSupported: true,
+    aiSupported: false,
     category: 'upper_body',
     isActive: true,
     createdAt: new Date().toISOString()
@@ -541,7 +541,7 @@ export const INITIAL_EXERCISES: ExerciseDoc[] = [
     },
     calorieFactor: 0.3,
     baseRepXP: 9,
-    aiSupported: true,
+    aiSupported: false,
     category: 'upper_body',
     isActive: true,
     createdAt: new Date().toISOString()
@@ -575,7 +575,7 @@ export const INITIAL_EXERCISES: ExerciseDoc[] = [
     },
     calorieFactor: 0.28,
     baseRepXP: 8,
-    aiSupported: true,
+    aiSupported: false,
     category: 'upper_body',
     isActive: true,
     createdAt: new Date().toISOString()
@@ -609,7 +609,7 @@ export const INITIAL_EXERCISES: ExerciseDoc[] = [
     },
     calorieFactor: 0.35,
     baseRepXP: 10,
-    aiSupported: true,
+    aiSupported: false,
     category: 'upper_body',
     isActive: true,
     createdAt: new Date().toISOString()
@@ -643,7 +643,7 @@ export const INITIAL_EXERCISES: ExerciseDoc[] = [
     },
     calorieFactor: 0.38,
     baseRepXP: 11,
-    aiSupported: true,
+    aiSupported: false,
     category: 'upper_body',
     isActive: true,
     createdAt: new Date().toISOString()
@@ -678,7 +678,7 @@ export const INITIAL_EXERCISES: ExerciseDoc[] = [
     },
     calorieFactor: 0.35,
     baseRepXP: 10,
-    aiSupported: true,
+    aiSupported: false,
     category: 'upper_body',
     isActive: true,
     createdAt: new Date().toISOString()
@@ -711,7 +711,7 @@ export const INITIAL_EXERCISES: ExerciseDoc[] = [
     },
     calorieFactor: 0.3,
     baseRepXP: 8,
-    aiSupported: true,
+    aiSupported: false,
     category: 'core',
     isActive: true,
     createdAt: new Date().toISOString()
@@ -743,7 +743,7 @@ export const INITIAL_EXERCISES: ExerciseDoc[] = [
     },
     calorieFactor: 0.25,
     baseRepXP: 7,
-    aiSupported: true,
+    aiSupported: false,
     category: 'core',
     isActive: true,
     createdAt: new Date().toISOString()
@@ -777,7 +777,7 @@ export const INITIAL_EXERCISES: ExerciseDoc[] = [
     },
     calorieFactor: 0.32,
     baseRepXP: 9,
-    aiSupported: true,
+    aiSupported: false,
     category: 'core',
     isActive: true,
     createdAt: new Date().toISOString()
@@ -809,7 +809,7 @@ export const INITIAL_EXERCISES: ExerciseDoc[] = [
     },
     calorieFactor: 0.3,
     baseRepXP: 7,
-    aiSupported: true,
+    aiSupported: false,
     category: 'core',
     isActive: true,
     createdAt: new Date().toISOString()
@@ -844,7 +844,7 @@ export const INITIAL_EXERCISES: ExerciseDoc[] = [
     },
     calorieFactor: 0.36,
     baseRepXP: 10,
-    aiSupported: true,
+    aiSupported: false,
     category: 'lower_body',
     isActive: true,
     createdAt: new Date().toISOString()
@@ -874,7 +874,7 @@ export const INITIAL_EXERCISES: ExerciseDoc[] = [
     },
     calorieFactor: 0.18,
     baseRepXP: 12,
-    aiSupported: true,
+    aiSupported: false,
     category: 'core',
     isActive: true,
     createdAt: new Date().toISOString()
@@ -906,7 +906,7 @@ export const INITIAL_EXERCISES: ExerciseDoc[] = [
     },
     calorieFactor: 0.28,
     baseRepXP: 7,
-    aiSupported: true,
+    aiSupported: false,
     category: 'core',
     isActive: true,
     createdAt: new Date().toISOString()
@@ -941,8 +941,578 @@ export const INITIAL_EXERCISES: ExerciseDoc[] = [
     },
     calorieFactor: 0.38,
     baseRepXP: 12,
-    aiSupported: true,
+    aiSupported: false,
     category: 'lower_body',
+    isActive: true,
+    createdAt: new Date().toISOString()
+  },
+  // 29. WIDE-GRIP PUSHUPS
+  {
+    exerciseId: 'wide_pushup',
+    name: 'Wide-Grip Push-ups',
+    sportId: 'general',
+    description: 'Push-up variation with wider hand placement maximizing horizontal pectoral recruitment.',
+    targetMuscles: ['Pectoralis Major', 'Anterior Deltoids'],
+    secondaryMuscles: ['Core', 'Triceps'],
+    equipmentNeeded: ['none'],
+    difficulty: 'intermediate',
+    instructions: [
+      'Place hands 1.5 times shoulder-width apart in high plank position.',
+      'Lower chest smoothly towards the ground while maintaining core tension.',
+      'Press through palms to return to full extension.'
+    ],
+    commonErrors: ['Flaring elbows 90 degrees out', 'Hips sagging'],
+    videoUrl: 'https://assets.sportx.app/exercises/wide_pushup.mp4',
+    animationUrl: 'https://assets.sportx.app/exercises/wide_pushup.json',
+    thumbnail: 'https://images.unsplash.com/photo-1598971639058-fab3c3109a00?w=500',
+    formRules: {
+      postureRules: ['Maintain rigid core line', 'Lower chest to 2 inches from floor']
+    },
+    calorieFactor: 0.38,
+    baseRepXP: 11,
+    aiSupported: false,
+    category: 'upper_body',
+    isActive: true,
+    createdAt: new Date().toISOString()
+  },
+
+  // 30. DIAMOND PUSHUPS
+  {
+    exerciseId: 'diamond_pushup',
+    name: 'Diamond Push-ups',
+    sportId: 'general',
+    description: 'Close-hand pushup isolating inner chest fibers and overloading tricep extension.',
+    targetMuscles: ['Inner Chest', 'Triceps Brachii'],
+    secondaryMuscles: ['Anterior Deltoids', 'Core'],
+    equipmentNeeded: ['none'],
+    difficulty: 'advanced',
+    instructions: [
+      'Position hands close together directly beneath chest, thumbs and index fingers touching in diamond shape.',
+      'Keep elbows tucked close to sides as you descend.',
+      'Press firmly upwards to complete lockout.'
+    ],
+    commonErrors: ['Elbows flaring excessively', 'Lack of chest depth'],
+    videoUrl: 'https://assets.sportx.app/exercises/diamond_pushup.mp4',
+    animationUrl: 'https://assets.sportx.app/exercises/diamond_pushup.json',
+    thumbnail: 'https://images.unsplash.com/photo-1598971639058-fab3c3109a00?w=500',
+    formRules: {
+      postureRules: ['Keep diamond under sternum', 'Maintain body alignment']
+    },
+    calorieFactor: 0.42,
+    baseRepXP: 14,
+    aiSupported: false,
+    category: 'upper_body',
+    isActive: true,
+    createdAt: new Date().toISOString()
+  },
+
+  // 31. INCLINE PUSHUPS
+  {
+    exerciseId: 'incline_pushup',
+    name: 'Incline Push-ups',
+    sportId: 'general',
+    description: 'Regressed push-up on a bench or elevated surface reducing load for beginners.',
+    targetMuscles: ['Lower Chest', 'Triceps'],
+    secondaryMuscles: ['Shoulders', 'Core'],
+    equipmentNeeded: ['bench'],
+    difficulty: 'beginner',
+    instructions: [
+      'Place hands shoulder-width on a secure bench, desk, or elevated platform.',
+      'Maintain straight spine from head to heels.',
+      'Lower chest to edge of surface, then press back up.'
+    ],
+    commonErrors: ['Sagging hips', 'Resting on surface'],
+    videoUrl: 'https://assets.sportx.app/exercises/incline_pushup.mp4',
+    animationUrl: 'https://assets.sportx.app/exercises/incline_pushup.json',
+    thumbnail: 'https://images.unsplash.com/photo-1598971639058-fab3c3109a00?w=500',
+    formRules: {
+      postureRules: ['Keep body straight', 'Full lockout at top']
+    },
+    calorieFactor: 0.28,
+    baseRepXP: 8,
+    aiSupported: false,
+    category: 'upper_body',
+    isActive: true,
+    createdAt: new Date().toISOString()
+  },
+
+  // 32. PULLUPS
+  {
+    exerciseId: 'pullup',
+    name: 'Bodyweight Pull-ups',
+    sportId: 'general',
+    description: 'King of upper-body pulling exercises developing lat width, rhomboids, and biceps.',
+    targetMuscles: ['Latissimus Dorsi', 'Rhomboids', 'Biceps'],
+    secondaryMuscles: ['Forearms', 'Posterior Deltoids', 'Core'],
+    equipmentNeeded: ['pullup_bar'],
+    difficulty: 'advanced',
+    instructions: [
+      'Grip pull-up bar with overhand grip slightly wider than shoulders.',
+      'Pull elbows down toward ribs until chin clears the bar.',
+      'Lower with control back to a full dead hang.'
+    ],
+    commonErrors: ['Kicking legs / kipping', 'Incomplete range of motion'],
+    videoUrl: 'https://assets.sportx.app/exercises/pullup.mp4',
+    animationUrl: 'https://assets.sportx.app/exercises/pullup.json',
+    thumbnail: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=500',
+    formRules: {
+      postureRules: ['Chin over bar at peak', 'Full dead hang lockout']
+    },
+    calorieFactor: 0.5,
+    baseRepXP: 16,
+    aiSupported: false,
+    category: 'upper_body',
+    isActive: true,
+    createdAt: new Date().toISOString()
+  },
+
+  // 33. SUPERMAN HOLD
+  {
+    exerciseId: 'superman_hold',
+    name: 'Prone Superman Hold',
+    sportId: 'general',
+    description: 'Posterior chain isometric movement strengthening spinal erectors and glutes.',
+    targetMuscles: ['Spinal Erectors', 'Glutes', 'Lower Back'],
+    secondaryMuscles: ['Hamstrings', 'Rear Deltoids'],
+    equipmentNeeded: ['none'],
+    difficulty: 'beginner',
+    instructions: [
+      'Lie face down on the floor with arms extended overhead.',
+      'Simultaneously lift chest, arms, and thighs 3-4 inches off the floor.',
+      'Hold the contraction firmly while breathing steadily.'
+    ],
+    commonErrors: ['Hyperextending neck', 'Holding breath'],
+    videoUrl: 'https://assets.sportx.app/exercises/superman_hold.mp4',
+    animationUrl: 'https://assets.sportx.app/exercises/superman_hold.json',
+    thumbnail: 'https://images.unsplash.com/photo-1566241134883-13eb2393a3cc?w=500',
+    formRules: {
+      postureRules: ['Keep gaze down towards floor', 'Squeeze glutes']
+    },
+    calorieFactor: 0.2,
+    baseRepXP: 8,
+    aiSupported: false,
+    category: 'core',
+    isActive: true,
+    createdAt: new Date().toISOString()
+  },
+
+  // 34. PIKE PUSHUPS
+  {
+    exerciseId: 'pike_pushup',
+    name: 'Pike Push-ups',
+    sportId: 'general',
+    description: 'Bodyweight overhead pressing progression targeting anterior and lateral deltoids.',
+    targetMuscles: ['Anterior Deltoids', 'Lateral Deltoids', 'Triceps'],
+    secondaryMuscles: ['Upper Chest', 'Core'],
+    equipmentNeeded: ['none'],
+    difficulty: 'intermediate',
+    instructions: [
+      'From a pushup position, walk feet toward hands until body forms an inverted V shape.',
+      'Bend elbows to lower crown of head towards floor between hands.',
+      'Press firmly back up through shoulders to starting pike.'
+    ],
+    commonErrors: ['Elbows flaring excessively', 'Back arching'],
+    videoUrl: 'https://assets.sportx.app/exercises/pike_pushup.mp4',
+    animationUrl: 'https://assets.sportx.app/exercises/pike_pushup.json',
+    thumbnail: 'https://images.unsplash.com/photo-1598971639058-fab3c3109a00?w=500',
+    formRules: {
+      postureRules: ['Maintain inverted V pike', 'Controlled head descent']
+    },
+    calorieFactor: 0.38,
+    baseRepXP: 11,
+    aiSupported: false,
+    category: 'upper_body',
+    isActive: true,
+    createdAt: new Date().toISOString()
+  },
+
+  // 35. BULGARIAN SPLIT SQUAT
+  {
+    exerciseId: 'bulgarian_split_squat',
+    name: 'Bulgarian Split Squats',
+    sportId: 'general',
+    description: 'Rear-foot elevated single-leg squat challenging quad power, glute drive, and balance.',
+    targetMuscles: ['Quadriceps', 'Gluteus Maximus', 'Hamstrings'],
+    secondaryMuscles: ['Core', 'Calves'],
+    equipmentNeeded: ['bench'],
+    difficulty: 'advanced',
+    instructions: [
+      'Rest top of rear foot on a bench or chair behind you.',
+      'Lower hips until front thigh is parallel to floor.',
+      'Drive through front heel to return to standing.'
+    ],
+    commonErrors: ['Front knee collapsing inward', 'Torso leaning too far forward'],
+    videoUrl: 'https://assets.sportx.app/exercises/bulgarian_split_squat.mp4',
+    animationUrl: 'https://assets.sportx.app/exercises/bulgarian_split_squat.json',
+    thumbnail: 'https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=500',
+    formRules: {
+      postureRules: ['Keep front heel down', 'Maintain upright torso']
+    },
+    calorieFactor: 0.42,
+    baseRepXP: 13,
+    aiSupported: false,
+    category: 'lower_body',
+    isActive: true,
+    createdAt: new Date().toISOString()
+  },
+
+  // 36. JUMP SQUATS
+  {
+    exerciseId: 'jump_squats',
+    name: 'Explosive Jump Squats',
+    sportId: 'athletics',
+    description: 'Plyometric power drill converting leg strength into explosive vertical force.',
+    targetMuscles: ['Quadriceps', 'Glutes', 'Calves'],
+    secondaryMuscles: ['Hamstrings', 'Cardiovascular System'],
+    equipmentNeeded: ['none'],
+    difficulty: 'intermediate',
+    instructions: [
+      'Lower into standard squat depth.',
+      'Explode upwards through balls of feet, jumping as high as possible.',
+      'Land softly with bent knees and absorb impact immediately into next rep.'
+    ],
+    commonErrors: ['Landing stiff-legged', 'Incomplete squat depth'],
+    videoUrl: 'https://assets.sportx.app/exercises/jump_squats.mp4',
+    animationUrl: 'https://assets.sportx.app/exercises/jump_squats.json',
+    thumbnail: 'https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=500',
+    formRules: {
+      postureRules: ['Soft landing on balls of feet', 'Continuous rhythm']
+    },
+    calorieFactor: 0.45,
+    baseRepXP: 12,
+    aiSupported: false,
+    category: 'lower_body',
+    isActive: true,
+    createdAt: new Date().toISOString()
+  },
+
+  // 37. WALL SIT
+  {
+    exerciseId: 'wall_sit',
+    name: 'Isometric Wall Sit',
+    sportId: 'general',
+    description: 'Quadriceps isometric hold strengthening knee tendon resilience and mental grit.',
+    targetMuscles: ['Quadriceps', 'Glutes'],
+    secondaryMuscles: ['Calves', 'Core'],
+    equipmentNeeded: ['none'],
+    difficulty: 'intermediate',
+    instructions: [
+      'Slide back down a wall until thighs are parallel to floor with knees at 90 degrees.',
+      'Keep back flat against wall and arms resting at sides.',
+      'Hold position while maintaining steady, calm breathing.'
+    ],
+    commonErrors: ['Resting hands on knees', 'Thighs not parallel to floor'],
+    videoUrl: 'https://assets.sportx.app/exercises/wall_sit.mp4',
+    animationUrl: 'https://assets.sportx.app/exercises/wall_sit.json',
+    thumbnail: 'https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=500',
+    formRules: {
+      postureRules: ['Knees at 90 degree angle', 'Back flat against wall']
+    },
+    calorieFactor: 0.25,
+    baseRepXP: 10,
+    aiSupported: false,
+    category: 'lower_body',
+    isActive: true,
+    createdAt: new Date().toISOString()
+  },
+
+  // 38. ATHLETIC BURPEES
+  {
+    exerciseId: 'burpees',
+    name: 'Athletic Burpees',
+    sportId: 'athletics',
+    description: 'Total body calisthenic combining squat, kick-out plank, pushup, and jump.',
+    targetMuscles: ['Full Body', 'Cardiovascular', 'Chest'],
+    secondaryMuscles: ['Quadriceps', 'Core', 'Deltoids'],
+    equipmentNeeded: ['none'],
+    difficulty: 'intermediate',
+    instructions: [
+      'From standing, drop hands to floor and kick feet back into high plank.',
+      'Perform a controlled push-up.',
+      'Jump feet forward outside hands, then explode upward into a jump with hands overhead.'
+    ],
+    commonErrors: ['Hips sagging in plank', 'Landing flat-footed'],
+    videoUrl: 'https://assets.sportx.app/exercises/burpees.mp4',
+    animationUrl: 'https://assets.sportx.app/exercises/burpees.json',
+    thumbnail: 'https://images.unsplash.com/photo-1601422407692-ec4eeec1d9b3?w=500',
+    formRules: {
+      postureRules: ['Maintain plank rigidity on kick-out', 'Land softly']
+    },
+    calorieFactor: 0.55,
+    baseRepXP: 15,
+    aiSupported: false,
+    category: 'cardio',
+    isActive: true,
+    createdAt: new Date().toISOString()
+  },
+
+  // 39. OUTDOOR DISTANCE RUNNING
+  {
+    exerciseId: 'outdoor_run',
+    name: 'Outdoor Distance Running',
+    sportId: 'athletics',
+    description: 'Continuous aerobic running developing VO2 max, cardiovascular capacity, and mental endurance.',
+    targetMuscles: ['Cardiovascular System', 'Calves', 'Quadriceps'],
+    secondaryMuscles: ['Hamstrings', 'Glutes', 'Core'],
+    equipmentNeeded: ['none'],
+    difficulty: 'intermediate',
+    instructions: [
+      'Maintain an upright posture with a slight forward lean from the ankles.',
+      'Land with midfoot underneath your hips at a cadence of ~160-180 steps per minute.',
+      'Keep shoulders relaxed and breathe rhythmically.'
+    ],
+    commonErrors: ['Overstriding / heel striking', 'Tense upper body and neck'],
+    videoUrl: 'https://assets.sportx.app/exercises/outdoor_run.mp4',
+    animationUrl: 'https://assets.sportx.app/exercises/outdoor_run.json',
+    thumbnail: 'https://images.unsplash.com/photo-1502680390469-be75c86b636f?w=500',
+    formRules: {
+      postureRules: ['Relaxed shoulders', 'Midfoot strike beneath hips']
+    },
+    calorieFactor: 0.65,
+    baseRepXP: 20,
+    aiSupported: false,
+    category: 'cardio',
+    isActive: true,
+    createdAt: new Date().toISOString()
+  },
+
+  // 40. CAMPUS JOGGING
+  {
+    exerciseId: 'campus_jog',
+    name: 'Campus Recovery Jogging',
+    sportId: 'athletics',
+    description: 'Easy conversational-pace jogging promoting recovery, blood flow, and base aerobic capacity.',
+    targetMuscles: ['Cardiovascular System', 'Calves'],
+    secondaryMuscles: ['Glutes', 'Hamstrings'],
+    equipmentNeeded: ['none'],
+    difficulty: 'beginner',
+    instructions: [
+      'Jog at an easy conversational pace where you can comfortably speak full sentences.',
+      'Keep arms swinging gently at 90-degree angles.',
+      'Focus on relaxed, consistent breathing.'
+    ],
+    commonErrors: ['Running too fast on recovery days', 'Poor hydration'],
+    videoUrl: 'https://assets.sportx.app/exercises/campus_jog.mp4',
+    animationUrl: 'https://assets.sportx.app/exercises/campus_jog.json',
+    thumbnail: 'https://images.unsplash.com/photo-1502680390469-be75c86b636f?w=500',
+    formRules: {
+      postureRules: ['Conversational breathing rate', 'Relaxed arm swing']
+    },
+    calorieFactor: 0.45,
+    baseRepXP: 15,
+    aiSupported: false,
+    category: 'cardio',
+    isActive: true,
+    createdAt: new Date().toISOString()
+  },
+
+  // 41. SPRINT INTERVALS
+  {
+    exerciseId: 'sprint_intervals',
+    name: 'Track & Turf Sprint Intervals',
+    sportId: 'athletics',
+    description: 'Maximum velocity sprinting drills training phosphagen and glycolytic energy systems.',
+    targetMuscles: ['Hamstrings', 'Glutes', 'Hip Flexors'],
+    secondaryMuscles: ['Calves', 'Core', 'Quadriceps'],
+    equipmentNeeded: ['none'],
+    difficulty: 'advanced',
+    instructions: [
+      'Accelerate with aggressive forward body lean and powerful arm drive.',
+      'Transition to upright sprinting posture at top speed with high knee drive.',
+      'Decelerate gradually and walk back for full recovery.'
+    ],
+    commonErrors: ['Hamstring strain from inadequate warm-up', 'Cutting recovery time short'],
+    videoUrl: 'https://assets.sportx.app/exercises/sprint_intervals.mp4',
+    animationUrl: 'https://assets.sportx.app/exercises/sprint_intervals.json',
+    thumbnail: 'https://images.unsplash.com/photo-1502680390469-be75c86b636f?w=500',
+    formRules: {
+      postureRules: ['High knee drive', 'Full explosive arm swing']
+    },
+    calorieFactor: 0.85,
+    baseRepXP: 25,
+    aiSupported: false,
+    category: 'cardio',
+    isActive: true,
+    createdAt: new Date().toISOString()
+  },
+
+  // 42. BRISK POWER WALKING
+  {
+    exerciseId: 'brisk_walk',
+    name: 'Brisk Power Walking',
+    sportId: 'athletics',
+    description: 'Low-impact cardiovascular conditioning for warm-ups, cool-downs, and recovery days.',
+    targetMuscles: ['Cardiovascular System', 'Calves'],
+    secondaryMuscles: ['Shins', 'Glutes'],
+    equipmentNeeded: ['none'],
+    difficulty: 'beginner',
+    instructions: [
+      'Walk at an energetic, brisk pace faster than a stroll.',
+      'Engage core and pump arms rhythmically with each step.',
+      'Maintain tall posture with gaze forward.'
+    ],
+    commonErrors: ['Slouching', 'Strolling pace'],
+    videoUrl: 'https://assets.sportx.app/exercises/brisk_walk.mp4',
+    animationUrl: 'https://assets.sportx.app/exercises/brisk_walk.json',
+    thumbnail: 'https://images.unsplash.com/photo-1502680390469-be75c86b636f?w=500',
+    formRules: {
+      postureRules: ['Upright spinal posture', 'Active arm drive']
+    },
+    calorieFactor: 0.3,
+    baseRepXP: 10,
+    aiSupported: false,
+    category: 'cardio',
+    isActive: true,
+    createdAt: new Date().toISOString()
+  },
+
+  // 43. THE WORLD'S GREATEST STRETCH
+  {
+    exerciseId: 'worlds_greatest_stretch',
+    name: "The World's Greatest Stretch",
+    sportId: 'general',
+    description: 'Full-body dynamic mobility movement hitting hip flexors, thoracic spine, hamstrings, and ankles.',
+    targetMuscles: ['Hip Flexors', 'Thoracic Spine', 'Hamstrings'],
+    secondaryMuscles: ['Groin', 'Ankles', 'Shoulders'],
+    equipmentNeeded: ['none'],
+    difficulty: 'beginner',
+    instructions: [
+      'Step forward into a deep lunge with back leg straight.',
+      'Place inside hand on floor and rotate opposite arm toward ceiling, opening chest.',
+      'Return hand to floor and push hips back to stretch front hamstring, then switch sides.'
+    ],
+    commonErrors: ['Rushing the rotation', 'Letting rear knee drop to floor immediately'],
+    videoUrl: 'https://assets.sportx.app/exercises/worlds_greatest_stretch.mp4',
+    animationUrl: 'https://assets.sportx.app/exercises/worlds_greatest_stretch.json',
+    thumbnail: 'https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=500',
+    formRules: {
+      postureRules: ['Long straight back leg', 'Open chest toward ceiling']
+    },
+    calorieFactor: 0.18,
+    baseRepXP: 8,
+    aiSupported: false,
+    category: 'mobility',
+    isActive: true,
+    createdAt: new Date().toISOString()
+  },
+
+  // 44. CAT-COW SPINAL WAVES
+  {
+    exerciseId: 'cat_cow',
+    name: 'Cat-Cow Spinal Waves',
+    sportId: 'general',
+    description: 'Gentle spinal flexion and extension flow lubricating vertebrae and relieving back stiffness.',
+    targetMuscles: ['Spinal Column', 'Neck', 'Abdominals'],
+    secondaryMuscles: ['Shoulders', 'Lower Back'],
+    equipmentNeeded: ['none'],
+    difficulty: 'beginner',
+    instructions: [
+      'Start on hands and knees with neutral spine.',
+      'Inhale: drop belly toward floor and look upward (Cow).',
+      'Exhale: arch spine toward ceiling, tucking chin to chest (Cat).',
+      'Flow smoothly between postures with deep breaths.'
+    ],
+    commonErrors: ['Moving only neck', 'Holding breath'],
+    videoUrl: 'https://assets.sportx.app/exercises/cat_cow.mp4',
+    animationUrl: 'https://assets.sportx.app/exercises/cat_cow.json',
+    thumbnail: 'https://images.unsplash.com/photo-1566241134883-13eb2393a3cc?w=500',
+    formRules: {
+      postureRules: ['Synchronize with breathing', 'Smooth articulate spinal wave']
+    },
+    calorieFactor: 0.15,
+    baseRepXP: 6,
+    aiSupported: false,
+    category: 'mobility',
+    isActive: true,
+    createdAt: new Date().toISOString()
+  },
+
+  // 45. HIP FLEXOR STRETCH
+  {
+    exerciseId: 'hip_flexor_stretch',
+    name: 'Half-Kneeling Hip Flexor Stretch',
+    sportId: 'general',
+    description: 'Essential posture corrective opening psoas and rectus femoris from long hours of study.',
+    targetMuscles: ['Iliopsoas', 'Rectus Femoris'],
+    secondaryMuscles: ['Lower Back', 'Glutes'],
+    equipmentNeeded: ['none'],
+    difficulty: 'beginner',
+    instructions: [
+      'Kneel on one knee with other foot planted forward at 90 degrees.',
+      'Tuck pelvis under (posterior tilt) and gently squeeze glute on kneeling side.',
+      'Shift weight slightly forward until stretch is felt in front of hip.'
+    ],
+    commonErrors: ['Arching lower back instead of tucking pelvis', 'Leaning excessively forward'],
+    videoUrl: 'https://assets.sportx.app/exercises/hip_flexor_stretch.mp4',
+    animationUrl: 'https://assets.sportx.app/exercises/hip_flexor_stretch.json',
+    thumbnail: 'https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=500',
+    formRules: {
+      postureRules: ['Posterior pelvic tilt', 'Keep glute active']
+    },
+    calorieFactor: 0.15,
+    baseRepXP: 6,
+    aiSupported: false,
+    category: 'mobility',
+    isActive: true,
+    createdAt: new Date().toISOString()
+  },
+
+  // 46. THORACIC WINDMILL
+  {
+    exerciseId: 'thoracic_rotation',
+    name: 'Side-Lying Thoracic Windmill',
+    sportId: 'general',
+    description: 'Rotational mobility exercise opening thoracic spine and chest while stabilizing lumbar spine.',
+    targetMuscles: ['Thoracic Spine', 'Pectoralis Minor'],
+    secondaryMuscles: ['Shoulders', 'Neck'],
+    equipmentNeeded: ['none'],
+    difficulty: 'beginner',
+    instructions: [
+      'Lie on side with hips and knees bent at 90 degrees and arms extended forward.',
+      'Sweep top arm in a slow arc overhead and across body, rotating chest toward ceiling.',
+      'Follow hand with eyes and return to start.'
+    ],
+    commonErrors: ['Hips rolling backward', 'Rushing motion'],
+    videoUrl: 'https://assets.sportx.app/exercises/thoracic_rotation.mp4',
+    animationUrl: 'https://assets.sportx.app/exercises/thoracic_rotation.json',
+    thumbnail: 'https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=500',
+    formRules: {
+      postureRules: ['Keep knees pinned to floor', 'Full visual tracking of hand']
+    },
+    calorieFactor: 0.15,
+    baseRepXP: 6,
+    aiSupported: false,
+    category: 'mobility',
+    isActive: true,
+    createdAt: new Date().toISOString()
+  },
+
+  // 47. DOWNWARD DOG TO COBRA
+  {
+    exerciseId: 'downward_dog',
+    name: 'Downward Dog to Cobra Flow',
+    sportId: 'general',
+    description: 'Dynamic yoga flow decompressing posterior chain and extending anterior abdominal wall.',
+    targetMuscles: ['Hamstrings', 'Calves', 'Shoulders'],
+    secondaryMuscles: ['Abdominals', 'Lower Back'],
+    equipmentNeeded: ['none'],
+    difficulty: 'beginner',
+    instructions: [
+      'Start in downward dog, pressing heels toward floor and chest toward thighs.',
+      'Rippling through spine, shift forward and lower hips into an upward dog/cobra posture.',
+      'Press back to downward dog smoothly.'
+    ],
+    commonErrors: ['Shrugging shoulders near ears', 'Bending knees excessively in dog'],
+    videoUrl: 'https://assets.sportx.app/exercises/downward_dog.mp4',
+    animationUrl: 'https://assets.sportx.app/exercises/downward_dog.json',
+    thumbnail: 'https://images.unsplash.com/photo-1566241134883-13eb2393a3cc?w=500',
+    formRules: {
+      postureRules: ['Open chest in cobra', 'Heels reaching toward floor in dog']
+    },
+    calorieFactor: 0.22,
+    baseRepXP: 8,
+    aiSupported: false,
+    category: 'mobility',
     isActive: true,
     createdAt: new Date().toISOString()
   }
@@ -968,14 +1538,23 @@ export class ExerciseRepository {
       }
 
       const snapshot = await query.get();
+      let list: ExerciseDoc[] = [];
+
       if (snapshot.empty) {
-        let list = INITIAL_EXERCISES;
-        if (filters?.sportId) list = list.filter((e) => e.sportId === filters.sportId);
-        if (filters?.difficulty) list = list.filter((e) => e.difficulty === filters.difficulty);
-        return list;
+        list = [...INITIAL_EXERCISES];
+      } else {
+        list = snapshot.docs.map((doc) => doc.data() as ExerciseDoc);
+        const existingIds = new Set(list.map((e) => e.exerciseId));
+        for (const initial of INITIAL_EXERCISES) {
+          if (!existingIds.has(initial.exerciseId)) {
+            list.push(initial);
+          }
+        }
       }
 
-      return snapshot.docs.map((doc) => doc.data() as ExerciseDoc);
+      if (filters?.sportId) list = list.filter((e) => e.sportId === filters.sportId);
+      if (filters?.difficulty) list = list.filter((e) => e.difficulty === filters.difficulty);
+      return list;
     } catch (err) {
       logger.error('Error fetching exercises:', err);
       return INITIAL_EXERCISES;

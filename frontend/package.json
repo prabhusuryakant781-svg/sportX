@@ -8,7 +8,7 @@
     "typecheck": "tsc --noEmit",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "test": "npx tsx tests/testVisionPipeline.js && node tests/testPriority2Flow.js && node tests/testCompetitiveLobby.js",
+    "test": "npx tsx tests/testVisionPipeline.js && npx tsx tests/testWorkoutLibraryExpanded.js && node tests/testPriority2Flow.js && node tests/testCompetitiveLobby.js",
     "test:p2": "node tests/testPriority2Flow.js"
   },
   "dependencies": {

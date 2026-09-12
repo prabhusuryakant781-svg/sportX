@@ -1,5 +1,6 @@
 import type { Exercise } from '../types';
 import { Camera, Check, ChevronRight, Activity } from 'lucide-react';
+import { isCameraSupported } from '../utils/exerciseUtils';
 
 interface ExerciseCardProps {
   exercise: Exercise;
@@ -8,12 +9,23 @@ interface ExerciseCardProps {
 }
 
 export default function ExerciseCard({ exercise, onSelect, selected }: ExerciseCardProps) {
+  const exId = exercise.id || exercise.exerciseId;
+  const hasCamera = isCameraSupported(exId);
+
   const iconEmoji = exercise.icon || (
-    exercise.id?.includes('pushup') || exercise.exerciseId?.includes('pushup')
+    exId?.includes('pushup')
       ? '💪'
-      : exercise.id?.includes('jumping') || exercise.exerciseId?.includes('jumping')
+      : exId?.includes('jumping')
       ? '⚡'
-      : '🏋️'
+      : exId?.includes('run') || exId?.includes('jog')
+      ? '🏃'
+      : exId?.includes('walk')
+      ? '🚶'
+      : exId?.includes('stretch') || exId?.includes('mobility')
+      ? '🧘'
+      : exId?.includes('squat')
+      ? '🏋️'
+      : '🎯'
   );
 
   return (
@@ -45,7 +57,7 @@ export default function ExerciseCard({ exercise, onSelect, selected }: ExerciseC
             )}
           </div>
 
-          <div className="flex items-center gap-2 mt-1">
+          <div className="flex items-center gap-2 mt-1 flex-wrap">
             <span className="text-[11px] font-semibold text-slate-400 capitalize">
               {exercise.category || 'Compound Drill'}
             </span>
@@ -53,6 +65,18 @@ export default function ExerciseCard({ exercise, onSelect, selected }: ExerciseC
             <span className="text-[10px] font-bold text-cyan uppercase tracking-wider px-1.5 py-0.2 rounded bg-cyan/10 border border-cyan/20">
               {exercise.difficulty || 'All Levels'}
             </span>
+            <span className="text-slate-600">•</span>
+            {hasCamera ? (
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-neon uppercase tracking-wider px-1.5 py-0.2 rounded bg-neon/10 border border-neon/20">
+                <Camera size={10} />
+                <span>AI Vision</span>
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 text-[10px] font-medium text-slate-400 uppercase tracking-wider px-1.5 py-0.2 rounded bg-surface-light border border-white/5">
+                <Activity size={10} />
+                <span>Guided Drill</span>
+              </span>
+            )}
           </div>
 
           {Array.isArray(exercise.targetMuscles) && exercise.targetMuscles.length > 0 && (
@@ -66,8 +90,10 @@ export default function ExerciseCard({ exercise, onSelect, selected }: ExerciseC
           )}
         </div>
 
-        <div className="flex items-center gap-1 text-slate-500 group-hover:text-neon transition-colors flex-shrink-0 pl-1">
-          <Camera size={18} />
+        <div className={`flex items-center gap-1 flex-shrink-0 pl-1 transition-colors ${
+          hasCamera ? 'text-neon/80 group-hover:text-neon' : 'text-slate-500 group-hover:text-cyan'
+        }`}>
+          {hasCamera ? <Camera size={18} /> : <Activity size={18} />}
           <ChevronRight size={14} />
         </div>
       </div>
