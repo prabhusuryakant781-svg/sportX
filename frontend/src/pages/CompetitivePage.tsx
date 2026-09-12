@@ -20,6 +20,7 @@ import {
   CompetitiveRankTier,
   QueueTicketDoc,
 } from '../types/competitive';
+import { CompetitiveMatchLoading } from '../components/CompetitiveMatchLoading';
 
 type FlowStage = 'HOME' | 'SEARCHING' | 'MATCH_ROOM' | 'COUNTDOWN' | 'CHALLENGE' | 'RESULT';
 
@@ -157,36 +158,6 @@ export default function CompetitivePage() {
     if (timerInterval.current) clearInterval(timerInterval.current);
   }
 
-  // ── Stage 2: Searching & Matchmaking Polling ────────────────────────────────
-  useEffect(() => {
-    if (stage !== 'SEARCHING' || !activeTicket) return;
-
-    setSearchSeconds(0);
-    const searchClock = setInterval(() => {
-      setSearchSeconds((s) => s + 1);
-    }, 1000);
-
-    // Poll ticket status every 2 seconds
-    searchPollInterval.current = setInterval(async () => {
-      try {
-        const res = await competitiveApi.getQueueStatus(activeTicket.ticketId);
-        if (res.ticket.status === 'MATCHED' && res.match) {
-          clearInterval(searchPollInterval.current!);
-          clearInterval(searchClock);
-          setActiveMatch(res.match);
-          setStage('MATCH_ROOM');
-        }
-      } catch (err) {
-        console.warn('Queue poll failed:', err);
-      }
-    }, 2000);
-
-    return () => {
-      clearInterval(searchClock);
-      if (searchPollInterval.current) clearInterval(searchPollInterval.current);
-    };
-  }, [stage, activeTicket]);
-
   // ── Match State Polling (in MATCH_ROOM or CHALLENGE) ─────────────────────────
   useEffect(() => {
     if ((stage !== 'MATCH_ROOM' && stage !== 'CHALLENGE') || !activeMatch) return;
@@ -232,11 +203,9 @@ export default function CompetitivePage() {
       if (res.match) {
         // Immediate match found!
         setActiveMatch(res.match);
-        setStage('MATCH_ROOM');
-      } else {
-        // Placed in queue
-        setStage('SEARCHING');
       }
+      // Enter SEARCHING stage to display the CompetitiveMatchLoading waiting/countdown screen
+      setStage('SEARCHING');
     } catch (err: any) {
       setError(err.message || 'Failed to join matchmaking queue');
     } finally {
@@ -488,61 +457,24 @@ export default function CompetitivePage() {
       )}
 
       {/* ═══════════════════════════════════════════════════════════════════════════
-          STAGE 2: LOBBY SEARCHING GRAPHIC
+          STAGE 2: COMPETITIVE LOBBY LOADING & WAITING SCREEN
           ═══════════════════════════════════════════════════════════════════════════ */}
       {stage === 'SEARCHING' && (
-        <div className="px-4 py-16 flex flex-col items-center text-center space-y-8">
-          {/* High-Tech Radar Searching Graphic */}
-          <div className="relative w-56 h-56 flex items-center justify-center">
-            {/* Outer pulsating ring */}
-            <div className="absolute inset-0 rounded-full border-2 border-blue-500/30 animate-ping" />
-            {/* Middle pulsing wave */}
-            <div className="absolute inset-6 rounded-full border-2 border-indigo-500/40 animate-pulse" />
-            {/* Concentric grid rings */}
-            <div className="absolute inset-12 rounded-full border border-purple-500/50" />
-            <div className="absolute inset-16 rounded-full border border-cyan-500/30 border-dashed animate-spin" style={{ animationDuration: '12s' }} />
-            {/* Glowing central core */}
-            <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-blue-600 via-indigo-600 to-purple-600 flex items-center justify-center text-4xl shadow-2xl shadow-blue-500/50 relative z-10">
-              ⚡
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <h2 className="text-2xl font-black text-white tracking-wide flex items-center justify-center gap-2">
-              <span>SEARCHING LOBBY</span>
-              <span className="inline-flex gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-bounce" style={{ animationDelay: '0ms' }} />
-                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-bounce" style={{ animationDelay: '150ms' }} />
-                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-bounce" style={{ animationDelay: '300ms' }} />
-              </span>
-            </h2>
-            <p className="text-xs text-slate-400">
-              Scanning for online athletes in {currentRankTier} tier (±1 window)
-            </p>
-            <div className="mt-2 inline-block px-4 py-1.5 rounded-full bg-slate-900/90 border border-white/10 text-xs font-mono text-cyan-400 shadow-inner">
-              Queue Elapsed: {String(Math.floor(searchSeconds / 60)).padStart(2, '0')}:
-              {String(searchSeconds % 60).padStart(2, '0')}
-            </div>
-          </div>
-
-          <div className="w-full max-w-xs space-y-3 pt-4">
-            {/* Dev Mode Instant Simulation Helper */}
-            <button
-              onClick={handleDevSimulateOpponent}
-              className="w-full py-3 px-4 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-400 text-xs font-bold uppercase tracking-wider transition flex items-center justify-center gap-2"
-            >
-              <span>🤖</span> Instant Pair (Simulated Opponent)
-            </button>
-
-            {/* Cancel Button */}
-            <button
-              onClick={handleCancelSearch}
-              className="w-full py-3 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 border border-white/10 text-slate-300 text-xs font-bold transition"
-            >
-              Cancel Search
-            </button>
-          </div>
-        </div>
+        <CompetitiveMatchLoading
+          ticket={activeTicket}
+          initialMatch={activeMatch}
+          targetPlayers={2}
+          countdownDuration={4}
+          onMatchReady={(readyMatch) => {
+            setActiveMatch(readyMatch);
+            setStage('CHALLENGE');
+            setTimeLeft(readyMatch.challenge.durationSeconds || 90);
+            setMyReps(0);
+            setMyQuality(92);
+            startChallengeTimer(readyMatch);
+          }}
+          onCancel={handleCancelSearch}
+        />
       )}
 
       {/* ═══════════════════════════════════════════════════════════════════════════
