@@ -1,101 +1,118 @@
 /**
  * SportX Leaderboard Repository
- * Real-time dynamic Firestore ranking queries based on XP, streaks, and university/campus
+ * Real-time dynamic Firestore ranking queries based on XP, RP, streaks, and university/campus
  */
-import { db } from '../config/firebase';
+import { db, hasFirebaseCredentials } from '../config/firebase';
 import { LeaderboardEntryDoc, UserDoc } from '../types';
 import * as logger from 'firebase-functions/logger';
+import { assertProductionSafe } from '../config/productionSafety';
+
+// Timeout helper to avoid hung promises when Firestore is unreachable offline
+async function withTimeout<T>(promise: Promise<T>, ms = 2000): Promise<T> {
+  let timer: NodeJS.Timeout;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`Operation timed out after ${ms}ms`)), ms);
+  });
+  return Promise.race([promise, timeoutPromise]).finally(() => {
+    if (timer) clearTimeout(timer);
+  });
+}
 
 export class LeaderboardRepository {
   /**
-   * Global leaderboard sorted by total XP descending
+   * Global leaderboard sorted by total XP or RP descending
    */
-  static async getGlobal(limit: number = 25): Promise<LeaderboardEntryDoc[]> {
-    try {
-      const snap = await db
-        .collection('users')
-        .orderBy('xp', 'desc')
-        .limit(limit)
-        .get();
+  static async getGlobal(limit: number = 25, sortBy: 'xp' | 'rp' = 'xp'): Promise<LeaderboardEntryDoc[]> {
+    if (hasFirebaseCredentials) {
+      try {
+        const orderField = sortBy === 'rp' ? 'rankPoints' : 'xp';
+        const snap = await withTimeout(
+          db.collection('users')
+            .orderBy(orderField, 'desc')
+            .limit(limit)
+            .get(),
+          2000
+        );
 
-      if (snap.empty) {
-        return this.getFallbackLeaders();
+        if (!snap.empty) {
+          return snap.docs.map((doc, idx) => {
+            const u = doc.data() as UserDoc;
+            const totalXp = (u as any).totalXp ?? u.xp ?? (u as any).XP ?? 0;
+            return {
+              userId: u.userId,
+              name: u.name || 'Anonymous Athlete',
+              profileImage: u.profileImage || '',
+              collegeName: u.collegeName || 'Campus University',
+              department: u.department || 'General',
+              totalXp,
+              currentStreak: u.currentStreak || 0,
+              level: u.level || 1,
+              rank: idx + 1,
+              rankPoints: u.rankPoints ?? 100,
+              rankTier: u.rankTier || 'Bronze',
+              equippedTitle: u.equippedTitle,
+              featuredBadge: u.featuredBadges?.[0] || u.badges?.[0],
+              lastUpdated: u.updatedAt || new Date().toISOString(),
+            };
+          });
+        }
+      } catch (err) {
+        logger.error('Error fetching global leaderboard:', err);
+        assertProductionSafe('LeaderboardRepository.getGlobal', err);
       }
-
-      return snap.docs.map((doc, idx) => {
-        const u = doc.data() as UserDoc;
-        return {
-          userId: u.userId,
-          name: u.name || 'Anonymous Athlete',
-          profileImage: u.profileImage || '',
-          collegeName: u.collegeName || 'Campus University',
-          department: u.department || 'General',
-          totalXp: u.xp || 0,
-          currentStreak: u.currentStreak || 0,
-          level: u.level || 1,
-          rank: idx + 1,
-          rankPoints: u.rankPoints ?? 100,
-          rankTier: u.rankTier || 'Bronze',
-          lastUpdated: u.updatedAt || new Date().toISOString(),
-        };
-      });
-    } catch (err) {
-      logger.error('Error fetching global leaderboard:', err);
-      return this.getFallbackLeaders();
     }
+
+    return [];
   }
 
   /**
    * College-specific or department leaderboard
    */
-  static async getByCollege(collegeName: string = 'Campus University', limit: number = 25): Promise<LeaderboardEntryDoc[]> {
-    try {
-      const snap = await db
-        .collection('users')
-        .where('collegeName', '==', collegeName)
-        .orderBy('xp', 'desc')
-        .limit(limit)
-        .get();
+  static async getByCollege(
+    collegeName: string = 'Campus University',
+    limit: number = 25,
+    sortBy: 'xp' | 'rp' = 'xp'
+  ): Promise<LeaderboardEntryDoc[]> {
+    if (hasFirebaseCredentials) {
+      try {
+        const orderField = sortBy === 'rp' ? 'rankPoints' : 'xp';
+        const snap = await withTimeout(
+          db.collection('users')
+            .where('collegeName', '==', collegeName)
+            .orderBy(orderField, 'desc')
+            .limit(limit)
+            .get(),
+          2000
+        );
 
-      if (snap.empty) {
-        return this.getFallbackLeaders().map((l, idx) => ({ ...l, collegeName, rank: idx + 1 }));
+        if (!snap.empty) {
+          return snap.docs.map((doc, idx) => {
+            const u = doc.data() as UserDoc;
+            const totalXp = (u as any).totalXp ?? u.xp ?? (u as any).XP ?? 0;
+            return {
+              userId: u.userId,
+              name: u.name || 'Anonymous Athlete',
+              profileImage: u.profileImage || '',
+              collegeName: u.collegeName,
+              department: u.department,
+              totalXp,
+              currentStreak: u.currentStreak || 0,
+              level: u.level || 1,
+              rank: idx + 1,
+              rankPoints: u.rankPoints ?? 100,
+              rankTier: u.rankTier || 'Bronze',
+              equippedTitle: u.equippedTitle,
+              featuredBadge: u.featuredBadges?.[0] || u.badges?.[0],
+              lastUpdated: u.updatedAt || new Date().toISOString(),
+            };
+          });
+        }
+      } catch (err) {
+        logger.error(`Error fetching college leaderboard for ${collegeName}:`, err);
+        assertProductionSafe('LeaderboardRepository.getByCollege', err);
       }
-
-      return snap.docs.map((doc, idx) => {
-        const u = doc.data() as UserDoc;
-        return {
-          userId: u.userId,
-          name: u.name,
-          profileImage: u.profileImage,
-          collegeName: u.collegeName,
-          department: u.department,
-          totalXp: u.xp || 0,
-          currentStreak: u.currentStreak || 0,
-          level: u.level || 1,
-          rank: idx + 1,
-          rankPoints: u.rankPoints ?? 100,
-          rankTier: u.rankTier || 'Bronze',
-          lastUpdated: u.updatedAt || new Date().toISOString(),
-        };
-      });
-    } catch (err) {
-      logger.error(`Error fetching college leaderboard for ${collegeName}:`, err);
-      return this.getFallbackLeaders();
     }
-  }
 
-  /**
-   * Fallback curated entries for clean first-time display
-   */
-  private static getFallbackLeaders(): LeaderboardEntryDoc[] {
-    return [
-      { userId: 'lead_1', name: 'Priya Patel', collegeName: 'IIT Bombay', department: 'Computer Science', totalXp: 4850, currentStreak: 14, level: 7, rank: 1, rankPoints: 1750, rankTier: 'Diamond', lastUpdated: new Date().toISOString() },
-      { userId: 'lead_2', name: 'Aarav Sharma', collegeName: 'Campus University', department: 'Engineering', totalXp: 3920, currentStreak: 8, level: 6, rank: 2, rankPoints: 1320, rankTier: 'Platinum', lastUpdated: new Date().toISOString() },
-      { userId: 'lead_3', name: 'Neha Joshi', collegeName: 'IIT Delhi', department: 'Electrical', totalXp: 3100, currentStreak: 9, level: 5, rank: 3, rankPoints: 980, rankTier: 'Gold', lastUpdated: new Date().toISOString() },
-      { userId: 'lead_4', name: 'Rohan Verma', collegeName: 'VIT Vellore', department: 'Biotechnology', totalXp: 2600, currentStreak: 7, level: 5, rank: 4, rankPoints: 850, rankTier: 'Gold', lastUpdated: new Date().toISOString() },
-      { userId: 'lead_5', name: 'Anika Singh', collegeName: 'NIT Trichy', department: 'Mechanical', totalXp: 2150, currentStreak: 5, level: 4, rank: 5, rankPoints: 620, rankTier: 'Silver', lastUpdated: new Date().toISOString() },
-      { userId: 'lead_6', name: 'Dev Kapoor', collegeName: 'IIT Madras', department: 'Physics', totalXp: 1840, currentStreak: 3, level: 4, rank: 6, rankPoints: 480, rankTier: 'Silver', lastUpdated: new Date().toISOString() },
-      { userId: 'lead_7', name: 'Shreya Gupta', collegeName: 'Campus University', department: 'Information Tech', totalXp: 1420, currentStreak: 6, level: 3, rank: 7, rankPoints: 260, rankTier: 'Bronze', lastUpdated: new Date().toISOString() },
-    ];
+    return [];
   }
 }

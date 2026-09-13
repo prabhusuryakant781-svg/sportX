@@ -8,7 +8,7 @@ import { UserDoc } from '../types';
 import { XPRepository } from './xpRepository';
 import { StreakRepository } from './streakRepository';
 import { BadgeRepository } from './badgeRepository';
-import { GamificationService, SYSTEM_BADGES } from '../services/gamificationService';
+import { GamificationService, SYSTEM_BADGES, SYSTEM_TITLES } from '../services/gamificationService';
 import { FieldValue } from 'firebase-admin/firestore';
 import * as logger from 'firebase-functions/logger';
 
@@ -504,6 +504,118 @@ export class UserRepository {
         logger.warn(`[UserRepository] updateRank failed for ${userId}:`, err);
       }
     }
+  }
+
+  /**
+   * Equip an unlocked athlete title. Locked titles cannot be equipped.
+   */
+  static async equipTitle(userId: string, titleId: string): Promise<{ success: boolean; error?: string }> {
+    const user = await this.getById(userId);
+    if (!user) {
+      return { success: false, error: 'User not found' };
+    }
+
+    // Title un-equip (allow clearing or setting to empty string)
+    if (!titleId || titleId === '') {
+      if (hasFirebaseCredentials) {
+        try {
+          await db.collection(COLLECTION).doc(userId).update({
+            equippedTitle: null,
+            updatedAt: new Date().toISOString(),
+          });
+        } catch (err) {
+          logger.warn(`[UserRepository] equipTitle clear failed for ${userId}:`, err);
+        }
+      }
+      user.equippedTitle = undefined;
+      localUsersCache.set(userId, user);
+      return { success: true };
+    }
+
+    const titleDef = SYSTEM_TITLES.find((t) => t.id === titleId);
+    if (!titleDef) {
+      return { success: false, error: `Invalid title '${titleId}'.` };
+    }
+
+    // Verify user owns/qualified for this title
+    const unlockedTitles = GamificationService.evaluateUnlockedTitles(user.badges || [], {
+      totalXp: (user as any).totalXp ?? user.xp,
+      rankTier: user.rankTier,
+      currentStreak: user.currentStreak,
+      totalWorkouts: user.totalWorkouts,
+      totalReps: (user.totalWorkouts || 0) * 15,
+    });
+
+    if (!unlockedTitles.includes(titleId)) {
+      return {
+        success: false,
+        error: `Title '${titleDef.name}' is locked. Requirement: ${titleDef.unlockRequirement}.`,
+      };
+    }
+
+    // Persist equipped title
+    user.equippedTitle = titleId;
+    user.unlockedTitles = unlockedTitles;
+    localUsersCache.set(userId, user);
+
+    if (hasFirebaseCredentials) {
+      try {
+        await db.collection(COLLECTION).doc(userId).set(
+          {
+            equippedTitle: titleId,
+            unlockedTitles,
+            updatedAt: new Date().toISOString(),
+          },
+          { merge: true }
+        );
+      } catch (err) {
+        logger.warn(`[UserRepository] equipTitle Firestore failed for ${userId}:`, err);
+      }
+    }
+
+    return { success: true };
+  }
+
+  /**
+   * Update showcased/featured badges on user profile (up to 6 slots).
+   * Validates that all selected badge IDs are unlocked by the user.
+   */
+  static async updateFeaturedBadges(userId: string, badgeIds: string[]): Promise<{ success: boolean; error?: string }> {
+    const user = await this.getById(userId);
+    if (!user) {
+      return { success: false, error: 'User not found' };
+    }
+
+    const sanitizedBadgeIds = Array.isArray(badgeIds) ? badgeIds.slice(0, 6) : [];
+    const ownedBadges = new Set(user.badges || []);
+
+    for (const bId of sanitizedBadgeIds) {
+      if (!ownedBadges.has(bId)) {
+        return {
+          success: false,
+          error: `Cannot showcase badge '${bId}' because it is locked.`,
+        };
+      }
+    }
+
+    user.featuredBadges = sanitizedBadgeIds;
+    localUsersCache.set(userId, user);
+
+    if (hasFirebaseCredentials) {
+      try {
+        await db.collection(COLLECTION).doc(userId).set(
+          {
+            featuredBadges: sanitizedBadgeIds,
+            updatedAt: new Date().toISOString(),
+          },
+          { merge: true }
+        );
+      } catch (err) {
+        logger.warn(`[UserRepository] updateFeaturedBadges Firestore failed for ${userId}:`, err);
+      }
+    }
+
+    return { success: true };
   }
 
   /**

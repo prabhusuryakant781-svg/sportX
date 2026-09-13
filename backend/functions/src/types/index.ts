@@ -55,6 +55,11 @@ export interface UserDoc {
   rankPoints?: number;
   rankTier?: string; // Bronze, Silver, Gold, Platinum, Diamond
 
+  // Step 6 Athlete Progression & Gamification
+  equippedTitle?: string;
+  unlockedTitles?: string[];
+  featuredBadges?: string[];
+
   // College / Social info
   collegeName?: string;
   department?: string;
@@ -260,17 +265,27 @@ export interface XPTransactionDoc {
 }
 
 // ── 9. Badges & Milestones (badges/{badgeId} & userBadges/{id}) ─────────────
+export type BadgeRarity = 'Common' | 'Uncommon' | 'Rare' | 'Epic' | 'Legendary';
+export type BadgeCategory = 'workout' | 'streak' | 'reps' | 'form' | 'sports' | 'competitive' | 'xp' | 'special';
+
 export interface BadgeDoc {
   id: string;
   name: string;
   description: string;
   icon: string;
-  category: 'workout' | 'streak' | 'xp' | 'form' | 'special';
+  category: BadgeCategory;
+  rarity?: BadgeRarity;
+  isMilestone?: boolean;
   xpThreshold?: number;
   streakRequired?: number;
   workoutsRequired?: number;
   repsRequired?: number;
   formAccuracyRequired?: number;
+  highFormSessionsRequired?: number;
+  competitiveMatchesRequired?: number;
+  competitiveWinsRequired?: number;
+  rankTierRequired?: string;
+  sportIdRequired?: string;
   xpReward?: number;
   isActive?: boolean;
   createdAt?: string;
@@ -283,8 +298,29 @@ export interface UserBadgeDoc {
   badgeName: string;
   description: string;
   icon: string;
+  rarity?: BadgeRarity;
+  isMilestone?: boolean;
+  category?: BadgeCategory;
   xpReward: number;
   unlockedAt: string | Timestamp | FieldValue;
+}
+
+// ── 9b. Titles (system & users/{userId}) ──────────────────────────────────────
+export interface TitleDoc {
+  id: string;
+  name: string;
+  description: string;
+  rarity: BadgeRarity;
+  category: BadgeCategory;
+  unlockRequirement: string;
+  badgeIdRequired?: string;
+  rankTierRequired?: string;
+  xpRequired?: number;
+  streakRequired?: number;
+  repsRequired?: number;
+  workoutsRequired?: number;
+  unlockedAt?: string;
+  isEquipped?: boolean;
 }
 
 // ── 10. Device Tokens (deviceTokens/{tokenId}) ──────────────────────────────
@@ -390,5 +426,7 @@ export interface LeaderboardEntryDoc {
   rank?: number;
   rankPoints?: number;
   rankTier?: string;
+  equippedTitle?: string;
+  featuredBadge?: string;
   lastUpdated: string | Timestamp | FieldValue;
 }

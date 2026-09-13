@@ -79,6 +79,9 @@ export class BadgeRepository {
       badgeName: badge.name,
       description: badge.description,
       icon: badge.icon,
+      rarity: badge.rarity,
+      isMilestone: badge.isMilestone,
+      category: badge.category,
       xpReward: badge.xpReward || 50,
       unlockedAt: new Date().toISOString(),
     };
@@ -100,6 +103,18 @@ export class BadgeRepository {
     }
 
     return true;
+  }
+
+  /**
+   * Get user badges mapped by badgeId
+   */
+  static async getUserBadgeMap(userId: string): Promise<Map<string, UserBadgeDoc>> {
+    const badges = await this.getUserBadges(userId);
+    const map = new Map<string, UserBadgeDoc>();
+    for (const b of badges) {
+      map.set(b.badgeId, b);
+    }
+    return map;
   }
 
   /**

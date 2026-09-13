@@ -120,10 +120,13 @@ export const api = {
   // ── Gamification ───────────────────────────────────────────────────────────
   getBadges: () => request('GET', '/gamification/badges'),
   getGamificationStatus: () => request('GET', '/gamification/status'),
+  getTitles: () => request('GET', '/gamification/titles'),
+  equipTitle: (titleId: string) => request('PUT', '/gamification/equip-title', { titleId }),
+  updateFeaturedBadges: (badgeIds: string[]) => request('PUT', '/gamification/featured-badges', { badgeIds }),
 
   // ── Leaderboard ────────────────────────────────────────────────────────────
-  getGlobalLeaderboard: () => request('GET', '/leaderboard/global'),
-  getCollegeLeaderboard: () => request('GET', '/leaderboard/college'),
+  getGlobalLeaderboard: (sortBy: 'xp' | 'rp' = 'xp') => request('GET', `/leaderboard/global?sortBy=${sortBy}`),
+  getCollegeLeaderboard: (sortBy: 'xp' | 'rp' = 'xp') => request('GET', `/leaderboard/college?sortBy=${sortBy}`),
 
   // ── AI Coach (Gemini) ──────────────────────────────────────────────────────
   askCoach: (body: { message: string; context?: string; history?: Array<{ role: 'user' | 'assistant'; content: string }> }) =>

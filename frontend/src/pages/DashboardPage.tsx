@@ -22,7 +22,8 @@ import {
   ChevronRight, 
   Award,
   Sparkles,
-  Activity
+  Activity,
+  Crown
 } from 'lucide-react';
 
 export default function DashboardPage() {
@@ -147,13 +148,27 @@ export default function DashboardPage() {
 
               {/* Authoritative Competitive Rank & Level */}
               <div className="flex justify-between items-center mt-2 text-[11px] text-slate-400 font-medium">
-                <span>Rank: <strong className="text-amber-400 font-bold">{user?.rankTier || (user?.rankPoints ? 'Bronze' : 'Bronze')}</strong> ({user?.rankPoints ?? 0} RP)</span>
+                <span>Rank: <strong className="text-amber-400 font-bold">{user?.rankTier || 'Bronze'}</strong> ({user?.rankPoints ?? 0} RP)</span>
                 <span className="text-cyan font-semibold">
                   {(user?.rankPoints ?? 0) >= 1600 
                     ? 'Diamond Division' 
                     : `${Math.max(0, (user?.rankPoints ?? 0) < 400 ? 400 - (user?.rankPoints ?? 0) : (user?.rankPoints ?? 0) < 800 ? 800 - (user?.rankPoints ?? 0) : (user?.rankPoints ?? 0) < 1200 ? 1200 - (user?.rankPoints ?? 0) : 1600 - (user?.rankPoints ?? 0))} RP to Next Rank`}
                 </span>
               </div>
+
+              {/* Active Title Banner (if equipped) */}
+              {user?.equippedTitle && (
+                <div className="mt-2 pt-1.5 border-t border-white/5 flex items-center justify-between">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Active Title</span>
+                  <Link
+                    to="/profile"
+                    className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 hover:border-amber-400 transition"
+                  >
+                    <Crown size={10} />
+                    <span>{user.equippedTitle.replace('title_', '').replace(/_/g, ' ').toUpperCase()}</span>
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
 
@@ -172,13 +187,19 @@ export default function DashboardPage() {
               <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mt-1">Total XP</span>
             </div>
 
-            <div className="flex flex-col items-center justify-center p-2 rounded-xl bg-surface/40 border border-white/5">
-              <div className="flex items-center gap-1 text-amber-400 font-black text-sm tabular-nums">
+            <Link
+              to="/badges"
+              className="flex flex-col items-center justify-center p-2 rounded-xl bg-surface/40 border border-white/5 hover:border-neon/40 hover:bg-surface/60 transition group cursor-pointer"
+            >
+              <div className="flex items-center gap-1 text-amber-400 font-black text-sm tabular-nums group-hover:scale-105 transition">
                 <Award size={14} />
                 <span>{badges.length}</span>
               </div>
-              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mt-1">Badges</span>
-            </div>
+              <span className="text-[10px] font-semibold text-slate-400 group-hover:text-neon uppercase tracking-wider mt-1 flex items-center gap-0.5">
+                <span>Trophies</span>
+                <ChevronRight size={10} />
+              </span>
+            </Link>
           </div>
         </div>
       </header>

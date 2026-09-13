@@ -1,32 +1,35 @@
 import type { LeaderboardEntry } from '../types';
-import { Flame, Medal, Award, Crown } from 'lucide-react';
+import { Flame, Crown, Award, Swords } from 'lucide-react';
 
 interface LeaderboardRowProps {
   entry: LeaderboardEntry;
   index: number;
+  sortBy?: 'xp' | 'rp';
 }
 
-export default function LeaderboardRow({ entry, index }: LeaderboardRowProps) {
-  const isTopThree = index < 3;
-
+export default function LeaderboardRow({ entry, index, sortBy = 'xp' }: LeaderboardRowProps) {
   const rankBadge = index === 0 ? (
-    <span className="text-xl" title="1st Place">🥇</span>
+    <span className="text-xl select-none" title="1st Place">🥇</span>
   ) : index === 1 ? (
-    <span className="text-xl" title="2nd Place">🥈</span>
+    <span className="text-xl select-none" title="2nd Place">🥈</span>
   ) : index === 2 ? (
-    <span className="text-xl" title="3rd Place">🥉</span>
+    <span className="text-xl select-none" title="3rd Place">🥉</span>
   ) : (
     <span className="text-xs font-black text-slate-500 tabular-nums font-outfit">
       #{index + 1}
     </span>
   );
 
+  const titleDisplayName = entry.equippedTitle
+    ? entry.equippedTitle.replace('title_', '').replace(/_/g, ' ').toUpperCase()
+    : null;
+
   return (
     <div
       className={`lb-row px-3 py-3 rounded-xl transition-all ${
         entry.isCurrentUser
           ? 'bg-neon/10 border border-neon/30 shadow-glow-sm'
-          : 'hover:bg-surface/50'
+          : 'hover:bg-surface/50 border border-transparent'
       }`}
     >
       <div className="lb-rank flex items-center justify-center flex-shrink-0">
@@ -51,21 +54,33 @@ export default function LeaderboardRow({ entry, index }: LeaderboardRowProps) {
               YOU
             </span>
           )}
+          {titleDisplayName && (
+            <span className="inline-flex items-center gap-0.5 text-[9px] font-black uppercase tracking-wider px-1.5 py-0.2 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30">
+              <Crown size={9} />
+              <span>{titleDisplayName}</span>
+            </span>
+          )}
           {entry.rankTier && (
-            <span className="text-[9px] font-black uppercase tracking-wide px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30">
+            <span className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.2 rounded bg-slate-800 text-slate-300 border border-slate-700">
               {entry.rankTier} {entry.rankPoints !== undefined ? `• ${entry.rankPoints} RP` : ''}
             </span>
           )}
         </div>
-        <div className="text-[11px] text-slate-400 truncate">
-          {entry.college || 'Collegiate Athlete'}
+        <div className="text-[11px] text-slate-400 truncate mt-0.5">
+          {entry.college || 'Campus University'}
         </div>
       </div>
 
       <div className="text-right flex-shrink-0">
-        <div className="lb-xp font-outfit tabular-nums font-black text-sm text-neon">
-          {entry.totalXp.toLocaleString()} <span className="text-[10px] font-bold">XP</span>
-        </div>
+        {sortBy === 'rp' ? (
+          <div className="lb-xp font-outfit tabular-nums font-black text-sm text-amber-400">
+            {(entry.rankPoints ?? 100).toLocaleString()} <span className="text-[10px] font-bold">RP</span>
+          </div>
+        ) : (
+          <div className="lb-xp font-outfit tabular-nums font-black text-sm text-neon">
+            {entry.totalXp.toLocaleString()} <span className="text-[10px] font-bold">XP</span>
+          </div>
+        )}
         <div className="text-[10px] text-amber-400 font-semibold flex items-center justify-end gap-0.5 tabular-nums">
           <Flame size={11} className="fill-amber-400/20 text-amber-400" />
           <span>{entry.currentStreak}d</span>

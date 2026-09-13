@@ -309,6 +309,7 @@ export class WorkoutCompletionService {
       const newLevel = GamificationService.calculateLevel(newTotalXP);
       const updatedTotalWorkouts = (user.totalWorkouts || 0) + 1;
 
+      const effectiveSportId = input.sportId || existingSession.sportId || 'general';
       const badgeResult = GamificationService.evaluateUnlockedBadges({
         currentBadges: user.badges || [],
         totalWorkouts: updatedTotalWorkouts,
@@ -316,6 +317,8 @@ export class WorkoutCompletionService {
         totalXP: newTotalXP,
         currentStreak: streakResult.currentStreak,
         sessionFormAccuracy: score,
+        sportId: effectiveSportId,
+        rankTier: user.rankTier,
       });
 
       const newBadgeIds = badgeResult.newBadges.map((b) => b.id);

@@ -20,6 +20,8 @@ export interface User {
   bestStreak?: number;
   rankPoints?: number;
   rankTier?: string;
+  equippedTitle?: string;
+  featuredBadges?: string[];
   lastWorkoutDate: string | null;
   lastActivityDate?: string | null;
   createdAt: string;
@@ -89,6 +91,8 @@ export interface LeaderboardEntry {
   currentStreak: number;
   rankPoints?: number;
   rankTier?: string;
+  equippedTitle?: string;
+  featuredBadge?: string;
   isCurrentUser?: boolean;
 }
 

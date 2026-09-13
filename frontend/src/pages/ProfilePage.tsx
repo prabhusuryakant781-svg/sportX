@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
@@ -19,18 +19,70 @@ import {
   X,
   Edit3,
   Trophy,
-  Swords
+  Swords,
+  Crown,
+  Lock,
+  Plus,
+  Sparkles
 } from 'lucide-react';
 import { getRankTierFromRP, getNextRankTier, getRPNeededForNextTier, CompetitiveRankTier } from '../types/competitive';
+
+interface TitleItem {
+  id: string;
+  name: string;
+  description: string;
+  rarity: 'Common' | 'Uncommon' | 'Rare' | 'Epic' | 'Legendary';
+  category: string;
+  unlockRequirement: string;
+  unlocked: boolean;
+  isEquipped: boolean;
+}
+
+interface BadgeItem {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  rarity: string;
+  category: string;
+  unlocked: boolean;
+}
+
+const TITLE_RARITY_THEMES: Record<string, { badge: string; text: string; border: string }> = {
+  Common: { badge: 'bg-slate-800 text-slate-300 border-slate-700', text: 'text-slate-300', border: 'border-slate-700' },
+  Uncommon: { badge: 'bg-emerald-950 text-emerald-400 border-emerald-700/60', text: 'text-emerald-400', border: 'border-emerald-700/50' },
+  Rare: { badge: 'bg-cyan-950 text-cyan-400 border-cyan-700/60', text: 'text-cyan-400', border: 'border-cyan-600/50' },
+  Epic: { badge: 'bg-purple-950 text-purple-300 border-purple-700/60', text: 'text-purple-300', border: 'border-purple-600/50' },
+  Legendary: { badge: 'bg-amber-950 text-amber-300 border-amber-500/80', text: 'text-amber-400', border: 'border-amber-500/60' },
+};
 
 export default function ProfilePage() {
   const { user, logout, refreshUser } = useAuth();
   const navigate = useNavigate();
+
   const [showBugModal, setShowBugModal] = useState(false);
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
   const [nameInput, setNameInput] = useState('');
   const [selectedLevel, setSelectedLevel] = useState<'beginner' | 'intermediate' | 'pro'>('beginner');
   const [savingProfile, setSavingProfile] = useState(false);
+
+  // Titles State
+  const [showTitlesModal, setShowTitlesModal] = useState(false);
+  const [titles, setTitles] = useState<TitleItem[]>([]);
+  const [loadingTitles, setLoadingTitles] = useState(false);
+  const [equippingTitleId, setEquippingTitleId] = useState<string | null>(null);
+
+  // Featured Badges State
+  const [showShowcaseModal, setShowShowcaseModal] = useState(false);
+  const [availableBadges, setAvailableBadges] = useState<BadgeItem[]>([]);
+  const [selectedFeatured, setSelectedFeatured] = useState<string[]>([]);
+  const [savingShowcase, setSavingShowcase] = useState(false);
+
+  useEffect(() => {
+    if (user?.featuredBadges) {
+      setSelectedFeatured(user.featuredBadges);
+    }
+  }, [user]);
 
   const handleLogout = () => {
     logout();
@@ -62,6 +114,85 @@ export default function ProfilePage() {
     }
   };
 
+  const openTitlesModal = async () => {
+    setShowTitlesModal(true);
+    setLoadingTitles(true);
+    try {
+      const res: any = await api.getTitles();
+      if (res?.success && Array.isArray(res.data)) {
+        setTitles(res.data);
+      }
+    } catch (err) {
+      console.error('Failed to load titles:', err);
+    } finally {
+      setLoadingTitles(false);
+    }
+  };
+
+  const handleEquipTitle = async (titleId: string) => {
+    setEquippingTitleId(titleId);
+    try {
+      const targetId = user?.equippedTitle === titleId ? '' : titleId;
+      const res: any = await api.equipTitle(targetId);
+      if (res?.success) {
+        await refreshUser();
+        // Update local list
+        setTitles(prev => prev.map(t => ({
+          ...t,
+          isEquipped: t.id === targetId,
+        })));
+      } else {
+        alert(res?.error || 'Could not equip title.');
+      }
+    } catch (err: any) {
+      alert(err.message || 'Failed to equip title');
+    } finally {
+      setEquippingTitleId(null);
+    }
+  };
+
+  const openShowcaseModal = async () => {
+    setShowShowcaseModal(true);
+    try {
+      const res: any = await api.getBadges();
+      if (res?.success && Array.isArray(res.data)) {
+        setAvailableBadges(res.data);
+      }
+      setSelectedFeatured(user?.featuredBadges || []);
+    } catch (err) {
+      console.error('Failed to load badges for showcase:', err);
+    }
+  };
+
+  const toggleFeaturedBadge = (badgeId: string) => {
+    if (selectedFeatured.includes(badgeId)) {
+      setSelectedFeatured(selectedFeatured.filter(id => id !== badgeId));
+    } else {
+      if (selectedFeatured.length >= 6) {
+        alert('You can showcase up to 6 achievements at once.');
+        return;
+      }
+      setSelectedFeatured([...selectedFeatured, badgeId]);
+    }
+  };
+
+  const handleSaveShowcase = async () => {
+    setSavingShowcase(true);
+    try {
+      const res: any = await api.updateFeaturedBadges(selectedFeatured);
+      if (res?.success) {
+        await refreshUser();
+        setShowShowcaseModal(false);
+      } else {
+        alert(res?.error || 'Could not update showcase.');
+      }
+    } catch (err: any) {
+      alert(err.message || 'Failed to update showcase');
+    } finally {
+      setSavingShowcase(false);
+    }
+  };
+
   const athleteLevel = user?.level || Math.max(1, Math.floor((user?.totalXp ?? 0) / 500) + 1);
 
   const currentLevelDisplay = user?.fitnessLevel
@@ -77,18 +208,26 @@ export default function ProfilePage() {
   const nextRankTier = getNextRankTier(currentRankTier);
   const rpNeeded = getRPNeededForNextTier(userRP);
 
+  const activeTitle = titles.find(t => t.id === user?.equippedTitle) || (user?.equippedTitle ? {
+    id: user.equippedTitle,
+    name: user.equippedTitle.replace('title_', '').replace(/_/g, ' ').toUpperCase(),
+    rarity: 'Rare' as const,
+  } : null);
+
+  const activeTitleTheme = activeTitle ? (TITLE_RARITY_THEMES[activeTitle.rarity] || TITLE_RARITY_THEMES.Rare) : null;
+
   return (
-    <div className="space-y-4 pb-8 animate-fade-in">
+    <div className="space-y-4 pb-12 animate-fade-in">
       {/* Header */}
       <header className="pt-2 flex justify-between items-center">
         <div>
           <span className="text-xs font-bold uppercase tracking-wider text-neon">Athlete Account</span>
-          <h1 className="text-2xl font-black text-white tracking-tight mt-0.5">Profile & Settings</h1>
+          <h1 className="text-2xl font-black text-white tracking-tight mt-0.5">Profile & Progression</h1>
         </div>
         <div className="flex items-center gap-2">
           <button
             type="button"
-            className="btn btn-sm btn-primary flex items-center gap-1.5 py-1.5 px-3 text-xs font-bold shadow-glow-sm"
+            className="btn btn-sm btn-primary flex items-center gap-1.5 py-1.5 px-3 text-xs font-bold shadow-glow-sm cursor-pointer"
             onClick={openEditProfile}
           >
             <Edit3 size={13} />
@@ -96,7 +235,7 @@ export default function ProfilePage() {
           </button>
           <button
             type="button"
-            className="btn btn-sm btn-secondary flex items-center gap-1.5 py-1.5 px-3 text-xs"
+            className="btn btn-sm btn-secondary flex items-center gap-1.5 py-1.5 px-3 text-xs cursor-pointer"
             onClick={() => setShowBugModal(true)}
           >
             <Bug size={13} className="text-rose-400" />
@@ -125,6 +264,29 @@ export default function ProfilePage() {
           <h2 className="text-lg font-black text-white tracking-tight">
             {user?.name || 'Student Athlete'}
           </h2>
+
+          {/* Equipped Athlete Title Chip */}
+          <div className="mt-1.5 mb-1 flex items-center justify-center">
+            {user?.equippedTitle && activeTitle ? (
+              <button
+                onClick={openTitlesModal}
+                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider border shadow-glow-sm hover:scale-105 transition cursor-pointer ${activeTitleTheme?.badge}`}
+              >
+                <Crown size={13} />
+                <span>{activeTitle.name}</span>
+                <span className="text-[9px] text-slate-400 font-normal ml-0.5 underline">Change</span>
+              </button>
+            ) : (
+              <button
+                onClick={openTitlesModal}
+                className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold text-slate-400 border border-dashed border-slate-700 hover:border-neon/50 hover:text-neon transition cursor-pointer"
+              >
+                <Crown size={12} />
+                <span>+ Equip Athlete Title</span>
+              </button>
+            )}
+          </div>
+
           <p className="text-xs text-slate-400 mt-0.5">{user?.email || 'athlete@campus.edu'}</p>
 
           <div className="flex flex-wrap items-center justify-center gap-2 mt-3">
@@ -143,18 +305,6 @@ export default function ProfilePage() {
               <Zap size={10} />
               <span>Fitness: {currentLevelDisplay}</span>
             </span>
-          </div>
-
-          {/* Quick Edit Profile Action */}
-          <div className="mt-3.5">
-            <button
-              type="button"
-              onClick={openEditProfile}
-              className="btn btn-sm btn-secondary py-1.5 px-4 text-xs font-bold flex items-center gap-1.5 border border-white/10 hover:border-neon/40 hover:text-neon transition-colors cursor-pointer"
-            >
-              <Edit3 size={13} className="text-neon" />
-              <span>Edit Profile & Fitness Level</span>
-            </button>
           </div>
 
           {/* Quick Metrics Bar */}
@@ -193,6 +343,67 @@ export default function ProfilePage() {
               </span>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Featured Achievements Showcase */}
+      <div className="card-glass border border-white/10 p-4 relative overflow-hidden shadow-card">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-neon/15 text-neon flex items-center justify-center border border-neon/30">
+              <Award size={16} />
+            </div>
+            <div>
+              <span className="text-[10px] font-black uppercase tracking-wider text-neon block">Athlete Trophy Case</span>
+              <h3 className="text-sm font-black text-white">Featured Achievements</h3>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={openShowcaseModal}
+              className="btn btn-sm btn-secondary py-1 px-2.5 text-[11px] font-bold flex items-center gap-1 border border-white/10 hover:text-neon cursor-pointer"
+            >
+              <Edit3 size={11} />
+              <span>Edit Case</span>
+            </button>
+            <button
+              onClick={() => navigate('/badges')}
+              className="btn btn-sm btn-primary py-1 px-2.5 text-[11px] font-bold flex items-center gap-1 shadow-glow-sm cursor-pointer"
+            >
+              <span>All Badges</span>
+              <ChevronRight size={12} />
+            </button>
+          </div>
+        </div>
+
+        {/* 3 to 6 Showcase Slots */}
+        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 pt-1">
+          {[0, 1, 2, 3, 4, 5].map((idx) => {
+            const badgeId = (user?.featuredBadges || [])[idx];
+            return (
+              <div
+                key={idx}
+                onClick={openShowcaseModal}
+                className="group relative flex flex-col items-center justify-center p-2.5 rounded-xl border border-white/5 bg-surface/40 hover:border-neon/40 transition cursor-pointer min-h-[72px]"
+              >
+                {badgeId ? (
+                  <>
+                    <span className="text-2xl mb-1 filter drop-shadow">🏆</span>
+                    <span className="text-[10px] font-bold text-slate-300 text-center truncate max-w-full">
+                      {badgeId.replace(/_/g, ' ').replace('streak', 'Day Streak').replace('reps', 'Reps')}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <div className="w-6 h-6 rounded-lg border border-dashed border-slate-700 flex items-center justify-center text-slate-500 group-hover:text-neon group-hover:border-neon transition">
+                      <Plus size={12} />
+                    </div>
+                    <span className="text-[9px] text-slate-500 font-bold mt-1">Empty Slot</span>
+                  </>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -256,6 +467,18 @@ export default function ProfilePage() {
 
         <div className="space-y-2">
           {[
+            {
+              icon: Crown,
+              label: 'Athlete Titles',
+              desc: 'Manage and equip prestigious earned titles',
+              action: openTitlesModal,
+            },
+            {
+              icon: Award,
+              label: 'Achievements & Milestones',
+              desc: 'Explore the full trophy room & progression catalog',
+              action: () => navigate('/badges'),
+            },
             {
               icon: Zap,
               label: 'Fitness Level',
@@ -331,6 +554,205 @@ export default function ProfilePage() {
           </button>
         </div>
       </section>
+
+      {/* Manage Titles Modal */}
+      {showTitlesModal && (
+        <div
+          className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center p-0 sm:p-4"
+          onClick={() => setShowTitlesModal(false)}
+        >
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm animate-fade-in" />
+          <div
+            className="relative w-full max-w-[500px] max-h-[85vh] overflow-hidden rounded-t-3xl sm:rounded-3xl p-6 animate-slide-up bg-card border border-white/10 shadow-2xl flex flex-col space-y-4"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-white/10 shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-amber-500/20 flex items-center justify-center text-amber-400">
+                  <Crown size={16} />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-white tracking-tight">Athlete Titles</h3>
+                  <p className="text-[11px] text-slate-400">Equip an earned title to showcase your status</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowTitlesModal(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Titles List */}
+            <div className="overflow-y-auto space-y-2.5 pr-1 flex-1">
+              {loadingTitles ? (
+                <div className="py-12 text-center text-slate-500 text-xs font-bold animate-pulse">
+                  Loading Athlete Titles…
+                </div>
+              ) : titles.length === 0 ? (
+                <div className="py-12 text-center text-slate-500 text-xs font-bold">
+                  No titles found.
+                </div>
+              ) : (
+                titles.map(title => {
+                  const theme = TITLE_RARITY_THEMES[title.rarity] || TITLE_RARITY_THEMES.Common;
+                  const isEquipped = user?.equippedTitle === title.id;
+
+                  return (
+                    <div
+                      key={title.id}
+                      className={`p-3.5 rounded-2xl border transition flex items-center justify-between gap-3 ${
+                        isEquipped
+                          ? 'bg-amber-950/30 border-amber-500/70 shadow-glow-sm'
+                          : title.unlocked
+                          ? 'bg-surface/60 border-white/10 hover:border-white/20'
+                          : 'bg-surface/20 border-white/5 opacity-60'
+                      }`}
+                    >
+                      <div className="flex items-start gap-3 min-w-0">
+                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border ${
+                          title.unlocked ? theme.border + ' bg-slate-900 text-white' : 'border-slate-800 bg-slate-950 text-slate-600'
+                        }`}>
+                          {title.unlocked ? <Crown size={16} className={theme.text} /> : <Lock size={14} />}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-sm font-black text-white truncate">
+                              {title.name}
+                            </span>
+                            <span className={`text-[9px] font-black uppercase tracking-wider px-1.5 py-0.2 rounded border ${theme.badge}`}>
+                              {title.rarity}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-400 mt-0.5 leading-snug">
+                            {title.unlocked ? title.description : `Unlock requirement: ${title.unlockRequirement}`}
+                          </p>
+                        </div>
+                      </div>
+
+                      {title.unlocked ? (
+                        <button
+                          type="button"
+                          onClick={() => handleEquipTitle(title.id)}
+                          disabled={equippingTitleId === title.id}
+                          className={`btn btn-sm py-1.5 px-3 text-xs font-bold shrink-0 cursor-pointer ${
+                            isEquipped
+                              ? 'bg-amber-500/20 text-amber-300 border border-amber-500/50'
+                              : 'btn-primary shadow-glow-sm'
+                          }`}
+                        >
+                          {isEquipped ? 'Equipped' : 'Equip'}
+                        </button>
+                      ) : (
+                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider px-2 py-1 shrink-0">
+                          Locked
+                        </span>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Featured Showcase Modal */}
+      {showShowcaseModal && (
+        <div
+          className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center p-0 sm:p-4"
+          onClick={() => setShowShowcaseModal(false)}
+        >
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm animate-fade-in" />
+          <div
+            className="relative w-full max-w-[500px] max-h-[85vh] overflow-hidden rounded-t-3xl sm:rounded-3xl p-6 animate-slide-up bg-card border border-white/10 shadow-2xl flex flex-col space-y-4"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-white/10 shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-neon/15 flex items-center justify-center text-neon">
+                  <Award size={16} />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-white tracking-tight">Edit Featured Showcase</h3>
+                  <p className="text-[11px] text-slate-400">Select up to 6 unlocked achievements to display on your profile ({selectedFeatured.length}/6)</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowShowcaseModal(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Badges List */}
+            <div className="overflow-y-auto space-y-2 pr-1 flex-1">
+              {availableBadges.filter(b => b.unlocked).length === 0 ? (
+                <div className="py-12 text-center text-slate-500 text-xs font-bold">
+                  No unlocked achievements yet. Complete workouts to earn badges!
+                </div>
+              ) : (
+                availableBadges
+                  .filter(b => b.unlocked)
+                  .map(badge => {
+                    const isSelected = selectedFeatured.includes(badge.id);
+                    return (
+                      <div
+                        key={badge.id}
+                        onClick={() => toggleFeaturedBadge(badge.id)}
+                        className={`p-3 rounded-2xl border transition flex items-center justify-between gap-3 cursor-pointer ${
+                          isSelected
+                            ? 'bg-neon/15 border-neon shadow-glow-sm'
+                            : 'bg-surface/50 border-white/5 hover:border-white/20'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <span className="text-2xl">{badge.icon}</span>
+                          <div className="min-w-0">
+                            <span className="text-xs font-black text-white block truncate">
+                              {badge.name}
+                            </span>
+                            <span className="text-[10px] text-slate-400 truncate block">
+                              {badge.description}
+                            </span>
+                          </div>
+                        </div>
+                        <div className={`w-5 h-5 rounded-md border flex items-center justify-center ${
+                          isSelected ? 'bg-neon border-neon text-black' : 'border-slate-700 bg-slate-900'
+                        }`}>
+                          {isSelected && <CheckCircle2 size={13} />}
+                        </div>
+                      </div>
+                    );
+                  })
+              )}
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-3 pt-2 shrink-0 border-t border-white/10">
+              <button
+                type="button"
+                className="btn btn-secondary flex-1 py-2 text-xs font-bold"
+                onClick={() => setShowShowcaseModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary flex-1 py-2 text-xs font-bold"
+                onClick={handleSaveShowcase}
+                disabled={savingShowcase}
+              >
+                {savingShowcase ? 'Saving…' : `Save Showcase (${selectedFeatured.length}/6)`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Edit Profile Modal (Name + Fitness Level) */}
       {showEditProfileModal && (

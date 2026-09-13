@@ -15,6 +15,7 @@ import LeaderboardPage from './pages/LeaderboardPage';
 import ProfilePage from './pages/ProfilePage';
 import AICoachPage from './pages/AICoachPage';
 import CompetitivePage from './pages/CompetitivePage';
+import BadgesPage from './pages/BadgesPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { token, loading } = useAuth();
@@ -69,6 +70,7 @@ export default function App() {
         <Route path="/competitive" element={<ProtectedRoute><AppShell><CompetitivePage /></AppShell></ProtectedRoute>} />
         <Route path="/leaderboard" element={<ProtectedRoute><AppShell><LeaderboardPage /></AppShell></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><AppShell><ProfilePage /></AppShell></ProtectedRoute>} />
+        <Route path="/badges" element={<ProtectedRoute><AppShell><BadgesPage /></AppShell></ProtectedRoute>} />
 
         {/* Protected Routes without Bottom Nav (Fullscreen experiences) */}
         <Route path="/camera/:planId/:exerciseId" element={<ProtectedRoute><CameraWorkoutPage /></ProtectedRoute>} />
