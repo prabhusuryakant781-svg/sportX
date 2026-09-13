@@ -8,7 +8,7 @@ import * as logger from 'firebase-functions/logger';
 import { assertProductionSafe } from '../config/productionSafety';
 
 // Timeout helper to avoid hung promises when Firestore is unreachable offline
-async function withTimeout<T>(promise: Promise<T>, ms = 2000): Promise<T> {
+async function withTimeout<T>(promise: Promise<T>, ms = 4000): Promise<T> {
   let timer: NodeJS.Timeout;
   const timeoutPromise = new Promise<never>((_, reject) => {
     timer = setTimeout(() => reject(new Error(`Operation timed out after ${ms}ms`)), ms);
@@ -25,17 +25,27 @@ export class LeaderboardRepository {
   static async getGlobal(limit: number = 25, sortBy: 'xp' | 'rp' = 'xp'): Promise<LeaderboardEntryDoc[]> {
     if (hasFirebaseCredentials) {
       try {
-        const orderField = sortBy === 'rp' ? 'rankPoints' : 'xp';
-        const snap = await withTimeout(
-          db.collection('users')
-            .orderBy(orderField, 'desc')
-            .limit(limit)
-            .get(),
-          2000
-        );
+        let snap;
+        if (sortBy === 'rp') {
+          // Fetch users and sort in memory by rankPoints to support all documents seamlessly
+          snap = await withTimeout(
+            db.collection('users')
+              .limit(Math.max(50, limit * 2))
+              .get(),
+            4000
+          );
+        } else {
+          snap = await withTimeout(
+            db.collection('users')
+              .orderBy('xp', 'desc')
+              .limit(limit)
+              .get(),
+            4000
+          );
+        }
 
         if (!snap.empty) {
-          return snap.docs.map((doc, idx) => {
+          const entries = snap.docs.map((doc, idx) => {
             const u = doc.data() as UserDoc;
             const totalXp = (u as any).totalXp ?? u.xp ?? (u as any).XP ?? 0;
             return {
@@ -55,6 +65,15 @@ export class LeaderboardRepository {
               lastUpdated: u.updatedAt || new Date().toISOString(),
             };
           });
+
+          if (sortBy === 'rp') {
+            entries.sort((a, b) => (b.rankPoints ?? 100) - (a.rankPoints ?? 100));
+            entries.forEach((e, idx) => {
+              e.rank = idx + 1;
+            });
+          }
+
+          return entries.slice(0, limit);
         }
       } catch (err) {
         logger.error('Error fetching global leaderboard:', err);
@@ -75,18 +94,16 @@ export class LeaderboardRepository {
   ): Promise<LeaderboardEntryDoc[]> {
     if (hasFirebaseCredentials) {
       try {
-        const orderField = sortBy === 'rp' ? 'rankPoints' : 'xp';
         const snap = await withTimeout(
           db.collection('users')
             .where('collegeName', '==', collegeName)
-            .orderBy(orderField, 'desc')
-            .limit(limit)
+            .limit(Math.max(50, limit * 2))
             .get(),
-          2000
+          4000
         );
 
         if (!snap.empty) {
-          return snap.docs.map((doc, idx) => {
+          const entries = snap.docs.map((doc, idx) => {
             const u = doc.data() as UserDoc;
             const totalXp = (u as any).totalXp ?? u.xp ?? (u as any).XP ?? 0;
             return {
@@ -106,6 +123,18 @@ export class LeaderboardRepository {
               lastUpdated: u.updatedAt || new Date().toISOString(),
             };
           });
+
+          if (sortBy === 'rp') {
+            entries.sort((a, b) => (b.rankPoints ?? 100) - (a.rankPoints ?? 100));
+          } else {
+            entries.sort((a, b) => b.totalXp - a.totalXp);
+          }
+
+          entries.forEach((e, idx) => {
+            e.rank = idx + 1;
+          });
+
+          return entries.slice(0, limit);
         }
       } catch (err) {
         logger.error(`Error fetching college leaderboard for ${collegeName}:`, err);
