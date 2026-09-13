@@ -18,6 +18,7 @@ import {
   Play
 } from 'lucide-react';
 import { buildCameraRoute } from '../utils/exerciseUtils';
+import GoalsModal from '../components/GoalsModal';
 
 interface CoachMessage {
   id: string;
@@ -34,10 +35,10 @@ interface CoachMessage {
 }
 
 const SUGGESTED_QUESTIONS = [
-  'How do I maintain chest depth on pushups?',
+  'Generate a workout calibrated to my active goals.',
   'What should I focus on to improve my squat form?',
+  'Suggest a realistic new goal based on my recent performance.',
   'How can I build workout consistency around classes?',
-  'Suggest a quick 20-minute bodyweight routine.',
 ];
 
 export default function AICoachPage() {
@@ -66,6 +67,17 @@ export default function AICoachPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [lastFailedMessage, setLastFailedMessage] = useState<string | null>(null);
+
+  // Step 7 Active Goals State
+  const [activeGoals, setActiveGoals] = useState<any[]>([]);
+  const [showGoalsModal, setShowGoalsModal] = useState(false);
+
+  useEffect(() => {
+    api.getGoals(true).then((res: any) => {
+      const list = res?.data || [];
+      setActiveGoals(list.filter((g: any) => g.status === 'active'));
+    }).catch(() => null);
+  }, []);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -240,6 +252,16 @@ export default function AICoachPage() {
 
         {/* Action Pills */}
         <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => setShowGoalsModal(true)}
+            className="px-2.5 py-1.5 text-[11px] font-bold rounded-xl bg-surface hover:bg-surface-light text-slate-300 border border-white/5 transition-colors flex items-center gap-1 cursor-pointer"
+            title="Manage Active Goals"
+          >
+            <Target size={12} className="text-neon" />
+            <span>Goals {activeGoals.length > 0 ? `(${activeGoals.length})` : ''}</span>
+          </button>
+
           <button
             type="button"
             onClick={handleQuickInsight}
@@ -440,6 +462,18 @@ export default function AICoachPage() {
           </button>
         </form>
       </div>
+
+      {/* Step 7 Goals Modal */}
+      <GoalsModal
+        isOpen={showGoalsModal}
+        onClose={() => setShowGoalsModal(false)}
+        onGoalUpdated={() => {
+          api.getGoals(true).then((res: any) => {
+            const list = res?.data || [];
+            setActiveGoals(list.filter((g: any) => g.status === 'active'));
+          }).catch(() => null);
+        }}
+      />
     </div>
   );
 }

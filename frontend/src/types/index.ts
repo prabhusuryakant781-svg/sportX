@@ -154,3 +154,145 @@ export interface AuthContextType {
   resetPassword: (email: string) => Promise<void>;
   refreshUser: () => Promise<User>;
 }
+
+// ── Step 7: Goals ────────────────────────────────────────────────────────────
+export type GoalCategory = 'fitness' | 'consistency' | 'strength' | 'sport' | 'competitive' | 'form';
+export type GoalType =
+  | 'workout_count'
+  | 'streak_days'
+  | 'total_reps'
+  | 'exercise_reps'
+  | 'average_form'
+  | 'sport_sessions'
+  | 'competitive_wins'
+  | 'reach_rank'
+  | 'gain_rp'
+  | 'high_form_sessions';
+
+export interface Goal {
+  goalId: string;
+  userId: string;
+  type: GoalType;
+  category: GoalCategory;
+  title: string;
+  description?: string;
+  target: number;
+  current: number;
+  unit: string;
+  sportId?: string;
+  exerciseId?: string;
+  targetRank?: string;
+  startDate: string;
+  targetDate: string;
+  status: 'active' | 'completed' | 'cancelled' | 'expired';
+  progress: number; // 0-100
+  createdAt: string;
+  completedAt?: string | null;
+}
+
+export interface GoalTemplate {
+  id: string;
+  category: GoalCategory;
+  title: string;
+  type: GoalType;
+  target: number;
+  unit: string;
+  daysDuration: number;
+  exerciseId?: string;
+  sportId?: string;
+  description: string;
+}
+
+// ── Step 7: Performance Score ────────────────────────────────────────────────
+export interface PerformanceBreakdown {
+  consistency: number;  // 20%
+  form: number;         // 25%
+  workout: number;      // 25%
+  competition: number;  // 20%
+  improvement: number;  // 10%
+}
+
+export interface PerformanceScore {
+  userId: string;
+  overallScore: number;
+  breakdown: PerformanceBreakdown;
+  provisional: boolean;
+  statusMessage?: string;
+  trend?: Array<{ date: string; score: number }>;
+  lastCalculatedAt: string;
+}
+
+// ── Step 7: Friends & Social ─────────────────────────────────────────────────
+export interface PublicAthlete {
+  userId: string;
+  name: string;
+  username: string;
+  avatarUrl?: string;
+  collegeName?: string;
+  sports: string[];
+  rankTier: string;
+  rankPoints: number;
+  level: number;
+  isFriend?: boolean;
+  hasPendingRequest?: boolean;
+}
+
+export interface FriendRequest {
+  requestId: string;
+  senderId: string;
+  receiverId: string;
+  senderName: string;
+  senderAvatar?: string;
+  status: 'pending' | 'accepted' | 'declined';
+  createdAt: string;
+}
+
+export interface Friendship {
+  friendshipId: string;
+  friendId: string;
+  friendName: string;
+  friendAvatar?: string;
+  friendRankTier?: string;
+  friendPoints?: number;
+  createdAt: string;
+}
+
+// ── Step 7: Friend Challenges ────────────────────────────────────────────────
+export interface FriendChallenge {
+  challengeId: string;
+  challengerId: string;
+  opponentId: string;
+  challengerName: string;
+  opponentName: string;
+  exerciseId: string;
+  challengeType: 'most_reps' | 'target_reps' | 'best_form';
+  targetReps: number;
+  durationSeconds: number;
+  status: 'pending' | 'accepted' | 'declined' | 'in_progress' | 'completed' | 'cancelled' | 'expired';
+  winnerId?: string | null;
+  isDraw?: boolean;
+  challengerReps?: number;
+  opponentReps?: number;
+  challengerForm?: number;
+  opponentForm?: number;
+  createdAt: string;
+  completedAt?: string | null;
+}
+
+// ── Step 7: Challenge History ────────────────────────────────────────────────
+export interface ChallengeHistoryEntry {
+  matchId: string;
+  type: 'ranked' | 'friend';
+  exerciseId: string;
+  opponentId: string;
+  opponentName: string;
+  opponentAvatar?: string;
+  outcome: 'WIN' | 'LOSS' | 'DRAW';
+  myScore: number;
+  opponentScore: number;
+  myFormScore: number;
+  xpEarned: number;
+  rpChange: number;
+  completedAt: string;
+  status: string;
+}

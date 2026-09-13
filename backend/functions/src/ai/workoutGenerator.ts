@@ -789,6 +789,8 @@ PERFORMANCE TELEMETRY & WEAK AREAS:
 - Average Form Accuracy: ${context.performance.averagePerformance}%
 - Historical Biomechanical Errors: ${JSON.stringify(context.recentIssues)}
 - Personal Records: ${JSON.stringify(context.performance.personalRecords || {})}
+- Active Measurable Goals: ${JSON.stringify(context.activeGoals || [])}
+- Overall Athletic Performance Score: ${context.performanceScore ? `${context.performanceScore.overall}/100` : 'Calibrating'}
 
 AVAILABLE SPORTX EXERCISES:
 - Camera Computer-Vision Tracked (PREFERRED for main drills): "squat", "pushup", "jumping_jacks"
@@ -799,8 +801,9 @@ STRICT CONSTRAINTS:
 1. ONLY use exercises from the available list above. Do NOT invent new exercise IDs.
 2. Match difficulty: Beginner (2-3 sets, 8-12 reps, 40s rest); Intermediate (3-4 sets, 10-15 reps, 35s rest); Pro (3-5 sets, 15-25 reps, 25s rest).
 3. The routine MUST fit within the ${options?.requestedDuration || context.availableTimeMinutes || 20}-minute duration window.
-4. If the user has a detected form error (e.g., "knees_inward", "hips_sagging"), include a targeted form cue on that exercise.
-5. Provide a warm-up and cool-down cue.
+4. If the user has active measurable goals, tailor exercises, sets, and cues to directly advance those goals (e.g. prioritize squat/pushup volume for strength goals, strict tempo for form goals).
+5. If the user has a detected form error (e.g., "knees_inward", "hips_sagging"), include a targeted form cue on that exercise.
+6. Provide a warm-up and cool-down cue.
 
 RETURN ONLY VALID JSON MATCHING THIS EXACT SCHEMA:
 {

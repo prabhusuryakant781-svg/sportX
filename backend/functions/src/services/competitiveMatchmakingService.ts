@@ -19,6 +19,8 @@ import {
 } from '../types/competitive';
 import { CompetitiveRepository } from '../repositories/competitiveRepository';
 import { UserRepository } from '../repositories/userRepository';
+import { GoalRepository } from '../repositories/goalRepository';
+import { PerformanceRepository } from '../repositories/performanceRepository';
 import * as logger from 'firebase-functions/logger';
 
 export const SEED_CHALLENGES: CompetitiveChallengeDoc[] = [
@@ -593,10 +595,17 @@ export class CompetitiveMatchmakingService {
 
     // 4. Anti-Cheat / Sanity checks on payload (if provided)
     if (payload) {
-      if (typeof payload.reps === 'number' && payload.reps < 0) {
-        const err: any = new Error('Invalid repetitions: cannot be negative');
-        err.status = 400;
-        throw err;
+      if (typeof payload.reps === 'number') {
+        if (payload.reps < 0) {
+          const err: any = new Error('Invalid repetitions: cannot be negative');
+          err.status = 400;
+          throw err;
+        }
+        if (payload.reps > 500) {
+          const err: any = new Error('Invalid repetitions: exceeds maximum competitive limit');
+          err.status = 400;
+          throw err;
+        }
       }
       if (typeof payload.validReps === 'number') {
         if (payload.validReps < 0) {
@@ -615,7 +624,17 @@ export class CompetitiveMatchmakingService {
         err.status = 400;
         throw err;
       }
+      if (typeof payload.confidence === 'number' && (payload.confidence < 0 || payload.confidence > 1.0)) {
+        const err: any = new Error('Invalid vision confidence: must be between 0.0 and 1.0');
+        err.status = 400;
+        throw err;
+      }
       if (typeof payload.durationSeconds === 'number') {
+        if (payload.durationSeconds < 0) {
+          const err: any = new Error('Invalid duration: cannot be negative');
+          err.status = 400;
+          throw err;
+        }
         if (payload.durationSeconds < 5 && (payload.reps || 0) > 0) {
           const err: any = new Error('Invalid duration: minimum 5 seconds required for verified reps');
           err.status = 400;
@@ -817,6 +836,10 @@ export class CompetitiveMatchmakingService {
           xpEarned: pResult?.xpEarned || 0,
           activityDate: now.split('T')[0],
         }).catch((err) => logger.warn(`Failed to update daily streak for ${p.userId}:`, err));
+
+        // Step 7: Authoritatively synchronize goal progress and record performance score snapshot
+        GoalRepository.getUserGoals(p.userId).catch(() => {});
+        PerformanceRepository.recordSnapshot(p.userId, 'match_finalization').catch(() => {});
       }
     }
 

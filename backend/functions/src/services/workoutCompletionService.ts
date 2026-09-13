@@ -30,6 +30,8 @@ import { XPRepository } from '../repositories/xpRepository';
 import { ProgressRepository } from '../repositories/progressRepository';
 import { AnalyticsRepository } from '../repositories/analyticsRepository';
 import { ActivityRepository } from '../repositories/activityRepository';
+import { GoalRepository } from '../repositories/goalRepository';
+import { PerformanceRepository } from '../repositories/performanceRepository';
 import { GamificationService } from './gamificationService';
 import { NotificationService } from './notificationService';
 import { WorkoutSessionDoc, ExerciseSessionLog, ActivityLogDoc } from '../types';
@@ -491,6 +493,10 @@ export class WorkoutCompletionService {
         formAccuracy: score,
         muscleGroups: [effectiveExerciseId],
       }).catch((err) => logger.warn('Failed updating analytics:', err));
+
+      // 13b. Step 7: Update Goal Progress & Record Performance Score Snapshot
+      GoalRepository.getUserGoals(userId).catch(() => {});
+      PerformanceRepository.recordSnapshot(userId, 'workout_completion').catch(() => {});
 
       // 14. Send FCM Push Notifications for Newly Unlocked Badges
       for (const badge of badgeResult.newBadges) {

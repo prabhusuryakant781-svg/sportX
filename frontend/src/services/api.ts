@@ -169,4 +169,35 @@ export const api = {
   // ── Bugs ───────────────────────────────────────────────────────────────────
   reportBug: (body: { category: string; exerciseId?: string; description: string; deviceInfo?: string }) =>
     request('POST', '/bugs', body),
+
+  // ── Step 7: Goals ──────────────────────────────────────────────────────────
+  getGoals: (sync = true) => request('GET', `/goals${sync ? '?sync=true' : ''}`),
+  getGoalTemplates: () => request('GET', '/goals/templates'),
+  createGoal: (body: Record<string, unknown>) => request('POST', '/goals', body),
+  cancelGoal: (goalId: string) => request('DELETE', `/goals/${goalId}`),
+
+  // ── Step 7: Performance Score ──────────────────────────────────────────────
+  getPerformanceScore: () => request('GET', '/performance/score'),
+
+  // ── Step 7: Friends & Social ───────────────────────────────────────────────
+  searchAthletes: (query: string) => request('GET', `/friends/search?q=${encodeURIComponent(query)}`),
+  getFriends: () => request('GET', '/friends'),
+  getFriendRequests: () => request('GET', '/friends/requests'),
+  sendFriendRequest: (receiverId: string) => request('POST', '/friends/requests', { receiverId }),
+  respondFriendRequest: (requestId: string, action: 'accept' | 'decline') =>
+    request('PUT', `/friends/requests/${requestId}/respond`, { action }),
+  removeFriend: (friendId: string) => request('DELETE', `/friends/${friendId}`),
+
+  // ── Step 7: Friend Challenges ──────────────────────────────────────────────
+  getFriendChallenges: () => request('GET', '/friends/challenges'),
+  createFriendChallenge: (body: Record<string, unknown>) => request('POST', '/friends/challenges', body),
+  respondFriendChallenge: (challengeId: string, action: 'accept' | 'decline') =>
+    request('PUT', `/friends/challenges/${challengeId}/respond`, { action }),
+  submitFriendChallengeTelemetry: (challengeId: string, body: Record<string, unknown>) =>
+    request('POST', `/friends/challenges/${challengeId}/submit`, body),
+
+  // ── Step 7: Challenge History ──────────────────────────────────────────────
+  getChallengeHistory: (outcome?: string) =>
+    request('GET', `/competitive/history${outcome && outcome !== 'ALL' ? '?outcome=' + outcome.toLowerCase() : ''}`),
+  getChallengeHistoryDetail: (matchId: string) => request('GET', `/competitive/history/${matchId}`),
 };

@@ -430,3 +430,128 @@ export interface LeaderboardEntryDoc {
   featuredBadge?: string;
   lastUpdated: string | Timestamp | FieldValue;
 }
+
+// ── 15. Step 7: Goal Models (goals/{goalId}) ─────────────────────────────────
+export type GoalCategory = 'fitness' | 'strength' | 'consistency' | 'sport' | 'competitive' | 'form';
+
+export type GoalType =
+  | 'workouts_count'
+  | 'streak_days'
+  | 'total_reps'
+  | 'exercise_reps'
+  | 'average_form'
+  | 'high_form_sessions'
+  | 'weekly_workouts'
+  | 'sport_sessions'
+  | 'competitive_wins'
+  | 'reach_rank_tier'
+  | 'gain_rp'
+  | 'custom';
+
+export type GoalStatus = 'active' | 'completed' | 'cancelled' | 'expired';
+
+export interface GoalDoc {
+  goalId: string;
+  userId: string;
+  type: GoalType;
+  category: GoalCategory;
+  title: string;
+  description: string;
+  target: number;
+  current: number;
+  unit: string;
+  metric: string;
+  sportId?: string;
+  exerciseId?: string;
+  startDate: string;
+  targetDate: string;
+  status: GoalStatus;
+  progress: number; // 0 - 100 percentage
+  createdAt: string;
+  completedAt?: string | null;
+  updatedAt: string;
+}
+
+export interface CreateGoalPayload {
+  type: GoalType;
+  category: GoalCategory;
+  title: string;
+  description?: string;
+  target: number;
+  unit: string;
+  metric?: string;
+  sportId?: string;
+  exerciseId?: string;
+  targetDate: string;
+  startDate?: string;
+}
+
+// ── 16. Step 7: Performance Score Models ─────────────────────────────────────
+export interface PerformanceBreakdown {
+  consistency: number;     // 0 - 100 (20% weight)
+  form: number;            // 0 - 100 (25% weight)
+  workout: number;         // 0 - 100 (25% weight)
+  competition: number;     // 0 - 100 (20% weight)
+  improvement: number;     // 0 - 100 (10% weight)
+}
+
+export interface PerformanceScoreDoc {
+  userId: string;
+  overallScore: number; // 0 - 100
+  breakdown: PerformanceBreakdown;
+  provisional: boolean;
+  statusMessage?: string;
+  trend?: Array<{ date: string; score: number }>;
+  lastCalculatedAt: string;
+}
+
+export interface PerformanceSnapshotDoc {
+  snapshotId: string;
+  userId: string;
+  score: number;
+  breakdown: PerformanceBreakdown;
+  triggerEvent: 'workout_completion' | 'match_finalization' | 'manual_recalc';
+  createdAt: string;
+}
+
+// ── 17. Step 7: Friends & Athlete Social ─────────────────────────────────────
+export type FriendRequestStatus = 'pending' | 'accepted' | 'declined' | 'cancelled';
+
+export interface FriendRequestDoc {
+  requestId: string;
+  senderId: string;
+  senderName: string;
+  senderAvatar?: string;
+  receiverId: string;
+  receiverName: string;
+  receiverAvatar?: string;
+  status: FriendRequestStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface FriendshipDoc {
+  friendshipId: string; // `${min(userA, userB)}_${max(userA, userB)}`
+  userA: string;
+  userB: string;
+  createdAt: string;
+}
+
+export interface PublicAthleteProfile {
+  userId: string;
+  name: string;
+  profileImage?: string;
+  collegeName?: string;
+  department?: string;
+  rankTier?: string;
+  rankPoints?: number;
+  level: number;
+  totalXp?: number;
+  currentStreak: number;
+  totalWorkouts: number;
+  equippedTitle?: string;
+  featuredBadges?: string[];
+  performanceScore?: number;
+  isFriend?: boolean;
+  friendshipStatus?: 'none' | 'pending_sent' | 'pending_received' | 'friends';
+}

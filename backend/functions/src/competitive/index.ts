@@ -255,6 +255,9 @@ competitiveRouter.post('/matches/:id/telemetry', verifyAuth, async (req: Authent
   }
 });
 
+// In-memory sliding-window rate limiter per user/match to protect endpoint from spam
+const matchSubmissionRateMap = new Map<string, number>();
+
 /**
  * POST /api/v1/competitive/matches/:id/finish
  * Authoritatively verify and finalize match, compute placement, rewards, and rank points
@@ -264,6 +267,18 @@ competitiveRouter.post('/matches/:id/finish', verifyAuth, async (req: Authentica
     const { id } = req.params;
     const userId = req.user!.uid;
     const payload = req.body;
+
+    // Rate Limiting / Abuse Protection (1.0s sliding window per user)
+    const rateKey = `${id}_${userId}`;
+    const nowMs = Date.now();
+    const lastSubmit = matchSubmissionRateMap.get(rateKey) || 0;
+    if (nowMs - lastSubmit < 1000) {
+      return res.status(429).json({
+        success: false,
+        error: 'Session could not be verified: rate limit exceeded. Please wait a moment.',
+      });
+    }
+    matchSubmissionRateMap.set(rateKey, nowMs);
 
     const finalizedMatch = await CompetitiveMatchmakingService.verifyAndFinalizeMatch(id, userId, payload);
 
@@ -278,5 +293,77 @@ competitiveRouter.post('/matches/:id/finish', verifyAuth, async (req: Authentica
   } catch (err: any) {
     logger.error('[CompetitiveRouter] Error finalizing match:', err);
     res.status(err.status || 400).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * GET /api/v1/competitive/history
+ * Retrieve verified completed challenge and match history for authenticated user.
+ * Supports filters: outcome (all, win, loss, draw), exerciseId, type.
+ */
+competitiveRouter.get('/history', verifyAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user!.uid;
+    const outcome = req.query.outcome as 'all' | 'win' | 'loss' | 'draw' | undefined;
+    const exerciseId = req.query.exerciseId as string | undefined;
+
+    const matches = await CompetitiveRepository.getUserMatchHistory(userId, {
+      outcome,
+      exerciseId,
+    });
+
+    res.status(200).json({
+      success: true,
+      count: matches.length,
+      data: matches,
+      history: matches,
+    });
+  } catch (err: any) {
+    logger.error('[CompetitiveRouter] Error fetching match history:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * GET /api/v1/competitive/history/:id
+ * Retrieve detailed breakdown of a specific past match
+ */
+competitiveRouter.get('/history/:id', verifyAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user!.uid;
+
+    const match = await CompetitiveRepository.getMatchById(id);
+    if (!match) {
+      return res.status(404).json({ success: false, error: 'Match record not found' });
+    }
+
+    const isParticipant = match.players.some((p) => p.userId === userId);
+    if (!isParticipant) {
+      return res.status(403).json({ success: false, error: 'Access denied: You were not a participant in this match' });
+    }
+
+    const userPlacement = match.results?.leaderboard.find((l) => l.userId === userId);
+    const opponentPlacement = match.results?.leaderboard.find((l) => l.userId !== userId);
+    const opponentPlayer = match.players.find((p) => p.userId !== userId);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        matchId: match.matchId,
+        date: match.results?.finalizedAt || match.createdAt,
+        challenge: match.challenge,
+        userResult: userPlacement,
+        opponent: {
+          displayName: opponentPlayer?.displayName || opponentPlacement?.displayName || 'Opponent',
+          rankTier: opponentPlayer?.rankTier || 'Bronze',
+          result: opponentPlacement,
+        },
+        rawMatch: match,
+      },
+    });
+  } catch (err: any) {
+    logger.error('[CompetitiveRouter] Error fetching match details:', err);
+    res.status(500).json({ success: false, error: err.message });
   }
 });

@@ -631,4 +631,11 @@ export class UserRepository {
       }
     }
   }
+
+  /**
+   * Get all cached users (for search and local test fallbacks)
+   */
+  static async getAllUsers(): Promise<UserDoc[]> {
+    return Array.from(localUsersCache.values());
+  }
 }

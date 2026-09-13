@@ -6,7 +6,12 @@ import GoalRing from '../components/GoalRing';
 import StreakFlame from '../components/StreakFlame';
 import ManualLogModal from '../components/ManualLogModal';
 import { buildCameraRoute } from '../utils/exerciseUtils';
-import type { WorkoutPlan, Badge } from '../types';
+import PerformanceScoreCard from '../components/PerformanceScoreCard';
+import ActiveGoalsCard from '../components/ActiveGoalsCard';
+import GoalsModal from '../components/GoalsModal';
+import FriendsModal from '../components/FriendsModal';
+import FriendChallengeModal from '../components/FriendChallengeModal';
+import type { WorkoutPlan, Badge, Friendship } from '../types';
 import { 
   Zap, 
   Swords, 
@@ -23,7 +28,9 @@ import {
   Award,
   Sparkles,
   Activity,
-  Crown
+  Crown,
+  Users,
+  Target
 } from 'lucide-react';
 
 export default function DashboardPage() {
@@ -35,16 +42,28 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [showManualLog, setShowManualLog] = useState(false);
 
+  // Step 7 Modals and Social State
+  const [showGoalsModal, setShowGoalsModal] = useState(false);
+  const [showFriendsModal, setShowFriendsModal] = useState(false);
+  const [showFriendChallengeModal, setShowFriendChallengeModal] = useState(false);
+  const [targetFriend, setTargetFriend] = useState<Friendship | null>(null);
+  const [friendsCount, setFriendsCount] = useState<number>(0);
+  const [pendingRequestsCount, setPendingRequestsCount] = useState<number>(0);
+
   useEffect(() => {
     Promise.all([
       api.getTodayWorkout().catch(() => ({ data: null })),
       api.getBadges().catch(() => ({ data: [] })),
-      api.getHistory('7d').catch(() => ({ data: [] }))
+      api.getHistory('7d').catch(() => ({ data: [] })),
+      api.getFriends().catch(() => ({ data: [] })),
+      api.getFriendRequests().catch(() => ({ data: [] })),
     ])
-      .then(([wp, bg, hist]: any[]) => {
+      .then(([wp, bg, hist, fList, reqList]: any[]) => {
         setTodayPlan(wp?.data || null);
         setBadges((bg?.data || []).filter((b: Badge) => b.unlocked));
         setRecentSessions(Array.isArray(hist?.data) ? hist.data.slice(0, 3) : []);
+        setFriendsCount(Array.isArray(fList?.data) ? fList.data.length : 0);
+        setPendingRequestsCount(Array.isArray(reqList?.data) ? reqList.data.length : 0);
       })
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -71,6 +90,16 @@ export default function DashboardPage() {
           </div>
 
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowFriendsModal(true)}
+              className="p-2 rounded-xl bg-surface/60 hover:bg-surface border border-white/10 text-slate-300 hover:text-white transition-colors cursor-pointer relative"
+              title="Friends & Athletes"
+            >
+              <Users size={16} />
+              {pendingRequestsCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-cyan ring-2 ring-obsidian animate-pulse" />
+              )}
+            </button>
             <button
               onClick={() => setShowManualLog(true)}
               className="p-2 rounded-xl bg-surface/60 hover:bg-surface border border-white/10 text-slate-300 hover:text-white transition-colors cursor-pointer"
@@ -203,6 +232,17 @@ export default function DashboardPage() {
           </div>
         </div>
       </header>
+
+      {/* ── Step 7: Athletic Performance Score & Active Goals ─── */}
+      <section className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <PerformanceScoreCard
+          compact
+          onViewDetails={() => navigate('/progress')}
+        />
+        <ActiveGoalsCard
+          onOpenGoalsModal={() => setShowGoalsModal(true)}
+        />
+      </section>
 
       {/* ── The 4 Pillars of SportX ───────────────────────────── */}
       <section className="space-y-3">
@@ -484,6 +524,32 @@ export default function DashboardPage() {
 
       {/* Manual Activity Log Modal */}
       <ManualLogModal isOpen={showManualLog} onClose={() => setShowManualLog(false)} />
+
+      {/* Step 7 Modals */}
+      <GoalsModal
+        isOpen={showGoalsModal}
+        onClose={() => setShowGoalsModal(false)}
+      />
+      <FriendsModal
+        isOpen={showFriendsModal}
+        onClose={() => setShowFriendsModal(false)}
+        onChallengeFriend={(friend) => {
+          setTargetFriend(friend);
+          setShowFriendChallengeModal(true);
+        }}
+        onFriendsUpdated={() => {
+          api.getFriends().then((res: any) => setFriendsCount(res?.data?.length || 0)).catch(() => null);
+          api.getFriendRequests().then((res: any) => setPendingRequestsCount(res?.data?.length || 0)).catch(() => null);
+        }}
+      />
+      <FriendChallengeModal
+        isOpen={showFriendChallengeModal}
+        onClose={() => {
+          setShowFriendChallengeModal(false);
+          setTargetFriend(null);
+        }}
+        targetFriend={targetFriend}
+      />
     </div>
   );
 }

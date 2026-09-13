@@ -25,6 +25,8 @@ import {
   getRPNeededForNextTier,
 } from '../types/competitive';
 import { CompetitiveMatchLoading } from '../components/CompetitiveMatchLoading';
+import ChallengeHistoryModal from '../components/ChallengeHistoryModal';
+import FriendChallengeModal from '../components/FriendChallengeModal';
 
 type FlowStage = 'HOME' | 'SEARCHING' | 'MATCH_ROOM' | 'COUNTDOWN' | 'CHALLENGE' | 'RESULT';
 
@@ -99,6 +101,10 @@ export default function CompetitivePage() {
   const [selectedSport, setSelectedSport] = useState<string>(primarySport);
   const [activeTicket, setActiveTicket] = useState<QueueTicketDoc | null>(null);
   const [activeMatch, setActiveMatch] = useState<CompetitiveMatchDoc | null>(navState?.match || null);
+
+  // Step 7 History & Friend Challenges Modal State
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [showFriendChallengeModal, setShowFriendChallengeModal] = useState(false);
 
   // Sync state if returned from camera completion
   useEffect(() => {
@@ -414,13 +420,29 @@ export default function CompetitivePage() {
           </div>
         </div>
 
-        {/* Global Tab Switcher back to Room Code Lobbies without breaking anything */}
-        <button
-          onClick={() => navigate('/lobby')}
-          className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-slate-900/80 hover:bg-slate-800 text-slate-300 border border-white/10 transition flex items-center gap-1.5"
-        >
-          <span>🏷️</span> Room Code Lobby
-        </button>
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={() => setShowHistoryModal(true)}
+            className="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-slate-900/80 hover:bg-slate-800 text-amber-300 border border-amber-500/20 transition flex items-center gap-1 cursor-pointer"
+            title="View Match History"
+          >
+            <span>🏆</span> History
+          </button>
+          <button
+            onClick={() => setShowFriendChallengeModal(true)}
+            className="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-slate-900/80 hover:bg-slate-800 text-cyan border border-cyan/20 transition flex items-center gap-1 cursor-pointer"
+            title="Friend Battles"
+          >
+            <span>⚔️</span> Friends
+          </button>
+          {/* Global Tab Switcher back to Room Code Lobbies without breaking anything */}
+          <button
+            onClick={() => navigate('/lobby')}
+            className="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-slate-900/80 hover:bg-slate-800 text-slate-300 border border-white/10 transition flex items-center gap-1 cursor-pointer"
+          >
+            <span>🏷️</span> Lobby
+          </button>
+        </div>
       </div>
 
       {/* Error alert */}
@@ -966,6 +988,16 @@ export default function CompetitivePage() {
           </div>
         </div>
       )}
+
+      {/* Step 7 Match History & Friend Challenge Modals */}
+      <ChallengeHistoryModal
+        isOpen={showHistoryModal}
+        onClose={() => setShowHistoryModal(false)}
+      />
+      <FriendChallengeModal
+        isOpen={showFriendChallengeModal}
+        onClose={() => setShowFriendChallengeModal(false)}
+      />
     </div>
   );
 }

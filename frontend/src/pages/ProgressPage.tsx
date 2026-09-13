@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import ProgressChart from '../components/ProgressChart';
+import PerformanceScoreCard from '../components/PerformanceScoreCard';
+import ActiveGoalsCard from '../components/ActiveGoalsCard';
+import GoalsModal from '../components/GoalsModal';
 import { TrendingUp, Calendar, Dumbbell, Activity, Award, Clock, Flame, Zap, Target } from 'lucide-react';
 
 function buildChartDataFromHistory(history: any[], period: string): Array<{ label: string; value: number }> {
@@ -76,6 +79,7 @@ export default function ProgressPage() {
   const [history, setHistory] = useState<any[]>([]);
   const [summary, setSummary] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [showGoalsModal, setShowGoalsModal] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -117,6 +121,12 @@ export default function ProgressPage() {
           Historical volume, workout frequency and XP progression.
         </p>
       </header>
+
+      {/* ── Step 7: Performance Score & Active Goals ──────────── */}
+      <section className="space-y-3">
+        <PerformanceScoreCard />
+        <ActiveGoalsCard onOpenGoalsModal={() => setShowGoalsModal(true)} />
+      </section>
 
       {/* Segmented Time Filter */}
       <div className="flex rounded-xl p-1 bg-surface border border-white/5">
@@ -296,6 +306,12 @@ export default function ProgressPage() {
           </div>
         )}
       </section>
+
+      {/* Step 7 Goals Modal */}
+      <GoalsModal
+        isOpen={showGoalsModal}
+        onClose={() => setShowGoalsModal(false)}
+      />
     </div>
   );
 }

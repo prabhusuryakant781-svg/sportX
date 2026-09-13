@@ -30,6 +30,9 @@ import { competitiveRouter } from './competitive';
 import { bugsRouter } from './bugs';
 import { notificationsRouter } from './notifications';
 import { progressRouter } from './progress';
+import { goalsRouter } from './goals';
+import { friendsRouter } from './friends';
+import { PerformanceRepository } from './repositories/performanceRepository';
 import { verifyAppCheck } from './middleware/appCheck';
 import { askCoachHandler, generateWorkoutHandler, progressAnalysisHandler, consistencyInsightHandler, sessionAnalysisHandler } from './ai';
 import { visionRouter } from './vision';
@@ -180,8 +183,47 @@ v1.post('/ai/session-analysis', sessionAnalysisHandler); // Priority 2: Grounded
 v1.use('/challenges', challengesRouter); // CF25: Peer Challenges
 v1.use('/lobbies', lobbiesRouter);     // CF23: Multiplayer Workout Mode
 v1.use('/competitive', competitiveRouter); // Global Matchmaking & Athlete-Development Challenges
+v1.use('/goals', goalsRouter);         // Step 7: Goals & AI Coach Integration
+v1.use('/friends', friendsRouter);     // Step 7: Friends & Social Challenges
 v1.use('/bugs', bugsRouter);           // CF30: Bug Reporting
 v1.use('/vision', visionRouter);       // Phase 3: Computer Vision Integration & Form Feedback
+
+/**
+ * GET /api/v1/performance/score
+ * Retrieve authoritative 0-100 SportX Performance Score with 5-pillar breakdown
+ */
+v1.get('/performance/score', verifyAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user!.uid;
+    const scoreDoc = await PerformanceRepository.getScore(userId);
+    res.status(200).json({
+      success: true,
+      data: scoreDoc,
+    });
+  } catch (err: any) {
+    logger.error('[Performance] Error fetching performance score:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * POST /api/v1/performance/recalculate
+ * Manually trigger authoritative recalculation of athletic performance score
+ */
+v1.post('/performance/recalculate', verifyAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user!.uid;
+    const recalculated = await PerformanceRepository.calculateScore(userId);
+    res.status(200).json({
+      success: true,
+      message: 'Performance score recalculated authoritatively',
+      data: recalculated,
+    });
+  } catch (err: any) {
+    logger.error('[Performance] Error recalculating score:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
 
 // Admin authorization guard for system management routes
 const requireAdminOrSystemKey = async (req: Request, res: Response, next: express.NextFunction) => {

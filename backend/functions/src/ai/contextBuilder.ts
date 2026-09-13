@@ -37,6 +37,29 @@ export interface CoachUserContext {
     errors: string[];
   };
 
+  // Step 7 Goals & Athletic Performance
+  activeGoals?: Array<{
+    title: string;
+    target: number;
+    current: number;
+    unit: string;
+    progress: number;
+    category: string;
+    daysLeft: number;
+  }>;
+  completedGoalsCount?: number;
+  performanceScore?: {
+    overall: number;
+    breakdown: any;
+    provisional: boolean;
+  };
+  recentChallenges?: Array<{
+    title: string;
+    outcome: string;
+    opponent: string;
+    date: string;
+  }>;
+
   // Compatibility aliases
   streak: number;
   currentStreak: number;
@@ -234,6 +257,60 @@ export async function buildCoachContext(userId: string): Promise<CoachUserContex
 
   const personalRecords = progressDocData?.personalRecords || {};
 
+  // 5b. Step 7: Gather Active Goals, Performance Score, and Recent Challenges
+  let activeGoalsList: CoachUserContext['activeGoals'] = undefined;
+  let completedGoalsCount = 0;
+  let performanceScoreObj: CoachUserContext['performanceScore'] = undefined;
+  let recentChallengesList: CoachUserContext['recentChallenges'] = undefined;
+
+  try {
+    const { GoalRepository } = await import('../repositories/goalRepository');
+    const userGoals = await GoalRepository.getUserGoals(userId, true).catch(() => []);
+    const nowMs = Date.now();
+    const active = userGoals.filter((g) => g.status === 'active');
+    completedGoalsCount = userGoals.filter((g) => g.status === 'completed').length;
+    if (active.length > 0) {
+      activeGoalsList = active.slice(0, 3).map((g) => {
+        const targetMs = new Date(g.targetDate).getTime();
+        const daysLeft = Math.max(0, Math.ceil((targetMs - nowMs) / 86400000));
+        return {
+          title: g.title,
+          target: g.target,
+          current: g.current,
+          unit: g.unit,
+          progress: g.progress,
+          category: g.category,
+          daysLeft,
+        };
+      });
+    }
+  } catch (_) {}
+
+  try {
+    const { PerformanceRepository } = await import('../repositories/performanceRepository');
+    const perf = await PerformanceRepository.getScore(userId).catch(() => null);
+    if (perf) {
+      performanceScoreObj = {
+        overall: perf.overallScore,
+        breakdown: perf.breakdown,
+        provisional: perf.provisional,
+      };
+    }
+  } catch (_) {}
+
+  try {
+    const { CompetitiveRepository } = await import('../repositories/competitiveRepository');
+    const history = await CompetitiveRepository.getUserMatchHistory(userId).catch(() => []);
+    if (history.length > 0) {
+      recentChallengesList = history.slice(0, 2).map((h: any) => ({
+        title: h.challengeTitle,
+        outcome: h.outcome,
+        opponent: h.opponent?.displayName || 'Athlete',
+        date: typeof h.date === 'string' ? h.date.slice(0, 10) : '',
+      }));
+    }
+  } catch (_) {}
+
   // 6. Structure final context strictly adhering to token efficiency rules
   const context: CoachUserContext = {
     user: {
@@ -253,6 +330,10 @@ export async function buildCoachContext(userId: string): Promise<CoachUserContex
     },
     recentIssues,
     latestSessionFeedback,
+    activeGoals: activeGoalsList,
+    completedGoalsCount,
+    performanceScore: performanceScoreObj,
+    recentChallenges: recentChallengesList,
     streak: currentStreak,
     currentStreak,
     averageFormScore: averagePerformance,

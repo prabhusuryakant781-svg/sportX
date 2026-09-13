@@ -181,3 +181,72 @@ export interface CompetitiveRankDoc {
   lastPlayedAt?: string;
   updatedAt: string;
 }
+
+// ── Step 7: Friend Challenges & Challenge History ────────────────────────────
+export type FriendChallengeType = 'most_reps' | 'target_reps' | 'best_form' | 'timed';
+export type FriendChallengeStatus = 'pending' | 'accepted' | 'declined' | 'in_progress' | 'completed' | 'cancelled' | 'expired';
+
+export interface FriendChallengeParticipantResult {
+  userId: string;
+  reps: number;
+  formScore: number;
+  verifiedScore: number;
+  durationSeconds?: number;
+  visionResultId?: string;
+  completedAt: string;
+}
+
+export interface FriendChallengeDoc {
+  challengeId: string;
+  challengerId: string;
+  challengerName: string;
+  challengerAvatar?: string;
+  opponentId: string;
+  opponentName: string;
+  opponentAvatar?: string;
+  exerciseId: string;
+  sportId?: string;
+  challengeType: FriendChallengeType;
+  targetReps: number;
+  durationSeconds: number;
+  status: FriendChallengeStatus;
+  rules?: string;
+  challengerResult?: FriendChallengeParticipantResult;
+  opponentResult?: FriendChallengeParticipantResult;
+  winnerId?: string | null;
+  isDraw?: boolean;
+  rewardXp: number;
+  createdAt: string;
+  updatedAt: string;
+  completedAt?: string;
+}
+
+export interface ChallengeHistoryEntry {
+  id: string;
+  type: 'competitive' | 'friend';
+  date: string;
+  opponent: {
+    userId: string;
+    displayName: string;
+    avatarUrl?: string;
+    rankTier?: CompetitiveRankTier | string;
+  };
+  exerciseId: string;
+  sportId: string;
+  challengeTitle: string;
+  challengeType?: string;
+  outcome: 'WIN' | 'LOSS' | 'DRAW';
+  userPlacement: number;
+  userScore: number;
+  opponentScore: number;
+  userReps: number;
+  opponentReps?: number;
+  userForm: number;
+  opponentForm?: number;
+  durationSeconds?: number;
+  xpEarned: number;
+  rankPointsChange: number;
+  newRankPoints?: number;
+  newRankTier?: string;
+  status: string;
+}

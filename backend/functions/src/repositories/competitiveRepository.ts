@@ -398,6 +398,105 @@ export class CompetitiveRepository {
   }
 
   /**
+   * Retrieve completed match history for a user as standardized ChallengeHistoryEntry items.
+   */
+  static async getUserMatchHistory(
+    userId: string,
+    filters?: { outcome?: 'all' | 'win' | 'loss' | 'draw'; exerciseId?: string }
+  ): Promise<any[]> {
+    if (!userId) return [];
+
+    let matches: CompetitiveMatchDoc[] = [];
+
+    if (hasFirebaseCredentials) {
+      try {
+        const snap = await withTimeout(
+          db.collection(MATCHES_COLLECTION)
+            .where('status', '==', 'COMPLETED')
+            .limit(50)
+            .get(),
+          3000
+        );
+        if (!snap.empty) {
+          const dbMatches = snap.docs.map((d) => d.data() as CompetitiveMatchDoc);
+          for (const m of dbMatches) {
+            localMatchesCache.set(m.matchId, m);
+          }
+        }
+      } catch (err) {
+        logger.warn(`[CompetitiveRepo] getUserMatchHistory for ${userId} Firestore query failed:`, err);
+      }
+    }
+
+    // Combine and deduplicate
+    const allMatches = Array.from(localMatchesCache.values()).filter(
+      (m) => m.status === 'COMPLETED' && m.results && m.players.some((p) => p.userId === userId)
+    );
+
+    // Map to ChallengeHistoryEntry
+    const historyEntries: any[] = [];
+
+    for (const m of allMatches) {
+      const results = m.results;
+      if (!results || !results.leaderboard) continue;
+
+      const userPlacement = results.leaderboard.find((l) => l.userId === userId);
+      if (!userPlacement) continue;
+
+      const opponentPlacement = results.leaderboard.find((l) => l.userId !== userId);
+      const opponentPlayer = m.players.find((p) => p.userId !== userId);
+
+      const entry = {
+        id: m.matchId,
+        type: 'competitive',
+        date: results.finalizedAt || m.createdAt,
+        opponent: {
+          userId: opponentPlayer?.userId || opponentPlacement?.userId || 'unknown_opponent',
+          displayName: opponentPlayer?.displayName || opponentPlacement?.displayName || 'Opponent',
+          avatarUrl: opponentPlayer?.avatarUrl || '',
+          rankTier: opponentPlayer?.rankTier || 'Bronze',
+        },
+        exerciseId: m.challenge?.exerciseId || 'squat',
+        sportId: m.challenge?.sportId || 'athletics',
+        challengeTitle: m.challenge?.title || 'Competitive Arena Battle',
+        challengeType: 'competitive_match',
+        outcome: userPlacement.outcome,
+        userPlacement: userPlacement.placement,
+        userScore: userPlacement.score,
+        opponentScore: opponentPlacement?.score || 0,
+        userReps: userPlacement.reps,
+        opponentReps: opponentPlacement?.reps || 0,
+        userForm: userPlacement.formScore,
+        opponentForm: opponentPlacement?.formScore || 0,
+        durationSeconds: m.challenge?.durationSeconds || 60,
+        xpEarned: userPlacement.xpEarned || 0,
+        rankPointsChange: userPlacement.rankPointsChange || 0,
+        newRankPoints: userPlacement.newRankPoints,
+        newRankTier: userPlacement.newRankTier,
+        status: m.status,
+      };
+
+      // Filter by outcome if requested
+      if (filters?.outcome && filters.outcome !== 'all') {
+        const expected = filters.outcome.toUpperCase();
+        if (entry.outcome !== expected) continue;
+      }
+
+      // Filter by exercise if requested
+      if (filters?.exerciseId && entry.exerciseId !== filters.exerciseId) {
+        continue;
+      }
+
+      historyEntries.push(entry);
+    }
+
+    // Sort newest first
+    historyEntries.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    return historyEntries;
+  }
+
+  /**
    * Clears local in-memory state for isolated test execution
    */
   static clearLocalCache() {

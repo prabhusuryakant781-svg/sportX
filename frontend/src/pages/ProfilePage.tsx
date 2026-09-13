@@ -3,6 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
 import BugReportModal from '../components/BugReportModal';
+import PerformanceScoreCard from '../components/PerformanceScoreCard';
+import GoalsModal from '../components/GoalsModal';
+import FriendsModal from '../components/FriendsModal';
+import FriendChallengeModal from '../components/FriendChallengeModal';
 import { 
   User, 
   Target, 
@@ -23,7 +27,8 @@ import {
   Crown,
   Lock,
   Plus,
-  Sparkles
+  Sparkles,
+  Users
 } from 'lucide-react';
 import { getRankTierFromRP, getNextRankTier, getRPNeededForNextTier, CompetitiveRankTier } from '../types/competitive';
 
@@ -77,6 +82,32 @@ export default function ProfilePage() {
   const [availableBadges, setAvailableBadges] = useState<BadgeItem[]>([]);
   const [selectedFeatured, setSelectedFeatured] = useState<string[]>([]);
   const [savingShowcase, setSavingShowcase] = useState(false);
+
+  // Step 7 Goals & Friends State
+  const [showGoalsModal, setShowGoalsModal] = useState(false);
+  const [showFriendsModal, setShowFriendsModal] = useState(false);
+  const [showFriendChallengeModal, setShowFriendChallengeModal] = useState(false);
+  const [targetFriend, setTargetFriend] = useState<any>(null);
+  const [goalsSummary, setGoalsSummary] = useState<{ active: number; completed: number }>({ active: 0, completed: 0 });
+  const [friendsCount, setFriendsCount] = useState<number>(0);
+
+  const fetchSocialStats = () => {
+    api.getGoals(true).then((res: any) => {
+      const list = res?.data || [];
+      setGoalsSummary({
+        active: list.filter((g: any) => g.status === 'active').length,
+        completed: list.filter((g: any) => g.status === 'completed').length,
+      });
+    }).catch(() => null);
+
+    api.getFriends().then((res: any) => {
+      setFriendsCount(Array.isArray(res?.data) ? res.data.length : 0);
+    }).catch(() => null);
+  };
+
+  useEffect(() => {
+    fetchSocialStats();
+  }, []);
 
   useEffect(() => {
     if (user?.featuredBadges) {
@@ -342,6 +373,61 @@ export default function ProfilePage() {
                 {currentLevelDisplay}
               </span>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Step 7: Performance Score ─────────────────────────── */}
+      <PerformanceScoreCard />
+
+      {/* ── Step 7: Goals & Friends Hub Summary ────────────────── */}
+      <div className="grid grid-cols-2 gap-3">
+        {/* Goals Summary Card */}
+        <div
+          onClick={() => setShowGoalsModal(true)}
+          className="card-glass border border-white/10 p-4 flex flex-col justify-between group shadow-card cursor-pointer hover:border-neon/40 transition"
+        >
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <div className="w-8 h-8 rounded-xl bg-neon/15 text-neon flex items-center justify-center border border-neon/30">
+                <Target size={16} />
+              </div>
+              <span className="text-[10px] font-bold text-neon uppercase">Manage</span>
+            </div>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Athletic Goals</span>
+            <div className="flex items-baseline gap-1 mt-0.5">
+              <span className="text-xl font-black text-white tabular-nums">{goalsSummary.active}</span>
+              <span className="text-xs text-slate-400 font-medium">Active</span>
+              <span className="text-[10px] text-slate-500 ml-1">({goalsSummary.completed} done)</span>
+            </div>
+          </div>
+          <div className="mt-2 text-[10px] text-slate-400 flex items-center gap-0.5 group-hover:text-neon transition">
+            <span>View Goals Hub</span>
+            <ChevronRight size={12} />
+          </div>
+        </div>
+
+        {/* Friends Count Card */}
+        <div
+          onClick={() => setShowFriendsModal(true)}
+          className="card-glass border border-white/10 p-4 flex flex-col justify-between group shadow-card cursor-pointer hover:border-cyan/40 transition"
+        >
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <div className="w-8 h-8 rounded-xl bg-cyan/15 text-cyan flex items-center justify-center border border-cyan/30">
+                <Users size={16} />
+              </div>
+              <span className="text-[10px] font-bold text-cyan uppercase">Social</span>
+            </div>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Connected Friends</span>
+            <div className="flex items-baseline gap-1 mt-0.5">
+              <span className="text-xl font-black text-white tabular-nums">{friendsCount}</span>
+              <span className="text-xs text-slate-400 font-medium">Athletes</span>
+            </div>
+          </div>
+          <div className="mt-2 text-[10px] text-slate-400 flex items-center gap-0.5 group-hover:text-cyan transition">
+            <span>Find & Challenge</span>
+            <ChevronRight size={12} />
           </div>
         </div>
       </div>
@@ -884,6 +970,30 @@ export default function ProfilePage() {
       )}
 
       <BugReportModal isOpen={showBugModal} onClose={() => setShowBugModal(false)} />
+
+      {/* Step 7 Modals */}
+      <GoalsModal
+        isOpen={showGoalsModal}
+        onClose={() => setShowGoalsModal(false)}
+        onGoalUpdated={fetchSocialStats}
+      />
+      <FriendsModal
+        isOpen={showFriendsModal}
+        onClose={() => setShowFriendsModal(false)}
+        onChallengeFriend={(friend) => {
+          setTargetFriend(friend);
+          setShowFriendChallengeModal(true);
+        }}
+        onFriendsUpdated={fetchSocialStats}
+      />
+      <FriendChallengeModal
+        isOpen={showFriendChallengeModal}
+        onClose={() => {
+          setShowFriendChallengeModal(false);
+          setTargetFriend(null);
+        }}
+        targetFriend={targetFriend}
+      />
     </div>
   );
 }
