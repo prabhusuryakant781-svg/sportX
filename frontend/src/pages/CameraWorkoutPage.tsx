@@ -342,6 +342,7 @@ export default function CameraWorkoutPage() {
             onStartWorkout={handleStartWorkout}
             onUpdate={handleUpdate}
             competitiveMode={isCompetitive}
+            autoStart={isCompetitive}
             competitiveContext={competitiveState?.competitiveContext || (isCompetitive ? {
               matchId: competitiveState?.matchId || '',
               challengeTitle: competitiveState?.challenge?.title,

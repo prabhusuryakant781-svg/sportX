@@ -36,6 +36,7 @@ interface CameraWorkoutProps {
     durationSeconds?: number;
     sportId?: string;
   };
+  autoStart?: boolean;
 }
 
 // MediaPipe 33-point pose landmark connections for full-body skeleton rendering
@@ -56,6 +57,7 @@ export default function CameraWorkout({
   targetReps = 20,
   competitiveMode = false,
   competitiveContext,
+  autoStart = false,
 }: CameraWorkoutProps) {
   const [isActive, setIsActive] = useState(false);
   const [repState, setRepState] = useState<RepCounterState>({
@@ -432,6 +434,28 @@ export default function CameraWorkout({
       setDuration(d => d + 1);
     }, 1000);
   };
+
+  // Auto-start workout in competitive mode once camera and MediaPipe models are calibrated
+  useEffect(() => {
+    if (autoStart && !isActive && cameraStatus === 'ready' && mediaPipeStatus === 'ready') {
+      startWorkout();
+    }
+  }, [autoStart, isActive, cameraStatus, mediaPipeStatus]);
+
+  // Temporary competitive camera diagnostic log
+  useEffect(() => {
+    if (competitiveMode) {
+      console.log('[SPORTX COMPETITIVE CAMERA DEBUG]', {
+        matchId: competitiveContext?.matchId || 'active-match',
+        challengeId: competitiveContext?.challengeTitle || exerciseId,
+        exerciseId,
+        targetReps,
+        competitive: competitiveMode,
+        currentRoute: window.location.pathname,
+        cameraPageMounted: true,
+      });
+    }
+  }, [competitiveMode, competitiveContext, exerciseId, targetReps]);
 
   // Stop Workout
   const stopWorkout = () => {

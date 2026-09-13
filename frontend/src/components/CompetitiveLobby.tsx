@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useLobbySocket } from '../hooks/useLobbySocket';
 import type { LobbyPlayer, LobbySettings } from '../types';
+import CameraWorkout from './CameraWorkout';
 import GoalRing from './GoalRing';
 import { 
   Swords, 
@@ -29,6 +30,7 @@ export default function CompetitiveLobby({ currentUser, onExit }: CompetitiveLob
   const {
     roomCode, matchState, countdown, lobbySettings, players,
     createRoom, joinRoom, toggleReady, startMatch, finishMatch, setLobbySettings,
+    updateLocalTelemetry,
   } = useLobbySocket(null, currentUser);
 
   const [joinCode, setJoinCode] = useState('');
@@ -285,6 +287,43 @@ export default function CompetitiveLobby({ currentUser, onExit }: CompetitiveLob
           >
             End Match
           </button>
+        </div>
+
+        {/* Real Webcam Stream & MediaPipe Pose Verification Component */}
+        <div className="card p-3 border border-white/10 flex flex-col items-center bg-black/40">
+          <CameraWorkout
+            exerciseId={
+              lobbySettings.exerciseId === 'pushup'
+                ? 'pushup'
+                : lobbySettings.exerciseId === 'jumping_jacks'
+                ? 'jumping_jacks'
+                : 'squat'
+            }
+            targetReps={lobbySettings.targetReps || 25}
+            competitiveMode={true}
+            autoStart={true}
+            competitiveContext={{
+              matchId: roomCode || 'SPX-ARENA',
+              challengeTitle: `${lobbySettings.mode} • ${lobbySettings.exerciseId.toUpperCase()}`,
+              targetReps: lobbySettings.targetReps || 25,
+              durationSeconds: lobbySettings.durationSeconds || 60,
+            }}
+            onUpdate={(repState) => {
+              updateLocalTelemetry({
+                currentReps: repState.reps,
+                formScore: repState.formScore,
+                currentStreak: repState.streak,
+              });
+            }}
+            onComplete={(result) => {
+              updateLocalTelemetry({
+                currentReps: result.reps,
+                formScore: result.formScore,
+                currentStreak: result.streak,
+              });
+              finishMatch();
+            }}
+          />
         </div>
 
         {/* Live Competitor Scoreboard */}
