@@ -5,7 +5,7 @@
 import { Timestamp, FieldValue } from 'firebase-admin/firestore';
 
 export type UserRole = 'user' | 'coach' | 'admin';
-export type FitnessLevel = 'beginner' | 'intermediate' | 'advanced';
+export type FitnessLevel = 'beginner' | 'intermediate' | 'pro' | 'advanced';
 export type SessionStatus = 'in-progress' | 'active' | 'paused' | 'completed' | 'abandoned' | 'cancelled';
 
 // ── 1. User Model (users/{userId}) ───────────────────────────────────────────

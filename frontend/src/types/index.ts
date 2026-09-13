@@ -8,7 +8,7 @@ export interface User {
   avatarUrl?: string;
   collegeName: string;
   department: string;
-  fitnessLevel: 'beginner' | 'intermediate' | 'advanced';
+  fitnessLevel?: 'beginner' | 'intermediate' | 'pro' | 'advanced' | string;
   fitnessGoal: string;
   availableTimeMinutes: number;
   selectedSports: string[];

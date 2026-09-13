@@ -23,7 +23,7 @@ export const PROTECTED_USER_FIELDS = new Set([
   'role',
 ]);
 
-const VALID_FITNESS_LEVELS: Set<FitnessLevel> = new Set(['beginner', 'intermediate', 'advanced']);
+const VALID_FITNESS_LEVELS: Set<FitnessLevel> = new Set(['beginner', 'intermediate', 'pro', 'advanced']);
 
 export interface ValidationResult {
   isValid: boolean;
@@ -38,7 +38,7 @@ export function validateFitnessProfile(data: Record<string, unknown>): Validatio
     if (!VALID_FITNESS_LEVELS.has(data.fitnessLevel as FitnessLevel)) {
       return {
         isValid: false,
-        error: `Invalid fitnessLevel '${data.fitnessLevel}'. Must be one of: beginner, intermediate, advanced`,
+        error: `Invalid fitnessLevel '${data.fitnessLevel}'. Must be one of: beginner, intermediate, pro, advanced`,
       };
     }
   }

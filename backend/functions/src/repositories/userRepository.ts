@@ -53,7 +53,57 @@ export class UserRepository {
       }
     }
 
-    return localUsersCache.get(userId) || null;
+    const cached = localUsersCache.get(userId);
+    if (cached) return cached;
+
+    try {
+      const { users: demoUsers } = require('../config/demoStore');
+      const demo = demoUsers?.get?.(userId);
+      if (demo) {
+        const mappedUser: UserDoc = {
+          userId: demo.id || userId,
+          name: demo.name || 'Athlete',
+          email: demo.email || '',
+          profileImage: '',
+          age: null,
+          height: null,
+          weight: null,
+          fitnessLevel: (demo.fitnessLevel || 'intermediate') as any,
+          goals: demo.goals || [demo.fitnessGoal || 'fitness'],
+          selectedSports: demo.selectedSports || [],
+          experience: 'intermediate',
+          preferences: {
+            workoutDays: ['Monday', 'Wednesday', 'Friday'],
+            soundEnabled: true,
+            hapticFeedback: true,
+            theme: 'dark'
+          },
+          availableWorkoutTime: demo.availableWorkoutTime || demo.availableTimeMinutes || 20,
+          availableEquipment: ['none'],
+          workoutDaysPerWeek: 3,
+          targetCalories: 300,
+          notificationsEnabled: true,
+          fcmTokens: [],
+          role: 'user',
+          totalWorkouts: 0,
+          totalMinutes: 0,
+          totalCalories: 0,
+          currentStreak: demo.currentStreak || 0,
+          longestStreak: demo.longestStreak || 0,
+          lastWorkoutDate: demo.lastWorkoutDate || null,
+          xp: demo.totalXp || 0,
+          XP: demo.totalXp || 0,
+          level: 1,
+          badges: [],
+          createdAt: demo.createdAt || new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        localUsersCache.set(userId, mappedUser);
+        return mappedUser;
+      }
+    } catch (_) {}
+
+    return null;
   }
 
   /**

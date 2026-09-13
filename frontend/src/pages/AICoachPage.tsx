@@ -14,8 +14,10 @@ import {
   Zap, 
   RotateCcw,
   Sliders,
-  Dumbbell
+  Dumbbell,
+  Play
 } from 'lucide-react';
+import { buildCameraRoute } from '../utils/exerciseUtils';
 
 interface CoachMessage {
   id: string;
@@ -27,6 +29,7 @@ interface CoachMessage {
     recommendations?: string[];
     nextFocus?: string;
   };
+  plan?: any;
   timestamp: string;
 }
 
@@ -166,19 +169,31 @@ export default function AICoachPage() {
     setErrorMessage(null);
     try {
       const res: any = await api.generateWorkout({
-        durationMinutes: 20,
-        focus: 'full_body'
+        durationMinutes: user?.availableTimeMinutes || 20,
+        focus: user?.fitnessGoal || 'fitness'
       });
       if (res?.data) {
         const plan = res.data;
+        const planTitle = plan.title || plan.workoutName || 'Personalized Routine';
+        const planDuration = plan.estimatedDurationMinutes || plan.estimatedDuration || plan.duration || 20;
+        const planDifficulty = plan.difficulty || user?.fitnessLevel || 'Intermediate';
+
         const workoutMessage: CoachMessage = {
           id: `coach_plan_${Date.now()}`,
           sender: 'coach',
+          plan,
           structuredResponse: {
-            summary: `Custom Plan Generated: "${plan.title || 'Athletic Conditioning'}" (${plan.difficulty || 'Intermediate'}, ~${plan.estimatedDurationMinutes || 20}m).`,
-            strengths: [`Tailored for ${user?.selectedSports?.[0] || 'collegiate athletics'}`],
-            recommendations: (plan.exercises || []).map((e: any) => `${e.name || e.exerciseId}: ${e.sets} sets × ${e.reps} reps`),
-            nextFocus: 'controlled execution'
+            summary: `Custom Plan Generated: "${planTitle}" (${planDifficulty}, ~${planDuration}m).`,
+            strengths: [
+              `Personalized for ${plan.sport ? plan.sport.replace(/_/g, ' ') : (user?.selectedSports?.[0] || 'your athletic development')}`,
+              plan.focusCue ? `Coaching focus: ${plan.focusCue}` : 'Tailored volume and exercise progression'
+            ],
+            recommendations: (plan.exercises || []).map((e: any) => {
+              const count = e.reps ? `${e.reps} reps` : `${e.durationSeconds}s hold`;
+              const cueText = e.cue ? ` • ${e.cue}` : '';
+              return `${e.name || e.exerciseId}: ${e.sets} sets × ${count}${cueText}`;
+            }),
+            nextFocus: plan.focusCue || 'controlled execution'
           },
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         };
@@ -320,6 +335,27 @@ export default function AICoachPage() {
                       <Target size={11} />
                       <span className="capitalize">{msg.structuredResponse.nextFocus}</span>
                     </span>
+                  </div>
+                )}
+
+                {msg.plan && (
+                  <div className="pt-3 border-t border-white/10 flex items-center justify-between gap-3 bg-white/[0.02] -mx-4 -mb-4 p-3.5 rounded-b-2xl">
+                    <div className="text-[11px] text-slate-400">
+                      <span className="text-white font-bold">{msg.plan.exercises?.length || 0} drills</span>
+                      {' • '}
+                      <span>{msg.plan.duration || msg.plan.estimatedDuration || 20} mins</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const firstExId = msg.plan.exercises?.[0]?.exerciseId || 'squat';
+                        navigate(buildCameraRoute(msg.plan, firstExId));
+                      }}
+                      className="px-3.5 py-1.5 text-xs font-black rounded-xl bg-neon hover:bg-neon/90 text-obsidian flex items-center gap-1.5 transition-all shadow-glow cursor-pointer"
+                    >
+                      <Play size={13} className="fill-current" />
+                      <span>Start Workout</span>
+                    </button>
                   </div>
                 )}
               </div>

@@ -114,7 +114,7 @@ export async function callGeminiApi(
 
   // Ordered list of candidate models confirmed available by the Gemini API
   const candidateModels = Array.from(
-    new Set([cleanRequested, 'gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro'])
+    new Set([cleanRequested, 'gemini-3.6-flash', 'gemini-2.5-flash', 'gemini-flash-latest', 'gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro'])
   );
 
   let lastStatus = 0;
@@ -265,9 +265,18 @@ export async function generateCoachResponse(
 
   const apiKey = options?.apiKey || process.env.GEMINI_API_KEY || process.env.AI_API_KEY || process.env.GOOGLE_API_KEY;
 
+  if (process.env.LOCAL_TEST === 'true') {
+    logger.info('[AI Coach] Running in local test mode with simulated AI provider');
+    const fallbackResponse = generateLocalTestResponse(context, trimmedMessage);
+    const validation = validateCoachResponse(fallbackResponse);
+    if (validation.isValid && validation.data) {
+      return validation.data;
+    }
+  }
+
   if (!apiKey) {
     // If running in local test mode without a real API key configured, use safe test generator
-    if (process.env.NODE_ENV === 'test' || process.env.LOCAL_TEST === 'true') {
+    if (process.env.NODE_ENV === 'test') {
       logger.info('[AI Coach] Running in local test mode with simulated AI provider');
       const fallbackResponse = generateLocalTestResponse(context, trimmedMessage);
       const validation = validateCoachResponse(fallbackResponse);
@@ -288,6 +297,14 @@ export async function generateCoachResponse(
   try {
     rawResponseText = await callGeminiApi(apiKey, prompt, model, timeoutMs);
   } catch (apiError: any) {
+    if (process.env.LOCAL_TEST === 'true' || process.env.NODE_ENV === 'test') {
+      logger.warn('[AI Coach] External Gemini API call failed in test environment, using local fallback:', apiError.message);
+      const fallbackResponse = generateLocalTestResponse(context, trimmedMessage);
+      const validation = validateCoachResponse(fallbackResponse);
+      if (validation.isValid && validation.data) {
+        return validation.data;
+      }
+    }
     if (!apiError.category) {
       apiError.category = 'Gemini API request failure';
       apiError.statusCode = apiError.statusCode || 502;

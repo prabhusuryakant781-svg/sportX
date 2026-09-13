@@ -29,6 +29,12 @@ export default function OnboardingPage() {
   const [goal, setGoal] = useState(user?.fitnessGoal || 'fitness');
   const [time, setTime] = useState(user?.availableTimeMinutes || 20);
   const [sports, setSports] = useState<string[]>(user?.selectedSports || []);
+  const [fitnessLevel, setFitnessLevel] = useState<'beginner' | 'intermediate' | 'pro'>(() => {
+    const raw = user?.fitnessLevel?.toLowerCase();
+    if (raw === 'pro' || raw === 'advanced') return 'pro';
+    if (raw === 'intermediate') return 'intermediate';
+    return 'beginner';
+  });
   const [allSports, setAllSports] = useState<any[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -79,6 +85,7 @@ export default function OnboardingPage() {
         availableTimeMinutes: time,
         availableWorkoutTime: time,
         selectedSports: sports,
+        fitnessLevel: fitnessLevel,
       });
 
       // 2. Synchronize sports selection endpoint
@@ -97,7 +104,7 @@ export default function OnboardingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-obsidian text-white flex flex-col justify-between py-6 px-4 sm:px-6 relative overflow-hidden">
+    <div className="min-h-screen max-h-screen overflow-y-auto bg-obsidian text-white flex flex-col justify-between py-6 px-4 sm:px-6 relative">
       {/* Ambient background glow */}
       <div className="absolute top-10 left-1/2 -translate-x-1/2 w-96 h-96 bg-neon/5 rounded-full blur-[120px] pointer-events-none" />
 
@@ -256,6 +263,53 @@ export default function OnboardingPage() {
                   ? `${sports.length} sport${sports.length > 1 ? 's' : ''} selected for athletic calibration`
                   : 'Choose the sports you play or train for on campus'}
               </p>
+            </div>
+
+            {/* Fitness Level Calibration — Prominently alongside Sports Selection */}
+            <div className="card p-3.5 mb-5 border-white/10 bg-surface/60">
+              <div className="flex items-center justify-between mb-2 px-1">
+                <div>
+                  <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                    <Zap size={14} className="text-neon" />
+                    <span>Fitness Level</span>
+                  </h3>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    Calibrates routine intensity, volume, and recovery pacing
+                  </p>
+                </div>
+                <span className="text-[10px] font-black uppercase text-neon tracking-wider bg-neon/10 px-2 py-0.5 rounded-full border border-neon/20">
+                  {fitnessLevel}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 mt-1">
+                {[
+                  { id: 'beginner', label: 'Beginner', desc: 'Foundations' },
+                  { id: 'intermediate', label: 'Intermediate', desc: 'Progressive' },
+                  { id: 'pro', label: 'Pro', desc: 'Peak Output' }
+                ].map(lvl => {
+                  const isSelected = fitnessLevel === lvl.id;
+                  return (
+                    <button
+                      key={lvl.id}
+                      type="button"
+                      onClick={() => setFitnessLevel(lvl.id as any)}
+                      className={`p-2.5 rounded-xl text-center transition-all cursor-pointer border ${
+                        isSelected
+                          ? 'bg-neon/15 border-neon text-white shadow-glow-sm'
+                          : 'bg-surface/50 border-white/5 hover:border-white/20 text-slate-400'
+                      }`}
+                    >
+                      <div className={`text-xs font-black capitalize ${isSelected ? 'text-neon' : 'text-slate-200'}`}>
+                        {lvl.label}
+                      </div>
+                      <div className="text-[10px] text-slate-400 mt-0.5">
+                        {lvl.desc}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             <div className="flex justify-between items-center px-1 mb-3">

@@ -17,12 +17,17 @@ export interface CoachUserContext {
   user: {
     fitnessLevel: string;
     goal: string;
+    goals?: string[];
     sport: string;
+    sports?: string[];
+    availableWorkoutTime?: number;
   };
   performance: {
     recentWorkouts: number;
     currentStreak: number;
     averagePerformance: number;
+    personalRecords?: Record<string, number>;
+    exerciseStats?: Record<string, { totalReps: number; avgScore: number; count: number }>;
   };
   recentIssues: string[];
   latestSessionFeedback?: {
@@ -38,9 +43,12 @@ export interface CoachUserContext {
   averageFormScore: number;
   fitnessLevel: string;
   goal: string;
+  goals?: string[];
   sport: string;
+  selectedSports?: string[];
   availableTimeMinutes: number;
   commonErrors: string[];
+  personalRecords?: Record<string, number>;
 }
 
 /**
@@ -50,6 +58,7 @@ export interface CoachUserContext {
 export async function buildCoachContext(userId: string): Promise<CoachUserContext> {
   let userData: Record<string, any> = {};
   let sessionDocsData: any[] = [];
+  let progressDocData: any = null;
 
   // 1. Fetch user profile from Firestore users/{userId}
   try {
@@ -64,7 +73,7 @@ export async function buildCoachContext(userId: string): Promise<CoachUserContex
 
   // 2. Fetch recent workout sessions from Firestore workoutSessions
   try {
-    const sessions = await SessionRepository.getUserSessions(userId, { limit: 5 });
+    const sessions = await SessionRepository.getUserSessions(userId, { limit: 10 });
     if (sessions.length > 0) {
       sessionDocsData = sessions;
     }
@@ -73,16 +82,40 @@ export async function buildCoachContext(userId: string): Promise<CoachUserContex
     console.warn(`[contextBuilder] Notice: Could not query workoutSessions for ${userId}:`, (err as Error).message);
   }
 
-  // 3. Compute performance metrics and recent issues
+  // 2b. Fetch progress document for personal records and trends
+  try {
+    const { ProgressRepository } = await import('../repositories/progressRepository');
+    progressDocData = await ProgressRepository.getByUserId(userId);
+  } catch (progErr) {
+    // Non-fatal fallback
+  }
+
+  // 3. Compute performance metrics, per-exercise stats, and recent issues
   let scoreSum = 0;
   let scoreCount = 0;
   const errorFrequency: Record<string, number> = {};
+  const exerciseStats: Record<string, { totalReps: number; avgScore: number; count: number }> = {};
 
   for (const session of sessionDocsData) {
     const score = session.formAccuracyAverage ?? session.averageFormScore ?? session.formScore;
     if (typeof score === 'number' && !isNaN(score)) {
       scoreSum += score;
       scoreCount++;
+    }
+
+    // Tally per-exercise performance
+    const exId = session.exerciseId || session.exerciseLogs?.[0]?.exerciseId;
+    if (exId && typeof exId === 'string') {
+      const cleanExId = exId.toLowerCase().trim();
+      const reps = Number(session.totalReps || 0);
+      const curScore = typeof score === 'number' && !isNaN(score) ? score : 80;
+      if (!exerciseStats[cleanExId]) {
+        exerciseStats[cleanExId] = { totalReps: reps, avgScore: curScore, count: 1 };
+      } else {
+        exerciseStats[cleanExId].totalReps += reps;
+        exerciseStats[cleanExId].avgScore = Math.round((exerciseStats[cleanExId].avgScore * exerciseStats[cleanExId].count + curScore) / (exerciseStats[cleanExId].count + 1));
+        exerciseStats[cleanExId].count += 1;
+      }
     }
 
     // Gather form errors from exercise logs
@@ -188,36 +221,49 @@ export async function buildCoachContext(userId: string): Promise<CoachUserContex
     };
   }
 
-  // 5. Structure final context strictly adhering to token efficiency rules
+  // 5. Normalise sports and goals safely
+  const rawSports = Array.isArray(userData.selectedSports) && userData.selectedSports.length > 0
+    ? userData.selectedSports
+    : (userData.sport ? [userData.sport] : (userData.sportId ? [userData.sportId] : ['badminton']));
+  const primarySport = String(rawSports[0] || 'badminton');
+
+  const rawGoals = Array.isArray(userData.goals) && userData.goals.length > 0
+    ? userData.goals
+    : (userData.goal ? [userData.goal] : (userData.fitnessGoal ? [userData.fitnessGoal] : ['fitness']));
+  const primaryGoal = String(rawGoals[0] || 'fitness');
+
+  const personalRecords = progressDocData?.personalRecords || {};
+
+  // 6. Structure final context strictly adhering to token efficiency rules
   const context: CoachUserContext = {
     user: {
-      fitnessLevel: String(userData.fitnessLevel || 'intermediate'),
-      goal: String(
-        Array.isArray(userData.goals) ? userData.goals[0] : (userData.goal || userData.fitnessGoal || 'endurance')
-      ),
-      sport: String(
-        Array.isArray(userData.selectedSports) ? userData.selectedSports[0] : (userData.sport || userData.sportId || 'badminton')
-      ),
+      fitnessLevel: String(userData.fitnessLevel || 'intermediate').toLowerCase(),
+      goal: primaryGoal,
+      goals: rawGoals,
+      sport: primarySport,
+      sports: rawSports,
+      availableWorkoutTime: Number(userData.availableWorkoutTime || userData.availableTimeMinutes || 20),
     },
     performance: {
       recentWorkouts,
       currentStreak,
       averagePerformance,
+      personalRecords,
+      exerciseStats,
     },
     recentIssues,
     latestSessionFeedback,
     streak: currentStreak,
     currentStreak,
     averageFormScore: averagePerformance,
-    fitnessLevel: String(userData.fitnessLevel || 'intermediate'),
-    goal: String(
-      Array.isArray(userData.goals) ? userData.goals[0] : (userData.goal || userData.fitnessGoal || 'endurance')
-    ),
-    sport: String(
-      Array.isArray(userData.selectedSports) ? userData.selectedSports[0] : (userData.sport || userData.sportId || 'badminton')
-    ),
+    fitnessLevel: String(userData.fitnessLevel || 'intermediate').toLowerCase(),
+    goal: primaryGoal,
+    goals: rawGoals,
+    sport: primarySport,
+    selectedSports: rawSports,
     availableTimeMinutes: Number(userData.availableWorkoutTime || userData.availableTimeMinutes || 20),
     commonErrors: sortedErrors,
+    personalRecords,
   };
 
   return context;
