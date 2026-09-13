@@ -349,8 +349,9 @@ export default function ProfilePage() {
 
             <div className="p-2 rounded-xl bg-surface/50 border border-white/5">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Streak</span>
-              <span className="text-sm font-black text-amber-400 font-outfit tabular-nums mt-0.5 block">
-                🔥 {user?.currentStreak ?? 0}d
+              <span className="text-sm font-black text-amber-400 font-outfit tabular-nums mt-0.5 flex items-center justify-center gap-1">
+                <Flame size={14} className="text-amber-400 fill-amber-400/20" />
+                <span>{user?.currentStreak ?? 0}d</span>
               </span>
               <span className="text-[9px] text-slate-400 font-bold block truncate">
                 Best: {user?.longestStreak || user?.bestStreak || 0}d
@@ -474,7 +475,7 @@ export default function ProfilePage() {
               >
                 {badgeId ? (
                   <>
-                    <span className="text-2xl mb-1 filter drop-shadow">🏆</span>
+                    <Trophy size={22} className="text-amber-400 mb-1 filter drop-shadow" />
                     <span className="text-[10px] font-bold text-slate-300 text-center truncate max-w-full">
                       {badgeId.replace(/_/g, ' ').replace('streak', 'Day Streak').replace('reps', 'Reps')}
                     </span>

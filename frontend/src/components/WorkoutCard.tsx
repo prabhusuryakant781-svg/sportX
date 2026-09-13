@@ -1,5 +1,5 @@
 import type { WorkoutPlan } from '../types';
-import { Clock, Dumbbell, Play, Sparkles, ChevronRight } from 'lucide-react';
+import { Clock, Dumbbell, Play, Sparkles } from 'lucide-react';
 
 interface WorkoutCardProps {
   plan: WorkoutPlan;
@@ -11,7 +11,7 @@ export default function WorkoutCard({ plan, onStart }: WorkoutCardProps) {
   const exerciseCount = plan.exercises?.length || 0;
 
   const difficultyColors: Record<string, string> = {
-    beginner: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30',
+    beginner: 'text-neon bg-neon/10 border-neon/30',
     intermediate: 'text-cyan bg-cyan/10 border-cyan/30',
     advanced: 'text-amber-400 bg-amber-500/10 border-amber-500/30',
   };
@@ -21,16 +21,16 @@ export default function WorkoutCard({ plan, onStart }: WorkoutCardProps) {
   return (
     <div
       onClick={() => onStart(plan)}
-      className="card-glass border border-white/10 p-5 rounded-2xl cursor-pointer hover:border-neon/40 transition-all duration-200 group relative overflow-hidden shadow-card hover:shadow-glow-sm"
+      className="card border border-white/10 p-5 rounded-2xl cursor-pointer hover:border-neon/40 transition-all duration-200 group relative overflow-hidden shadow-card hover:shadow-glow-sm bg-surface/80"
     >
       <div className="flex justify-between items-start gap-3">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border uppercase tracking-wider ${diffClass}`}>
+          <div className="flex items-center gap-2 mb-2 flex-wrap">
+            <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full border uppercase tracking-wider ${diffClass}`}>
               {plan.difficulty || 'All Levels'}
             </span>
             {plan.recommendationReason && (
-              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-neon px-2 py-0.5 rounded-full bg-neon/10 border border-neon/20">
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-neon px-2.5 py-0.5 rounded-full bg-neon/10 border border-neon/30">
                 <Sparkles size={10} />
                 <span>Recommended</span>
               </span>
@@ -48,7 +48,7 @@ export default function WorkoutCard({ plan, onStart }: WorkoutCardProps) {
           )}
         </div>
 
-        <div className="w-10 h-10 rounded-xl bg-surface flex items-center justify-center text-slate-300 group-hover:bg-neon group-hover:text-obsidian transition-all flex-shrink-0">
+        <div className="w-10 h-10 rounded-xl bg-surface flex items-center justify-center text-slate-300 group-hover:bg-neon group-hover:text-obsidian transition-all flex-shrink-0 border border-white/5">
           <Dumbbell size={18} />
         </div>
       </div>
@@ -71,7 +71,7 @@ export default function WorkoutCard({ plan, onStart }: WorkoutCardProps) {
           Tap to preview & start
         </span>
         <button
-          className="btn btn-primary btn-sm py-2 px-4 flex items-center gap-1.5 text-xs font-black shadow-md"
+          className="btn btn-primary py-2 px-4 flex items-center gap-1.5 text-xs font-black shadow-md rounded-xl text-obsidian"
           onClick={(e) => {
             e.stopPropagation();
             onStart(plan);

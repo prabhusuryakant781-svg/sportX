@@ -23,14 +23,12 @@ import {
   Camera, 
   Play, 
   Clock, 
-  Flame, 
   ChevronRight, 
   Award,
   Sparkles,
   Activity,
   Crown,
-  Users,
-  Target
+  Users
 } from 'lucide-react';
 
 export default function DashboardPage() {
@@ -81,77 +79,89 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-5 pb-8 animate-fade-in">
-      {/* ── Athlete Profile Header ─────────────────────────── */}
+      {/* ── Athlete Command Center Header ───────────────────── */}
       <header className="pt-2">
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-1.5 text-xs font-black tracking-widest text-slate-400 uppercase">
-            <Zap size={14} className="text-neon fill-neon" />
-            <span>SPORT<span className="text-neon">X</span> ARENA</span>
+            <Zap size={15} className="text-neon fill-neon shadow-[0_0_8px_#CCFF00]" />
+            <span className="tracking-wider">SPORT<span className="text-neon">X</span> COMMAND</span>
           </div>
 
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowFriendsModal(true)}
-              className="p-2 rounded-xl bg-surface/60 hover:bg-surface border border-white/10 text-slate-300 hover:text-white transition-colors cursor-pointer relative"
+              className="p-2 rounded-xl bg-surface hover:bg-surface-light border border-white/10 text-slate-300 hover:text-white transition-colors cursor-pointer relative shadow-sm"
               title="Friends & Athletes"
             >
               <Users size={16} />
               {pendingRequestsCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-cyan ring-2 ring-obsidian animate-pulse" />
+                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-cyan ring-2 ring-obsidian animate-pulse shadow-[0_0_6px_#00F0FF]" />
               )}
             </button>
             <button
               onClick={() => setShowManualLog(true)}
-              className="p-2 rounded-xl bg-surface/60 hover:bg-surface border border-white/10 text-slate-300 hover:text-white transition-colors cursor-pointer"
+              className="p-2 rounded-xl bg-surface hover:bg-surface-light border border-white/10 text-slate-300 hover:text-white transition-colors cursor-pointer shadow-sm"
               title="Log Manual Workout"
             >
               <PlusCircle size={16} />
             </button>
             <Link
               to="/profile"
-              className="p-2 rounded-xl bg-surface/60 hover:bg-surface border border-white/10 text-slate-300 hover:text-white transition-colors"
+              className="p-2 rounded-xl bg-surface hover:bg-surface-light border border-white/10 text-slate-300 hover:text-white transition-colors shadow-sm"
             >
               <Trophy size={16} className="text-amber-400" />
             </Link>
           </div>
         </div>
 
-        <div className="flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <Link to="/profile" className="relative group">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-hero p-0.5 shadow-glow-sm transition-transform duration-200 group-hover:scale-105">
-                <div className="w-full h-full bg-obsidian rounded-[14px] flex items-center justify-center text-base font-black text-white">
-                  {user?.name?.[0]?.toUpperCase() || 'A'}
-                </div>
-              </div>
-              <span className="absolute -bottom-1 -right-1 px-1.5 py-0.2 rounded-full bg-neon text-obsidian text-[9px] font-black border border-obsidian">
-                L{athleteLevel}
-              </span>
-            </Link>
-
-            <div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs text-slate-400 font-medium">{greeting}</span>
-                <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              </div>
-              <h1 className="text-xl font-black text-white tracking-tight flex items-center gap-1.5">
-                {firstName}
-                {user?.collegeName && (
-                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-surface text-slate-300 border border-white/5">
-                    {user.collegeName}
-                  </span>
-                )}
-              </h1>
-            </div>
-          </div>
-        </div>
-
-        {/* ── Athlete Performance Hub Card ─────────────────────── */}
-        <div className="mt-4 card-glass border border-white/10 p-4 sm:p-5 relative overflow-hidden shadow-card">
+        {/* ── Athlete Telemetry Hub ── */}
+        <div className="card-glass border border-white/10 p-4 sm:p-5 relative overflow-hidden shadow-2xl">
+          {/* Ambient stadium lighting glow */}
           <div className="absolute top-0 right-0 w-48 h-48 bg-neon/10 rounded-full blur-3xl pointer-events-none" />
 
-          <div className="flex items-center gap-4 relative z-10">
-            <GoalRing progress={xpPct} size={68} strokeWidth={6} color="#10B981">
+          <div className="flex justify-between items-start mb-3 relative z-10">
+            <div className="flex items-center gap-3">
+              <Link to="/profile" className="relative group">
+                <div className="w-13 h-13 rounded-2xl bg-gradient-hero p-0.5 shadow-glow transition-transform duration-200 group-hover:scale-105">
+                  <div className="w-full h-full bg-obsidian rounded-[14px] flex items-center justify-center text-lg font-black text-white">
+                    {user?.name?.[0]?.toUpperCase() || 'A'}
+                  </div>
+                </div>
+                <span className="absolute -bottom-1 -right-1 px-1.5 py-0.2 rounded-full bg-neon text-obsidian text-[9px] font-black border border-obsidian">
+                  L{athleteLevel}
+                </span>
+              </Link>
+
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-slate-400 font-medium">{greeting}</span>
+                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-neon animate-pulse shadow-[0_0_6px_#CCFF00]" />
+                </div>
+                <h1 className="text-xl font-black text-white tracking-tight flex items-center gap-1.5">
+                  {firstName}
+                  {user?.collegeName && (
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-surface text-slate-300 border border-white/5">
+                      {user.collegeName}
+                    </span>
+                  )}
+                </h1>
+              </div>
+            </div>
+
+            {/* Active Title Banner (if equipped) */}
+            {user?.equippedTitle && (
+              <Link
+                to="/profile"
+                className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/40 hover:border-amber-400 transition shadow-sm"
+              >
+                <Crown size={11} className="text-amber-400" />
+                <span>{user.equippedTitle.replace('title_', '').replace(/_/g, ' ').toUpperCase()}</span>
+              </Link>
+            )}
+          </div>
+
+          <div className="flex items-center gap-4 relative z-10 mt-3 pt-3 border-t border-white/5">
+            <GoalRing progress={xpPct} size={64} strokeWidth={6} color="#CCFF00">
               <span className="text-xs font-black tabular-nums text-neon">
                 {Math.round(xpPct)}%
               </span>
@@ -184,47 +194,33 @@ export default function DashboardPage() {
                     : `${Math.max(0, (user?.rankPoints ?? 0) < 400 ? 400 - (user?.rankPoints ?? 0) : (user?.rankPoints ?? 0) < 800 ? 800 - (user?.rankPoints ?? 0) : (user?.rankPoints ?? 0) < 1200 ? 1200 - (user?.rankPoints ?? 0) : 1600 - (user?.rankPoints ?? 0))} RP to Next Rank`}
                 </span>
               </div>
-
-              {/* Active Title Banner (if equipped) */}
-              {user?.equippedTitle && (
-                <div className="mt-2 pt-1.5 border-t border-white/5 flex items-center justify-between">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Active Title</span>
-                  <Link
-                    to="/profile"
-                    className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 hover:border-amber-400 transition"
-                  >
-                    <Crown size={10} />
-                    <span>{user.equippedTitle.replace('title_', '').replace(/_/g, ' ').toUpperCase()}</span>
-                  </Link>
-                </div>
-              )}
             </div>
           </div>
 
           {/* Key Stat Badges Row */}
-          <div className="grid grid-cols-3 gap-2 mt-4 pt-3.5 border-t border-white/5 relative z-10">
-            <div className="flex flex-col items-center justify-center p-2 rounded-xl bg-surface/40 border border-white/5">
+          <div className="grid grid-cols-3 gap-2 mt-3.5 pt-3 border-t border-white/5 relative z-10">
+            <div className="flex flex-col items-center justify-center p-2 rounded-xl bg-surface/60 border border-white/5">
               <StreakFlame streak={streak} size="sm" />
-              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mt-1">Streak</span>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-1">Streak</span>
             </div>
 
-            <div className="flex flex-col items-center justify-center p-2 rounded-xl bg-surface/40 border border-white/5">
+            <div className="flex flex-col items-center justify-center p-2 rounded-xl bg-surface/60 border border-white/5">
               <div className="flex items-center gap-1 text-cyan font-black text-sm tabular-nums">
                 <Zap size={14} className="fill-cyan/20" />
                 <span>{xp > 999 ? `${(xp / 1000).toFixed(1)}k` : xp}</span>
               </div>
-              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mt-1">Total XP</span>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-1">Total XP</span>
             </div>
 
             <Link
               to="/badges"
-              className="flex flex-col items-center justify-center p-2 rounded-xl bg-surface/40 border border-white/5 hover:border-neon/40 hover:bg-surface/60 transition group cursor-pointer"
+              className="flex flex-col items-center justify-center p-2 rounded-xl bg-surface/60 border border-white/5 hover:border-neon/40 hover:bg-surface transition group cursor-pointer"
             >
               <div className="flex items-center gap-1 text-amber-400 font-black text-sm tabular-nums group-hover:scale-105 transition">
                 <Award size={14} />
                 <span>{badges.length}</span>
               </div>
-              <span className="text-[10px] font-semibold text-slate-400 group-hover:text-neon uppercase tracking-wider mt-1 flex items-center gap-0.5">
+              <span className="text-[10px] font-bold text-slate-400 group-hover:text-neon uppercase tracking-wider mt-1 flex items-center gap-0.5">
                 <span>Trophies</span>
                 <ChevronRight size={10} />
               </span>
@@ -232,6 +228,97 @@ export default function DashboardPage() {
           </div>
         </div>
       </header>
+
+      {/* ── Today's Training Featured Routine ───────────────── */}
+      <section className="space-y-2">
+        <div className="flex justify-between items-center px-0.5">
+          <h2 className="text-xs font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+            <Sparkles size={13} className="text-neon" />
+            <span>Today's Featured Drill</span>
+          </h2>
+          <button
+            onClick={() => navigate('/workout')}
+            className="text-[11px] text-slate-400 hover:text-white font-semibold transition-colors flex items-center gap-0.5 cursor-pointer"
+          >
+            <span>Browse Library</span>
+            <ChevronRight size={13} />
+          </button>
+        </div>
+
+        {loading ? (
+          <div className="card skeleton h-44" />
+        ) : todayPlan ? (
+          <div className="relative rounded-3xl overflow-hidden border border-white/10 shadow-2xl group">
+            {/* Background athletic photography with dark stadium overlay */}
+            <div
+              className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105 pointer-events-none opacity-40"
+              style={{ backgroundImage: `url('/hero-athletes.jpg')` }}
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-obsidian via-obsidian/85 to-obsidian/60 pointer-events-none" />
+
+            <div className="relative z-10 p-5 sm:p-6 flex flex-col justify-between min-h-[170px]">
+              <div>
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-neon/20 text-neon border border-neon/40 shadow-sm">
+                    <Dumbbell size={11} />
+                    <span>Daily Vision Routine</span>
+                  </span>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-surface/80 text-emerald-300 border border-emerald-500/30 capitalize">
+                    {todayPlan.difficulty || 'All Levels'}
+                  </span>
+                </div>
+
+                <h3 className="text-xl font-black text-white tracking-tight leading-snug">
+                  {todayPlan.title}
+                </h3>
+                {todayPlan.recommendationReason && (
+                  <p className="text-xs text-slate-300 mt-1 line-clamp-2 leading-relaxed">
+                    {todayPlan.recommendationReason}
+                  </p>
+                )}
+              </div>
+
+              <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <span className="stat-pill text-xs">
+                    <Clock size={12} className="text-slate-400" />
+                    <span>{todayPlan.estimatedDurationMinutes || todayPlan.estimatedDuration || 15}m</span>
+                  </span>
+                  <span className="stat-pill text-xs">
+                    <Activity size={12} className="text-slate-400" />
+                    <span>{todayPlan.exercises?.length || 0} drills</span>
+                  </span>
+                </div>
+
+                <button
+                  className="btn btn-primary py-2.5 px-5 text-xs font-black shadow-glow flex items-center gap-2 cursor-pointer"
+                  onClick={() => {
+                    const firstEx = todayPlan.exercises?.[0]?.exerciseId || 'squat';
+                    navigate(buildCameraRoute(todayPlan, firstEx));
+                  }}
+                >
+                  <Play size={14} className="fill-current" />
+                  <span>Launch Drill</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="card text-center py-6 border border-white/5">
+            <Dumbbell size={30} className="mx-auto text-slate-500 mb-2" />
+            <h3 className="text-sm font-bold text-white">Daily Workout Drills</h3>
+            <p className="text-xs text-slate-400 mt-1 mb-3">
+              Explore custom routines calibrated to your sport or start free vision tracking.
+            </p>
+            <button
+              onClick={() => navigate('/workout')}
+              className="btn btn-primary btn-sm"
+            >
+              Open Workout Library
+            </button>
+          </div>
+        )}
+      </section>
 
       {/* ── Step 7: Athletic Performance Score & Active Goals ─── */}
       <section className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -244,95 +331,17 @@ export default function DashboardPage() {
         />
       </section>
 
-      {/* ── The 4 Pillars of SportX ───────────────────────────── */}
+      {/* ── Arena Compete & AI Coach Cockpit ─────────────────── */}
       <section className="space-y-3">
         <div className="flex justify-between items-center px-0.5">
           <h2 className="text-xs font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-            <Sparkles size={13} className="text-neon" />
-            <span>SportX Core Pillars</span>
+            <Swords size={13} className="text-amber-400" />
+            <span>Multiplayer Arena & Intelligence</span>
           </h2>
-          <span className="text-[11px] text-slate-500 font-medium">4 Athletic Modules</span>
         </div>
 
-        {/* Pillar 1: WORKOUT (Featured Daily Workout) */}
-        {loading ? (
-          <div className="card skeleton h-40" />
-        ) : todayPlan ? (
-          <div className="card-pillar-workout p-5 relative overflow-hidden shadow-card">
-            <div className="flex justify-between items-start">
-              <div className="flex-1 pr-3">
-                <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-neon/15 text-neon border border-neon/30 mb-2">
-                  <Dumbbell size={11} />
-                  <span>Pillar I • Workout</span>
-                </div>
-                <h3 className="text-lg font-black text-white tracking-tight leading-snug">
-                  {todayPlan.title}
-                </h3>
-                {todayPlan.recommendationReason && (
-                  <p className="text-xs text-slate-300 mt-1 leading-relaxed line-clamp-2">
-                    {todayPlan.recommendationReason}
-                  </p>
-                )}
-              </div>
-
-              <div className="w-11 h-11 rounded-2xl bg-neon/15 border border-neon/30 flex items-center justify-center text-neon flex-shrink-0 shadow-glow-sm">
-                <Activity size={22} />
-              </div>
-            </div>
-
-            <div className="flex flex-wrap gap-2 mt-3.5">
-              <span className="stat-pill text-xs">
-                <Clock size={12} className="text-slate-400" />
-                <span>{todayPlan.estimatedDurationMinutes || todayPlan.estimatedDuration || 15} mins</span>
-              </span>
-              <span className="stat-pill text-xs">
-                <Dumbbell size={12} className="text-slate-400" />
-                <span>{todayPlan.exercises?.length || 0} drills</span>
-              </span>
-              <span className="stat-pill text-xs font-semibold capitalize text-emerald-300">
-                🎯 {todayPlan.difficulty}
-              </span>
-            </div>
-
-            <div className="flex items-center gap-2 mt-4">
-              <button
-                className="btn btn-primary flex-1 py-3 flex items-center justify-center gap-2 font-black shadow-glow"
-                onClick={() => {
-                  const firstEx = todayPlan.exercises?.[0]?.exerciseId || 'squat';
-                  navigate(buildCameraRoute(todayPlan, firstEx));
-                }}
-              >
-                <Play size={15} className="fill-current" />
-                <span>Launch Workout</span>
-              </button>
-              <button
-                onClick={() => navigate('/workout')}
-                className="btn btn-secondary px-3.5 py-3 text-xs"
-                title="Browse all routines"
-              >
-                <ChevronRight size={16} />
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="card text-center py-6 border border-white/5">
-            <Dumbbell size={30} className="mx-auto text-slate-500 mb-2" />
-            <h3 className="text-sm font-bold text-white">Daily Workout Drills</h3>
-            <p className="text-xs text-slate-400 mt-1 mb-3">
-              Explore custom routines calibrated to your sport or start free tracking.
-            </p>
-            <button
-              onClick={() => navigate('/workout')}
-              className="btn btn-primary btn-sm"
-            >
-              Open Workout Library
-            </button>
-          </div>
-        )}
-
-        {/* Pillars 2 & 3: COMPETE & AI COACH */}
         <div className="grid grid-cols-2 gap-3">
-          {/* Pillar 2: Compete */}
+          {/* Pillar 2: Arena Compete */}
           <div
             onClick={() => navigate('/lobby')}
             className="card-pillar-compete p-4 flex flex-col justify-between group shadow-card"
@@ -343,11 +352,11 @@ export default function DashboardPage() {
                   <Swords size={18} />
                 </div>
                 <span className="text-[9px] font-black text-amber-400 uppercase tracking-wider px-1.5 py-0.2 rounded bg-amber-500/10 border border-amber-500/20">
-                  Pillar II
+                  Arena
                 </span>
               </div>
               <h3 className="text-sm font-black text-white group-hover:text-amber-300 transition-colors">
-                Arena Compete
+                Arena Battles
               </h3>
               <p className="text-[11px] text-slate-400 mt-1 leading-snug">
                 Synchronized multiplayer camera rep battles.
@@ -370,7 +379,7 @@ export default function DashboardPage() {
                   <Bot size={18} />
                 </div>
                 <span className="text-[9px] font-black text-cyan uppercase tracking-wider px-1.5 py-0.2 rounded bg-cyan/10 border border-cyan/20">
-                  Pillar III
+                  Coach
                 </span>
               </div>
               <h3 className="text-sm font-black text-white group-hover:text-cyan-300 transition-colors">
@@ -387,7 +396,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Pillar 4: PROGRESS */}
+        {/* Telemetry & Progress Strip */}
         <div
           onClick={() => navigate('/progress')}
           className="card-pillar-progress p-4 flex items-center justify-between group shadow-card"
@@ -399,14 +408,14 @@ export default function DashboardPage() {
             <div>
               <div className="flex items-center gap-1.5">
                 <h3 className="text-sm font-black text-white group-hover:text-cyan transition-colors">
-                  Telemetry & Progress
+                  Telemetry & Progress Center
                 </h3>
                 <span className="text-[9px] font-black text-cyan uppercase tracking-wider px-1.5 py-0.2 rounded bg-cyan/10 border border-cyan/20">
-                  Pillar IV
+                  Analytics
                 </span>
               </div>
               <p className="text-[11px] text-slate-400 mt-0.5 leading-snug">
-                Track volume analytics, verified reps and XP progression.
+                Track training volume, verified reps and XP progression.
               </p>
             </div>
           </div>
@@ -416,16 +425,16 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      {/* ── Quick Access Fast Commands ───────────────────────── */}
+      {/* ── Quick Vision Drills ──────────────────────────────── */}
       <section>
         <h2 className="text-xs font-black uppercase tracking-wider text-slate-400 mb-2.5 px-0.5">
           Quick Vision Drills
         </h2>
         <div className="grid grid-cols-3 gap-2.5">
           {[
-            { icon: Camera, label: 'Free Squat', path: '/camera/free/squat', color: 'text-neon' },
-            { icon: Dumbbell, label: 'Push-Ups', path: '/camera/free/pushup', color: 'text-cyan' },
-            { icon: Trophy, label: 'Standings', path: '/leaderboard', color: 'text-amber-400' },
+            { icon: Camera, label: 'Free Squat', path: '/camera/free/squat', color: 'text-neon', border: 'border-neon/30' },
+            { icon: Dumbbell, label: 'Push-Ups', path: '/camera/free/pushup', color: 'text-cyan', border: 'border-cyan/30' },
+            { icon: Trophy, label: 'Standings', path: '/leaderboard', color: 'text-amber-400', border: 'border-amber-500/30' },
           ].map((item, idx) => {
             const Icon = item.icon;
             return (
@@ -434,7 +443,7 @@ export default function DashboardPage() {
                 onClick={() => navigate(item.path)}
                 className="card p-3 flex flex-col items-center justify-center gap-1.5 hover:border-white/20 transition-all cursor-pointer text-center"
               >
-                <div className={`w-8 h-8 rounded-xl bg-surface flex items-center justify-center ${item.color}`}>
+                <div className={`w-8 h-8 rounded-xl bg-surface flex items-center justify-center ${item.color} border ${item.border}`}>
                   <Icon size={16} />
                 </div>
                 <span className="text-xs font-bold text-white tracking-tight">{item.label}</span>
@@ -446,13 +455,13 @@ export default function DashboardPage() {
 
       {/* ── Recent Activity / History ────────────────────────── */}
       <section>
-        <div className="flex justify-between items-center mb-3">
+        <div className="flex justify-between items-center mb-3 px-0.5">
           <div className="flex items-center gap-2">
             <Activity size={16} className="text-cyan" />
-            <h2 className="text-base font-black text-white tracking-tight">Recent Activity</h2>
+            <h2 className="text-sm font-black text-white tracking-tight uppercase">Recent Activity</h2>
           </div>
           <Link to="/progress" className="text-xs font-semibold text-slate-400 hover:text-cyan transition-colors flex items-center gap-0.5">
-            <span>History</span>
+            <span>View All</span>
             <ChevronRight size={14} />
           </Link>
         </div>
@@ -464,8 +473,8 @@ export default function DashboardPage() {
             {recentSessions.map((session, idx) => (
               <div key={session.id || idx} className="card p-3.5 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-surface flex items-center justify-center text-neon">
-                    {session.sportId ? '🏅' : <Dumbbell size={16} />}
+                  <div className="w-9 h-9 rounded-xl bg-surface flex items-center justify-center text-neon border border-white/5">
+                    <Dumbbell size={16} />
                   </div>
                   <div>
                     <h4 className="text-xs font-bold text-white capitalize">
@@ -497,12 +506,12 @@ export default function DashboardPage() {
         )}
       </section>
 
-      {/* ── Earned Badges Shelf ─────────────────────────────── */}
+      {/* ── Unlocked Milestones Shelf ────────────────────────── */}
       {badges.length > 0 && (
         <section>
-          <div className="flex items-center gap-2 mb-3">
+          <div className="flex items-center gap-2 mb-3 px-0.5">
             <Award size={16} className="text-amber-400" />
-            <h2 className="text-base font-black text-white tracking-tight">Unlocked Milestones</h2>
+            <h2 className="text-sm font-black text-white tracking-tight uppercase">Unlocked Milestones</h2>
           </div>
 
           <div className="flex gap-2.5 overflow-x-auto no-scrollbar pb-1">
@@ -511,7 +520,9 @@ export default function DashboardPage() {
                 key={b.id}
                 className="card py-3 px-3.5 flex items-center gap-2.5 flex-shrink-0 border border-white/10 bg-surface/50 max-w-[240px]"
               >
-                <span className="text-2xl flex-shrink-0">{b.icon || '🏅'}</span>
+                <div className="w-9 h-9 rounded-xl bg-amber-500/15 text-amber-400 flex items-center justify-center border border-amber-500/30 flex-shrink-0">
+                  <Award size={18} />
+                </div>
                 <div className="min-w-0">
                   <div className="font-bold text-xs text-white truncate">{b.name}</div>
                   <div className="text-[10px] text-slate-400 truncate">{b.description}</div>

@@ -7,7 +7,7 @@ import DrillDetailModal from '../components/DrillDetailModal';
 import { buildCameraRoute, isCameraSupported } from '../utils/exerciseUtils';
 import { DEFAULT_WORKOUT_PLANS, DEFAULT_EXERCISES } from '../data/workoutLibraryData';
 import type { WorkoutPlan, Exercise } from '../types';
-import { Dumbbell, Search, SlidersHorizontal, Sparkles } from 'lucide-react';
+import { Dumbbell, Search, Activity, Layers, Sparkles } from 'lucide-react';
 
 const PLAN_CATEGORIES = [
   'All',
@@ -209,10 +209,10 @@ export default function WorkoutLibraryPage() {
       {/* Page Header */}
       <header className="pt-2">
         <div className="flex items-center gap-2 mb-1">
-          <div className="w-8 h-8 rounded-xl bg-neon/15 text-neon flex items-center justify-center">
+          <div className="w-8 h-8 rounded-xl bg-neon/15 text-neon flex items-center justify-center border border-neon/30">
             <Dumbbell size={18} />
           </div>
-          <span className="text-xs font-bold uppercase tracking-wider text-neon">Training Hub</span>
+          <span className="text-xs font-black uppercase tracking-widest text-neon">Training Hub</span>
         </div>
         <h1 className="text-2xl font-black text-white tracking-tight">Workout Library</h1>
         <p className="text-xs text-slate-400 mt-0.5">
@@ -220,7 +220,7 @@ export default function WorkoutLibraryPage() {
         </p>
       </header>
 
-      {/* Segmented Tab Switcher */}
+      {/* Segmented Tab Switcher with SportX design */}
       <div className="flex rounded-xl p-1 bg-surface border border-white/5">
         <button
           type="button"
@@ -228,14 +228,15 @@ export default function WorkoutLibraryPage() {
             setTab('plans');
             setSelectedCategory('All');
           }}
-          className={`flex-1 py-2.5 rounded-lg border-none cursor-pointer font-outfit font-bold text-xs tracking-wider uppercase transition-all duration-200 flex items-center justify-center gap-2 ${
+          className={`flex-1 py-2.5 rounded-lg border-none cursor-pointer font-outfit font-black text-xs tracking-wider uppercase transition-all duration-200 flex items-center justify-center gap-2 ${
             tab === 'plans'
-              ? 'bg-card text-white shadow-md border border-white/10'
+              ? 'bg-neon text-obsidian shadow-glow-sm'
               : 'bg-transparent text-slate-400 hover:text-white'
           }`}
         >
-          <span>📋 Workout Plans</span>
-          <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-surface-light text-slate-300">
+          <Layers size={15} />
+          <span>Workout Plans</span>
+          <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${tab === 'plans' ? 'bg-obsidian/20 text-obsidian' : 'bg-surface-light text-slate-300'}`}>
             {plans.length}
           </span>
         </button>
@@ -246,14 +247,15 @@ export default function WorkoutLibraryPage() {
             setTab('exercises');
             setSelectedCategory('All');
           }}
-          className={`flex-1 py-2.5 rounded-lg border-none cursor-pointer font-outfit font-bold text-xs tracking-wider uppercase transition-all duration-200 flex items-center justify-center gap-2 ${
+          className={`flex-1 py-2.5 rounded-lg border-none cursor-pointer font-outfit font-black text-xs tracking-wider uppercase transition-all duration-200 flex items-center justify-center gap-2 ${
             tab === 'exercises'
-              ? 'bg-card text-white shadow-md border border-white/10'
+              ? 'bg-neon text-obsidian shadow-glow-sm'
               : 'bg-transparent text-slate-400 hover:text-white'
           }`}
         >
-          <span>🏋️ Movement Drills</span>
-          <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-surface-light text-slate-300">
+          <Activity size={15} />
+          <span>Movement Drills</span>
+          <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${tab === 'exercises' ? 'bg-obsidian/20 text-obsidian' : 'bg-surface-light text-slate-300'}`}>
             {exercises.length}
           </span>
         </button>
@@ -267,7 +269,7 @@ export default function WorkoutLibraryPage() {
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
           placeholder={tab === 'plans' ? 'Search workout routines…' : 'Search drills (squat, run, bench, curl)…'}
-          className="input pl-10 pr-4 py-2.5 text-xs bg-surface/60 border border-white/5"
+          className="input pl-10 pr-4 py-2.5 text-xs bg-surface border border-white/5 rounded-xl"
         />
         {searchQuery && (
           <button
@@ -290,7 +292,7 @@ export default function WorkoutLibraryPage() {
               onClick={() => setSelectedCategory(cat)}
               className={`text-[11px] font-bold px-3 py-1.5 rounded-xl whitespace-nowrap transition-all border cursor-pointer ${
                 isSelected
-                  ? 'bg-neon text-obsidian border-neon shadow-glow-sm'
+                  ? 'bg-neon text-obsidian border-neon shadow-[0_0_12px_rgba(204,255,0,0.25)] font-black'
                   : 'bg-surface text-slate-300 border-white/5 hover:border-white/20'
               }`}
             >
@@ -319,7 +321,7 @@ export default function WorkoutLibraryPage() {
 
           {filteredPlans.length === 0 && (
             <div className="card text-center py-12 border border-white/5">
-              <span className="text-4xl block mb-2">📂</span>
+              <Layers size={36} className="mx-auto text-slate-500 mb-2" />
               <h3 className="text-sm font-bold text-white">No plans match your query</h3>
               <p className="text-xs text-slate-400 mt-1">
                 {searchQuery || selectedCategory !== 'All'
@@ -341,7 +343,7 @@ export default function WorkoutLibraryPage() {
 
           {filteredExercises.length === 0 && (
             <div className="card text-center py-12 border border-white/5">
-              <span className="text-4xl block mb-2">🏋️</span>
+              <Activity size={36} className="mx-auto text-slate-500 mb-2" />
               <h3 className="text-sm font-bold text-white">No exercises found</h3>
               <p className="text-xs text-slate-400 mt-1">
                 {searchQuery || selectedCategory !== 'All'

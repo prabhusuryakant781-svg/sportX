@@ -14,12 +14,12 @@ const GOALS = [
 const TIMES = [10, 20, 30, 45, 60];
 
 const DEFAULT_SPORTS = [
-  { id: 'badminton', sportId: 'badminton', name: 'Badminton', icon: '🏸', iconUrl: '🏸' },
-  { id: 'football', sportId: 'football', name: 'Football / Soccer', icon: '⚽', iconUrl: '⚽' },
-  { id: 'cricket', sportId: 'cricket', name: 'Cricket', icon: '🏏', iconUrl: '🏏' },
-  { id: 'basketball', sportId: 'basketball', name: 'Basketball', icon: '🏀', iconUrl: '🏀' },
-  { id: 'running', sportId: 'running', name: 'Campus Athletics & Track', icon: '🏃', iconUrl: '🏃' },
-  { id: 'table_tennis', sportId: 'table_tennis', name: 'Table Tennis', icon: '🏓', iconUrl: '🏓' },
+  { id: 'badminton', sportId: 'badminton', name: 'Badminton', icon: '🏸' },
+  { id: 'football', sportId: 'football', name: 'Football / Soccer', icon: '⚽' },
+  { id: 'cricket', sportId: 'cricket', name: 'Cricket', icon: '🏏' },
+  { id: 'basketball', sportId: 'basketball', name: 'Basketball', icon: '🏀' },
+  { id: 'running', sportId: 'running', name: 'Campus Athletics & Track', icon: '🏃' },
+  { id: 'table_tennis', sportId: 'table_tennis', name: 'Table Tennis', icon: '🏓' },
 ];
 
 export default function OnboardingPage() {
@@ -104,30 +104,31 @@ export default function OnboardingPage() {
   };
 
   return (
-    <div className="min-h-screen max-h-screen overflow-y-auto bg-obsidian text-white flex flex-col justify-between py-6 px-4 sm:px-6 relative">
-      {/* Ambient background glow */}
+    <div className="min-h-screen max-h-screen overflow-y-auto bg-obsidian text-white flex flex-col justify-between py-6 px-4 sm:px-6 relative overflow-x-hidden">
+      {/* Background ambient lighting matching master reference */}
       <div className="absolute top-10 left-1/2 -translate-x-1/2 w-96 h-96 bg-neon/5 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-10 right-1/4 w-80 h-80 bg-cyan/5 rounded-full blur-[110px] pointer-events-none" />
 
       {/* Top Header & Step Progress Bar */}
       <div className="w-full max-w-lg mx-auto relative z-10 pt-2">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-bold tracking-wider text-neon uppercase">Athlete Calibration</span>
+            <span className="text-xs font-black tracking-widest text-neon uppercase">Athlete Calibration</span>
             <span className="text-slate-600">•</span>
-            <span className="text-xs text-slate-400">Step {step + 1} of 3</span>
+            <span className="text-xs text-slate-400 font-semibold">Step {step + 1} of 3</span>
           </div>
-          <span className="text-xs font-semibold text-slate-500">
+          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
             {step === 0 ? 'Goal' : step === 1 ? 'Schedule' : 'Disciplines'}
           </span>
         </div>
 
-        {/* Progress Track */}
+        {/* Progress Track with SportX neon indicators */}
         <div className="grid grid-cols-3 gap-2">
           {[0, 1, 2].map(i => (
             <div
               key={i}
               className={`h-1.5 rounded-full transition-all duration-300 ${
-                i <= step ? 'bg-gradient-hero shadow-glow-sm' : 'bg-surface'
+                i <= step ? 'bg-neon shadow-[0_0_8px_rgba(204,255,0,0.4)]' : 'bg-surface'
               }`}
             />
           ))}
@@ -139,11 +140,11 @@ export default function OnboardingPage() {
         {step === 0 && (
           <div className="animate-in">
             <div className="text-center mb-6">
-              <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-neon/15 text-neon mb-3 shadow-glow-sm">
+              <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-neon/15 text-neon mb-3 shadow-[0_0_15px_rgba(204,255,0,0.25)] border border-neon/30">
                 <Target size={24} />
               </div>
-              <h2 className="text-2xl font-black text-white tracking-tight">Select Primary Focus</h2>
-              <p className="text-slate-400 text-xs sm:text-sm mt-1">
+              <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">Select Primary Focus</h2>
+              <p className="text-slate-400 text-xs sm:text-sm mt-1 max-w-sm mx-auto">
                 SportX AI calibrates movement thresholds and routines to this goal.
               </p>
             </div>
@@ -157,14 +158,14 @@ export default function OnboardingPage() {
                     type="button"
                     key={g.id}
                     onClick={() => setGoal(g.id)}
-                    className={`w-full text-left p-4 rounded-2xl transition-all cursor-pointer flex items-center gap-4 ${
+                    className={`w-full text-left p-4 rounded-2xl transition-all duration-200 cursor-pointer flex items-center gap-4 ${
                       isSelected
-                        ? 'bg-neon/15 border-[1.5px] border-neon text-white shadow-glow-sm'
+                        ? 'bg-neon/15 border-[1.5px] border-neon text-white shadow-[0_0_20px_rgba(204,255,0,0.2)]'
                         : 'card hover:border-white/20 text-slate-300'
                     }`}
                   >
                     <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                      isSelected ? 'bg-neon text-obsidian font-bold' : 'bg-surface text-slate-400'
+                      isSelected ? 'bg-neon text-obsidian font-bold shadow-md' : 'bg-surface text-slate-400'
                     }`}>
                       <Icon size={22} />
                     </div>
@@ -173,7 +174,7 @@ export default function OnboardingPage() {
                       <div className="text-xs text-slate-400 mt-0.5 leading-snug">{g.desc}</div>
                     </div>
                     {isSelected && (
-                      <div className="w-6 h-6 rounded-full bg-neon text-obsidian flex items-center justify-center flex-shrink-0">
+                      <div className="w-6 h-6 rounded-full bg-neon text-obsidian flex items-center justify-center flex-shrink-0 font-black">
                         <Check size={14} strokeWidth={3} />
                       </div>
                     )}
@@ -184,7 +185,7 @@ export default function OnboardingPage() {
 
             <button
               type="button"
-              className="btn btn-primary btn-full mt-6 py-3.5"
+              className="btn btn-primary btn-full mt-6 py-3.5 text-obsidian font-black rounded-xl shadow-glow"
               onClick={() => setStep(1)}
             >
               <span>Continue to Schedule</span>
@@ -196,11 +197,11 @@ export default function OnboardingPage() {
         {step === 1 && (
           <div className="animate-in">
             <div className="text-center mb-6">
-              <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-cyan/15 text-cyan mb-3 shadow-glow-cyan-sm">
+              <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-cyan/15 text-cyan mb-3 shadow-[0_0_15px_rgba(0,240,255,0.25)] border border-cyan/30">
                 <Clock size={24} />
               </div>
-              <h2 className="text-2xl font-black text-white tracking-tight">Daily Training Window</h2>
-              <p className="text-slate-400 text-xs sm:text-sm mt-1">
+              <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">Daily Training Window</h2>
+              <p className="text-slate-400 text-xs sm:text-sm mt-1 max-w-sm mx-auto">
                 How much active time do you have per day between classes and study?
               </p>
             </div>
@@ -213,16 +214,16 @@ export default function OnboardingPage() {
                     type="button"
                     key={t}
                     onClick={() => setTime(t)}
-                    className={`py-5 px-3 rounded-2xl text-center transition-all cursor-pointer flex flex-col items-center justify-center ${
+                    className={`py-5 px-3 rounded-2xl text-center transition-all duration-200 cursor-pointer flex flex-col items-center justify-center ${
                       isSelected
-                        ? 'bg-cyan/15 border-[1.5px] border-cyan shadow-glow-cyan-sm'
+                        ? 'bg-cyan/15 border-[1.5px] border-cyan shadow-[0_0_18px_rgba(0,240,255,0.25)]'
                         : 'card hover:border-white/20'
                     }`}
                   >
                     <div className={`text-3xl font-black tabular-nums ${isSelected ? 'text-cyan' : 'text-white'}`}>
                       {t}
                     </div>
-                    <div className="text-xs font-semibold text-slate-400 mt-1 uppercase tracking-wider">
+                    <div className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-wider">
                       Minutes
                     </div>
                   </button>
@@ -241,7 +242,7 @@ export default function OnboardingPage() {
               </button>
               <button
                 type="button"
-                className="btn btn-primary flex-1"
+                className="btn btn-primary flex-1 py-3.5 text-obsidian font-black"
                 onClick={() => setStep(2)}
               >
                 <span>Select Disciplines</span>
@@ -254,10 +255,10 @@ export default function OnboardingPage() {
         {step === 2 && (
           <div className="animate-in">
             <div className="text-center mb-5">
-              <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-amber/15 text-amber mb-3 shadow-glow-amber">
+              <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-amber-500/15 text-amber-400 mb-3 shadow-[0_0_15px_rgba(245,158,11,0.25)] border border-amber-500/30">
                 <Trophy size={24} />
               </div>
-              <h2 className="text-2xl font-black text-white tracking-tight">Active Sports & Disciplines</h2>
+              <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">Active Sports & Disciplines</h2>
               <p className="text-slate-400 text-xs sm:text-sm mt-1">
                 {sports.length > 0
                   ? `${sports.length} sport${sports.length > 1 ? 's' : ''} selected for athletic calibration`
@@ -265,11 +266,11 @@ export default function OnboardingPage() {
               </p>
             </div>
 
-            {/* Fitness Level Calibration — Prominently alongside Sports Selection */}
-            <div className="card p-3.5 mb-5 border-white/10 bg-surface/60">
-              <div className="flex items-center justify-between mb-2 px-1">
+            {/* Fitness Level Calibration */}
+            <div className="card p-4 mb-5 border-white/10 bg-surface">
+              <div className="flex items-center justify-between mb-2.5 px-0.5">
                 <div>
-                  <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                  <h3 className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
                     <Zap size={14} className="text-neon" />
                     <span>Fitness Level</span>
                   </h3>
@@ -277,7 +278,7 @@ export default function OnboardingPage() {
                     Calibrates routine intensity, volume, and recovery pacing
                   </p>
                 </div>
-                <span className="text-[10px] font-black uppercase text-neon tracking-wider bg-neon/10 px-2 py-0.5 rounded-full border border-neon/20">
+                <span className="text-[10px] font-black uppercase text-neon tracking-wider bg-neon/10 px-2 py-0.5 rounded-full border border-neon/30">
                   {fitnessLevel}
                 </span>
               </div>
@@ -297,7 +298,7 @@ export default function OnboardingPage() {
                       className={`p-2.5 rounded-xl text-center transition-all cursor-pointer border ${
                         isSelected
                           ? 'bg-neon/15 border-neon text-white shadow-glow-sm'
-                          : 'bg-surface/50 border-white/5 hover:border-white/20 text-slate-400'
+                          : 'bg-surface-light/40 border-white/5 hover:border-white/20 text-slate-400'
                       }`}
                     >
                       <div className={`text-xs font-black capitalize ${isSelected ? 'text-neon' : 'text-slate-200'}`}>
@@ -318,7 +319,7 @@ export default function OnboardingPage() {
                 <button
                   type="button"
                   onClick={selectAllSports}
-                  className="text-xs font-semibold text-neon hover:underline bg-transparent border-none cursor-pointer"
+                  className="text-xs font-bold text-neon hover:underline bg-transparent border-none cursor-pointer"
                 >
                   Select All
                 </button>
@@ -378,13 +379,13 @@ export default function OnboardingPage() {
               </button>
               <button
                 type="button"
-                className="btn btn-primary flex-1 py-3.5"
+                className="btn btn-primary flex-1 py-3.5 text-obsidian font-black"
                 onClick={finish}
                 disabled={saving}
               >
                 {saving ? (
                   <span className="flex items-center justify-center gap-2">
-                    <span className="spinner w-4 h-4 border-white/30 border-t-white" />
+                    <span className="spinner w-4 h-4 border-obsidian/30 border-t-obsidian" />
                     <span>Calibrating Engine…</span>
                   </span>
                 ) : (

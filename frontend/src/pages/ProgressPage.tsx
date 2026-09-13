@@ -135,9 +135,9 @@ export default function ProgressPage() {
             key={p}
             type="button"
             onClick={() => setPeriod(p)}
-            className={`flex-1 py-2 rounded-lg border-none cursor-pointer font-outfit font-bold text-xs tracking-wider uppercase transition-all duration-200 ${
+            className={`flex-1 py-2 rounded-lg border-none cursor-pointer font-outfit font-black text-xs tracking-wider uppercase transition-all duration-200 ${
               period === p
-                ? 'bg-card text-neon shadow-md border border-white/10'
+                ? 'bg-neon text-obsidian shadow-glow-sm'
                 : 'bg-transparent text-slate-400 hover:text-white'
             }`}
           >

@@ -1,5 +1,5 @@
 import type { Exercise } from '../types';
-import { Camera, Check, ChevronRight, Activity } from 'lucide-react';
+import { Camera, Check, ChevronRight, Activity, Dumbbell, Zap, Flame } from 'lucide-react';
 import { isCameraSupported } from '../utils/exerciseUtils';
 
 interface ExerciseCardProps {
@@ -12,21 +12,13 @@ export default function ExerciseCard({ exercise, onSelect, selected }: ExerciseC
   const exId = exercise.id || exercise.exerciseId;
   const hasCamera = isCameraSupported(exId);
 
-  const iconEmoji = exercise.icon || (
-    exId?.includes('pushup')
-      ? '💪'
-      : exId?.includes('jumping')
-      ? '⚡'
-      : exId?.includes('run') || exId?.includes('jog')
-      ? '🏃'
-      : exId?.includes('walk')
-      ? '🚶'
-      : exId?.includes('stretch') || exId?.includes('mobility')
-      ? '🧘'
-      : exId?.includes('squat')
-      ? '🏋️'
-      : '🎯'
-  );
+  const getExerciseIcon = () => {
+    if (exId?.includes('pushup')) return <Zap size={20} className="text-cyan" />;
+    if (exId?.includes('squat')) return <Dumbbell size={20} className="text-neon" />;
+    if (exId?.includes('jumping') || exId?.includes('jack')) return <Activity size={20} className="text-amber-400" />;
+    if (exId?.includes('run') || exId?.includes('cardio')) return <Flame size={20} className="text-rose-400" />;
+    return <Dumbbell size={20} className="text-slate-300" />;
+  };
 
   return (
     <button
@@ -39,10 +31,10 @@ export default function ExerciseCard({ exercise, onSelect, selected }: ExerciseC
       }`}
     >
       <div className="flex items-center gap-3.5">
-        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl flex-shrink-0 transition-colors ${
+        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 transition-colors ${
           selected ? 'bg-neon/20 border border-neon/40' : 'bg-surface border border-white/5 group-hover:border-white/10'
         }`}>
-          {iconEmoji}
+          {getExerciseIcon()}
         </div>
 
         <div className="flex-1 min-w-0">

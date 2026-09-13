@@ -102,14 +102,14 @@ export default function SessionResultPage() {
         angle: 60,
         spread: 60,
         origin: { x: 0 },
-        colors: ['#10B981', '#06B6D4', '#FFD93D']
+        colors: ['#CCFF00', '#00F0FF', '#FFD93D']
       });
       confetti({
         particleCount: 6,
         angle: 120,
         spread: 60,
         origin: { x: 1 },
-        colors: ['#10B981', '#06B6D4', '#FFD93D']
+        colors: ['#CCFF00', '#00F0FF', '#FFD93D']
       });
 
       if (Date.now() < end) requestAnimationFrame(frame);
@@ -119,9 +119,9 @@ export default function SessionResultPage() {
   if (!result) return null;
 
   const formGrade = result.formScore >= 90 ? 'S' : result.formScore >= 80 ? 'A' : result.formScore >= 70 ? 'B' : 'C';
-  const gradeColor = formGrade === 'S' ? '#10B981' : formGrade === 'A' ? '#06B6D4' : formGrade === 'B' ? '#F59E0B' : '#EF4444';
+  const gradeColor = formGrade === 'S' ? '#CCFF00' : formGrade === 'A' ? '#00F0FF' : formGrade === 'B' ? '#F59E0B' : '#EF4444';
   const gradeBadgeClass = formGrade === 'S'
-    ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+    ? 'bg-neon/15 text-neon border-neon/30'
     : formGrade === 'A'
     ? 'bg-cyan/15 text-cyan border-cyan/30'
     : formGrade === 'B'

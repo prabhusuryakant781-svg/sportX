@@ -27,6 +27,7 @@ import {
 import { CompetitiveMatchLoading } from '../components/CompetitiveMatchLoading';
 import ChallengeHistoryModal from '../components/ChallengeHistoryModal';
 import FriendChallengeModal from '../components/FriendChallengeModal';
+import { Swords } from 'lucide-react';
 
 type FlowStage = 'HOME' | 'SEARCHING' | 'MATCH_ROOM' | 'COUNTDOWN' | 'CHALLENGE' | 'RESULT';
 
@@ -549,11 +550,12 @@ export default function CompetitivePage() {
             <button
               onClick={handleStartRandomMatch}
               disabled={loading}
-              className="w-full py-5 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-black text-lg uppercase tracking-wider shadow-2xl shadow-indigo-600/30 active:scale-[0.98] transition flex items-center justify-center gap-3"
+              className="btn btn-primary w-full py-4 text-base font-black rounded-xl shadow-glow text-obsidian flex items-center justify-center gap-2.5 uppercase tracking-wider cursor-pointer"
             >
-              <span>⚔️</span> START RANDOM MATCH
+              <Swords size={20} />
+              <span>START ARENA BATTLE</span>
             </button>
-            <p className="text-center text-[11px] text-slate-400">
+            <p className="text-center text-[11px] text-slate-400 font-medium">
               Tap start to enter matchmaking queue
             </p>
           </div>
@@ -974,16 +976,17 @@ export default function CompetitivePage() {
           <div className="space-y-3 pt-2">
             <button
               onClick={handleStartRandomMatch}
-              className="w-full py-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-sm uppercase tracking-wider shadow-lg shadow-blue-500/20 transition"
+              className="btn btn-primary w-full py-3.5 text-sm font-black uppercase tracking-wider shadow-glow text-obsidian flex items-center justify-center gap-2 cursor-pointer"
             >
-              ⚔️ Play Again (Queue New Match)
+              <Swords size={16} />
+              <span>Play Again (Queue New Match)</span>
             </button>
 
             <button
               onClick={handleResetToHome}
-              className="w-full py-3 rounded-xl bg-slate-900 hover:bg-slate-800 border border-white/10 text-xs font-bold text-slate-300 transition"
+              className="btn btn-secondary w-full py-3 text-xs font-bold text-slate-300 transition cursor-pointer"
             >
-              🏠 Return to Arena Home
+              <span>Return to Arena Home</span>
             </button>
           </div>
         </div>

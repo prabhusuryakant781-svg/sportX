@@ -494,7 +494,7 @@ export default function CameraWorkout({
     }
   }, [repState.reps, targetReps, isActive]);
 
-  const formColor = repState.formScore >= 80 ? '#10B981' : repState.formScore >= 60 ? '#F59E0B' : '#EF4444';
+  const formColor = repState.formScore >= 80 ? '#CCFF00' : repState.formScore >= 60 ? '#F59E0B' : '#EF4444';
   const formatTime = (s: number) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
 
   // If camera error / permission denied

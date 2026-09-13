@@ -78,9 +78,9 @@ export default function LeaderboardPage() {
         <button
           type="button"
           onClick={() => setBoardType('global')}
-          className={`flex-1 py-2 rounded-lg border-none cursor-pointer font-outfit font-bold text-xs tracking-wider uppercase transition-all duration-200 flex items-center justify-center gap-1.5 ${
+          className={`flex-1 py-2.5 rounded-lg border-none cursor-pointer font-outfit font-black text-xs tracking-wider uppercase transition-all duration-200 flex items-center justify-center gap-1.5 ${
             boardType === 'global'
-              ? 'bg-card text-neon shadow-md border border-white/10'
+              ? 'bg-neon text-obsidian shadow-glow-sm'
               : 'bg-transparent text-slate-400 hover:text-white'
           }`}
         >
@@ -91,9 +91,9 @@ export default function LeaderboardPage() {
         <button
           type="button"
           onClick={() => setBoardType('college')}
-          className={`flex-1 py-2 rounded-lg border-none cursor-pointer font-outfit font-bold text-xs tracking-wider uppercase transition-all duration-200 flex items-center justify-center gap-1.5 ${
+          className={`flex-1 py-2.5 rounded-lg border-none cursor-pointer font-outfit font-black text-xs tracking-wider uppercase transition-all duration-200 flex items-center justify-center gap-1.5 ${
             boardType === 'college'
-              ? 'bg-card text-neon shadow-md border border-white/10'
+              ? 'bg-neon text-obsidian shadow-glow-sm'
               : 'bg-transparent text-slate-400 hover:text-white'
           }`}
         >
@@ -107,12 +107,12 @@ export default function LeaderboardPage() {
         <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
           Ranking Metric:
         </span>
-        <div className="flex items-center gap-1.5 bg-slate-900/80 border border-slate-800 p-1 rounded-xl">
+        <div className="flex items-center gap-1.5 bg-surface border border-white/5 p-1 rounded-xl">
           <button
             onClick={() => setSortBy('xp')}
-            className={`px-3 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 ${
+            className={`px-3 py-1 rounded-lg text-xs font-black transition flex items-center gap-1 ${
               sortBy === 'xp'
-                ? 'bg-neon text-black shadow-glow-sm'
+                ? 'bg-neon text-obsidian shadow-glow-sm'
                 : 'text-slate-400 hover:text-white'
             }`}
           >
@@ -121,9 +121,9 @@ export default function LeaderboardPage() {
           </button>
           <button
             onClick={() => setSortBy('rp')}
-            className={`px-3 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 ${
+            className={`px-3 py-1 rounded-lg text-xs font-black transition flex items-center gap-1 ${
               sortBy === 'rp'
-                ? 'bg-amber-500 text-black shadow-glow-amber'
+                ? 'bg-amber-500 text-obsidian shadow-glow-amber'
                 : 'text-slate-400 hover:text-white'
             }`}
           >
@@ -139,7 +139,9 @@ export default function LeaderboardPage() {
           {/* 2nd Place Podium */}
           {topThree[1] ? (
             <div className="card p-3.5 flex flex-col items-center justify-end text-center bg-surface/50 border border-slate-700/60 rounded-2xl order-1 shadow-md">
-              <span className="text-2xl mb-1 select-none">🥈</span>
+              <div className="w-6 h-6 rounded-md bg-gradient-to-br from-slate-200 to-slate-400 text-black font-black text-xs flex items-center justify-center mb-1.5 shadow">
+                2
+              </div>
               <div className="w-10 h-10 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center text-sm font-black text-white mb-1.5 shadow">
                 {topThree[1].username?.[0]?.toUpperCase() || '2'}
               </div>
@@ -147,8 +149,9 @@ export default function LeaderboardPage() {
                 {topThree[1].username}
               </span>
               {topThree[1].equippedTitle && (
-                <span className="text-[9px] font-extrabold text-slate-300 uppercase tracking-wider block truncate max-w-full mt-0.5">
-                  👑 {getCleanTitle(topThree[1].equippedTitle)}
+                <span className="text-[9px] font-extrabold text-slate-300 uppercase tracking-wider block truncate max-w-full mt-0.5 flex items-center justify-center gap-1">
+                  <Crown size={10} className="text-slate-300" />
+                  <span>{getCleanTitle(topThree[1].equippedTitle)}</span>
                 </span>
               )}
               <span className="text-[11px] font-black font-outfit mt-1 tabular-nums text-neon">
@@ -168,7 +171,9 @@ export default function LeaderboardPage() {
               <div className="flex items-center gap-1 text-amber-400 mb-1">
                 <Crown size={18} className="animate-pulse" />
               </div>
-              <span className="text-3xl mb-1 select-none">🥇</span>
+              <div className="w-7 h-7 rounded-md bg-gradient-to-br from-amber-300 via-amber-400 to-amber-600 text-black font-black text-sm flex items-center justify-center mb-1.5 shadow-glow-sm">
+                1
+              </div>
               <div className="w-12 h-12 rounded-2xl bg-amber-500/25 text-amber-300 border-2 border-amber-400/80 flex items-center justify-center text-lg font-black mb-1.5 shadow-lg">
                 {topThree[0].username?.[0]?.toUpperCase() || '1'}
               </div>
@@ -176,8 +181,9 @@ export default function LeaderboardPage() {
                 {topThree[0].username}
               </span>
               {topThree[0].equippedTitle ? (
-                <span className="text-[9px] font-extrabold text-amber-300 uppercase tracking-wider block truncate max-w-full mt-0.5">
-                  👑 {getCleanTitle(topThree[0].equippedTitle)}
+                <span className="text-[9px] font-extrabold text-amber-300 uppercase tracking-wider block truncate max-w-full mt-0.5 flex items-center justify-center gap-1">
+                  <Crown size={10} className="text-amber-300" />
+                  <span>{getCleanTitle(topThree[0].equippedTitle)}</span>
                 </span>
               ) : (
                 <span className="text-[9px] font-bold text-amber-400/80 uppercase tracking-wider block">
@@ -198,7 +204,9 @@ export default function LeaderboardPage() {
           {/* 3rd Place Podium */}
           {topThree[2] ? (
             <div className="card p-3.5 flex flex-col items-center justify-end text-center bg-surface/50 border border-slate-700/60 rounded-2xl order-3 shadow-md">
-              <span className="text-2xl mb-1 select-none">🥉</span>
+              <div className="w-6 h-6 rounded-md bg-gradient-to-br from-amber-700 to-amber-900 text-amber-100 font-black text-xs flex items-center justify-center mb-1.5 shadow">
+                3
+              </div>
               <div className="w-10 h-10 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center text-sm font-black text-white mb-1.5 shadow">
                 {topThree[2].username?.[0]?.toUpperCase() || '3'}
               </div>
@@ -206,8 +214,9 @@ export default function LeaderboardPage() {
                 {topThree[2].username}
               </span>
               {topThree[2].equippedTitle && (
-                <span className="text-[9px] font-extrabold text-slate-300 uppercase tracking-wider block truncate max-w-full mt-0.5">
-                  👑 {getCleanTitle(topThree[2].equippedTitle)}
+                <span className="text-[9px] font-extrabold text-slate-300 uppercase tracking-wider block truncate max-w-full mt-0.5 flex items-center justify-center gap-1">
+                  <Crown size={10} className="text-slate-300" />
+                  <span>{getCleanTitle(topThree[2].equippedTitle)}</span>
                 </span>
               )}
               <span className="text-[11px] font-black font-outfit mt-1 tabular-nums text-neon">

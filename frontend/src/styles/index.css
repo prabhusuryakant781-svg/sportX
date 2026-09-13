@@ -6,22 +6,23 @@
 /* ── Base Layer ──────────────────────────────────────────────────── */
 @layer base {
   :root {
-    --sportx-bg: #090D16;
-    --sportx-surface: #131B2E;
-    --sportx-surface-elevated: #192238;
-    --sportx-primary: #10B981;
-    --sportx-primary-soft: rgba(16, 185, 129, 0.15);
-    --sportx-cyan: #06B6D4;
+    --sportx-bg: #070A12;
+    --sportx-surface: #0D1527;
+    --sportx-surface-elevated: #111A2E;
+    --sportx-primary: #CCFF00;
+    --sportx-primary-soft: rgba(204, 255, 0, 0.15);
+    --sportx-cyan: #00F0FF;
+    --sportx-cyan-soft: rgba(0, 240, 255, 0.15);
     --sportx-text: #FFFFFF;
     --sportx-text-secondary: #CBD5E1;
     --sportx-text-muted: #94A3B8;
     --sportx-border: rgba(255, 255, 255, 0.08);
     --sportx-border-strong: rgba(255, 255, 255, 0.14);
-    --sportx-success: #10B981;
+    --sportx-success: #CCFF00;
     --sportx-warning: #F59E0B;
     --sportx-danger: #EF4444;
-    --sportx-glow: rgba(16, 185, 129, 0.35);
-    --sportx-glow-cyan: rgba(6, 182, 212, 0.35);
+    --sportx-glow: rgba(204, 255, 0, 0.35);
+    --sportx-glow-cyan: rgba(0, 240, 255, 0.35);
   }
 
   *, *::before, *::after {
@@ -70,15 +71,15 @@
     min-height: calc(100vh - 84px);
   }
 
-  /* Bottom Navigation - Matches LoginPage Glass Style */
+  /* Bottom Navigation - Matches Master LoginPage Visual Language */
   .bottom-nav {
     @apply fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-lg
            flex items-center justify-around z-50 px-2;
-    background: rgba(13, 20, 36, 0.92);
+    background: rgba(11, 18, 34, 0.94);
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
     border-top: 1px solid rgba(255, 255, 255, 0.08);
-    box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.7);
+    box-shadow: 0 -10px 35px rgba(0, 0, 0, 0.85);
     padding-top: 8px;
     padding-bottom: max(10px, env(safe-area-inset-bottom));
   }
@@ -102,70 +103,81 @@
   }
   
   .nav-item.active .nav-icon-box {
-    @apply bg-neon/15 text-neon shadow-glow-sm;
+    @apply bg-neon/15 text-neon shadow-[0_0_12px_rgba(204,255,0,0.25)];
   }
 
-  /* Cards & Surfaces - Source of truth: LoginPage card-glass */
+  /* Cards & Surfaces - Source of truth: LoginPage deep navy container */
   .card {
     @apply rounded-2xl p-4 transition-all duration-200 relative overflow-hidden;
     background: var(--sportx-surface);
     border: 1px solid rgba(255, 255, 255, 0.08);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
   }
   
   .card-hoverable:hover {
     @apply -translate-y-0.5;
-    border-color: rgba(16, 185, 129, 0.35);
-    box-shadow: 0 12px 30px -5px rgba(0, 0, 0, 0.6), 0 0 20px rgba(16, 185, 129, 0.15);
+    border-color: rgba(204, 255, 0, 0.35);
+    box-shadow: 0 12px 30px -5px rgba(0, 0, 0, 0.7), 0 0 20px rgba(204, 255, 0, 0.15);
   }
   
   .card-glass {
-    @apply rounded-2xl p-4 sm:p-5;
-    background: rgba(19, 27, 46, 0.75);
+    @apply rounded-3xl p-5 sm:p-6;
+    background: rgba(13, 21, 39, 0.88);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.45);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 12px 36px 0 rgba(0, 0, 0, 0.65);
+  }
+
+  /* SportX Athletic Diagonal Accent */
+  .sportx-diagonal-stripes {
+    background-image: repeating-linear-gradient(
+      -45deg,
+      rgba(204, 255, 0, 0.03),
+      rgba(204, 255, 0, 0.03) 10px,
+      transparent 10px,
+      transparent 20px
+    );
   }
 
   /* SportX Pillar Cards */
   .card-pillar-compete {
-    @apply card-glass transition-all duration-200 cursor-pointer;
+    @apply card transition-all duration-200 cursor-pointer;
     border-color: rgba(245, 158, 11, 0.25);
-    background: linear-gradient(145deg, rgba(245, 158, 11, 0.08) 0%, rgba(19, 27, 46, 0.85) 60%);
+    background: linear-gradient(145deg, rgba(245, 158, 11, 0.09) 0%, rgba(13, 21, 39, 0.95) 60%);
   }
   .card-pillar-compete:hover {
-    border-color: rgba(245, 158, 11, 0.5);
+    border-color: rgba(245, 158, 11, 0.55);
   }
   .card-pillar-ai {
-    @apply card-glass transition-all duration-200 cursor-pointer;
-    border-color: rgba(6, 182, 212, 0.25);
-    background: linear-gradient(145deg, rgba(6, 182, 212, 0.08) 0%, rgba(19, 27, 46, 0.85) 60%);
+    @apply card transition-all duration-200 cursor-pointer;
+    border-color: rgba(0, 240, 255, 0.25);
+    background: linear-gradient(145deg, rgba(0, 240, 255, 0.09) 0%, rgba(13, 21, 39, 0.95) 60%);
   }
   .card-pillar-ai:hover {
-    border-color: rgba(6, 182, 212, 0.5);
+    border-color: rgba(0, 240, 255, 0.55);
   }
   .card-pillar-workout {
-    @apply card-glass transition-all duration-200 cursor-pointer;
-    border-color: rgba(16, 185, 129, 0.3);
-    background: linear-gradient(145deg, rgba(16, 185, 129, 0.1) 0%, rgba(19, 27, 46, 0.85) 60%);
+    @apply card transition-all duration-200 cursor-pointer;
+    border-color: rgba(204, 255, 0, 0.25);
+    background: linear-gradient(145deg, rgba(204, 255, 0, 0.1) 0%, rgba(13, 21, 39, 0.95) 60%);
   }
   .card-pillar-workout:hover {
-    border-color: rgba(16, 185, 129, 0.6);
+    border-color: rgba(204, 255, 0, 0.55);
   }
   .card-pillar-progress {
-    @apply card-glass transition-all duration-200 cursor-pointer;
+    @apply card transition-all duration-200 cursor-pointer;
     border-color: rgba(255, 255, 255, 0.1);
-    background: linear-gradient(145deg, rgba(30, 41, 59, 0.5) 0%, rgba(19, 27, 46, 0.85) 60%);
+    background: linear-gradient(145deg, rgba(26, 39, 69, 0.5) 0%, rgba(13, 21, 39, 0.95) 60%);
   }
   .card-pillar-progress:hover {
-    border-color: rgba(6, 182, 212, 0.4);
+    border-color: rgba(0, 240, 255, 0.45);
   }
 
-  /* Buttons - Exactly matching LoginPage.tsx */
+  /* Buttons - Exactly matching Master Login Reference Screen */
   .btn {
-    @apply inline-flex items-center justify-center gap-2 py-3 px-5
-           rounded-xl font-outfit text-[13px] sm:text-[14px] font-bold cursor-pointer
+    @apply inline-flex items-center justify-center gap-2 py-3.5 px-5
+           rounded-xl font-outfit text-[14px] font-bold cursor-pointer
            border-none no-underline transition-all duration-150 select-none;
   }
   
@@ -173,39 +185,41 @@
     @apply scale-[0.98];
   }
   
+  /* Master Primary Button: Solid Neon Lime with Dark Black Text */
   .btn-primary {
-    @apply text-white font-black tracking-wide;
-    background: linear-gradient(135deg, #10B981 0%, #06B6D4 100%);
-    box-shadow: 0 4px 18px rgba(16, 185, 129, 0.35);
+    @apply text-obsidian font-black tracking-wide;
+    background: #CCFF00;
+    box-shadow: 0 4px 20px rgba(204, 255, 0, 0.35);
   }
   
   .btn-primary:hover {
-    box-shadow: 0 6px 25px rgba(16, 185, 129, 0.55);
-    filter: brightness(1.05);
+    box-shadow: 0 6px 28px rgba(204, 255, 0, 0.55);
+    filter: brightness(1.06);
   }
   
+  /* Master Secondary Button: Deep Navy Surface with Slate Stroke */
   .btn-secondary {
     @apply text-white font-semibold;
-    background: #1E293B;
-    border: 1px solid rgba(255, 255, 255, 0.09);
+    background: #111A2E;
+    border: 1px solid rgba(255, 255, 255, 0.12);
   }
   
   .btn-secondary:hover {
-    background: #28354A;
-    border-color: rgba(255, 255, 255, 0.18);
+    background: #18233C;
+    border-color: rgba(255, 255, 255, 0.22);
   }
   
   .btn-outline {
-    @apply bg-transparent text-neon font-semibold;
-    border: 1.5px solid #10B981;
+    @apply bg-transparent text-neon font-bold;
+    border: 1.5px solid #CCFF00;
   }
   
   .btn-outline:hover {
-    background: rgba(16, 185, 129, 0.1);
+    background: rgba(204, 255, 0, 0.1);
   }
   
   .btn-danger {
-    @apply text-rose-300 font-semibold;
+    @apply text-rose-300 font-bold;
     background: rgba(239, 68, 68, 0.15);
     border: 1px solid rgba(239, 68, 68, 0.35);
   }
@@ -219,78 +233,78 @@
   .btn-lg { @apply py-4 px-6 text-[16px] rounded-2xl; }
   .btn:disabled { @apply opacity-45 cursor-not-allowed pointer-events-none; }
 
-  /* Form Controls */
+  /* Form Controls - Master Login Input Styling */
   .form-group { @apply flex flex-col gap-1.5; }
   .form-group label { @apply text-[12px] font-semibold text-slate-300 tracking-wide; }
   
   .input {
     @apply rounded-xl py-3 px-4 text-white font-outfit text-[14px]
            outline-none transition-all duration-200 w-full;
-    background: #192238;
-    border: 1.5px solid rgba(255, 255, 255, 0.08);
+    background: #111A2E;
+    border: 1.5px solid rgba(255, 255, 255, 0.09);
   }
   
   .input:focus {
-    border-color: #10B981;
-    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.25);
-    background: #1B2640;
+    border-color: #CCFF00;
+    box-shadow: 0 0 0 3px rgba(204, 255, 0, 0.22);
+    background: #141F38;
   }
   
   .input::placeholder { @apply text-slate-500 text-sm; }
 
   /* Stat Pills & Badges */
   .stat-pill {
-    @apply inline-flex items-center gap-1.5 rounded-full py-1.5 px-3
-           text-[12px] font-medium text-slate-200;
-    background: #1A243B;
+    @apply inline-flex items-center gap-1.5 rounded-full py-1 px-3
+           text-[11px] font-medium text-slate-200;
+    background: #111A2E;
     border: 1px solid rgba(255, 255, 255, 0.08);
   }
   
   .badge-pill {
     @apply inline-flex items-center gap-1 py-1 px-2.5 rounded-full
            text-[11px] font-bold text-neon tracking-wide;
-    background: rgba(16, 185, 129, 0.15);
-    border: 1px solid rgba(16, 185, 129, 0.35);
+    background: rgba(204, 255, 0, 0.12);
+    border: 1px solid rgba(204, 255, 0, 0.35);
   }
   
   .badge-cyan {
     @apply inline-flex items-center gap-1 py-1 px-2.5 rounded-full
            text-[11px] font-bold text-cyan tracking-wide;
-    background: rgba(6, 182, 212, 0.15);
-    border: 1px solid rgba(6, 182, 212, 0.35);
+    background: rgba(0, 240, 255, 0.12);
+    border: 1px solid rgba(0, 240, 255, 0.35);
   }
   
   .badge-amber {
     @apply inline-flex items-center gap-1 py-1 px-2.5 rounded-full
            text-[11px] font-bold text-amber tracking-wide;
-    background: rgba(245, 158, 11, 0.15);
+    background: rgba(245, 158, 11, 0.12);
     border: 1px solid rgba(245, 158, 11, 0.35);
   }
 
   /* XP Bar */
   .xp-bar-track {
-    @apply rounded-full h-2.5 overflow-hidden w-full;
-    background: #1E293B;
+    @apply rounded-full h-2 overflow-hidden w-full;
+    background: #111A2E;
   }
   
   .xp-bar-fill {
     @apply h-full rounded-full;
-    background: linear-gradient(90deg, #10B981 0%, #06B6D4 100%);
-    box-shadow: 0 0 12px rgba(16, 185, 129, 0.5);
+    background: linear-gradient(90deg, #CCFF00 0%, #00F0FF 100%);
+    box-shadow: 0 0 12px rgba(204, 255, 0, 0.45);
     transition: width 1s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
 
   /* Skeleton Loader */
   .skeleton {
-    @apply rounded-xl;
-    background: linear-gradient(90deg, #162035 25%, #222F4B 50%, #162035 75%);
+    @apply rounded-2xl;
+    background: linear-gradient(90deg, #0F182E 25%, #182542 50%, #0F182E 75%);
     background-size: 200% 100%;
     animation: shimmer 1.6s infinite;
   }
 
   /* Gradient Text */
   .gradient-text {
-    background: linear-gradient(135deg, #10B981 0%, #06B6D4 100%);
+    background: linear-gradient(135deg, #CCFF00 0%, #00F0FF 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -300,7 +314,7 @@
   .spinner {
     @apply w-6 h-6 rounded-full inline-block;
     border: 2.5px solid rgba(255, 255, 255, 0.1);
-    border-top-color: #10B981;
+    border-top-color: #CCFF00;
     animation: spin 0.7s linear infinite;
   }
 
@@ -321,7 +335,7 @@
     @apply py-2 px-3.5 rounded-xl text-[13px] font-semibold cursor-pointer
            text-slate-300 transition-all duration-200 select-none;
     border: 1.5px solid rgba(255, 255, 255, 0.08);
-    background: #1A243B;
+    background: #111A2E;
   }
   
   .chip:hover {
@@ -330,30 +344,30 @@
   }
   
   .chip.selected {
-    @apply text-neon;
-    border-color: #10B981;
-    background: rgba(16, 185, 129, 0.15);
-    box-shadow: 0 0 15px rgba(16, 185, 129, 0.2);
+    @apply text-neon font-bold;
+    border-color: #CCFF00;
+    background: rgba(204, 255, 0, 0.12);
+    box-shadow: 0 0 15px rgba(204, 255, 0, 0.2);
   }
 
   /* Camera View */
   .camera-view {
-    @apply w-full rounded-2xl flex items-center justify-center relative overflow-hidden;
+    @apply w-full rounded-3xl flex items-center justify-center relative overflow-hidden;
     aspect-ratio: 4/3;
-    background: radial-gradient(ellipse at center, #1B2640 0%, #090D16 100%);
+    background: radial-gradient(ellipse at center, #15203A 0%, #070A12 100%);
   }
 
   /* Leaderboard */
   .lb-row {
-    @apply flex items-center gap-3 py-3 transition-colors;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    @apply flex items-center gap-3 py-3 px-3 transition-colors rounded-xl;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   }
   
   .lb-rank { @apply w-8 text-center font-black text-[14px]; }
   
   .lb-avatar {
     @apply w-10 h-10 rounded-full flex items-center justify-center text-[16px] font-bold text-white shadow-md;
-    background: linear-gradient(135deg, #1E293B 0%, #131B2E 100%);
+    background: linear-gradient(135deg, #1A2744 0%, #0D1527 100%);
     border: 1px solid rgba(255, 255, 255, 0.12);
   }
   
@@ -377,26 +391,26 @@
   }
   
   .text-gradient-neon {
-    background: linear-gradient(135deg, #10B981 0%, #06B6D4 100%);
+    background: linear-gradient(135deg, #CCFF00 0%, #00F0FF 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
   
   .bg-gradient-hero {
-    background: linear-gradient(135deg, #10B981 0%, #06B6D4 100%);
+    background: linear-gradient(135deg, #CCFF00 0%, #00F0FF 100%);
   }
   
   .bg-gradient-card {
-    background: linear-gradient(135deg, #1A243B 0%, #131B2E 100%);
+    background: linear-gradient(135deg, #141E36 0%, #0D1527 100%);
   }
   
   .glow-neon {
-    box-shadow: 0 0 30px rgba(16, 185, 129, 0.35);
+    box-shadow: 0 0 25px rgba(204, 255, 0, 0.35);
   }
   
   .glow-cyan {
-    box-shadow: 0 0 30px rgba(6, 182, 212, 0.35);
+    box-shadow: 0 0 25px rgba(0, 240, 255, 0.35);
   }
   
   /* Hide scrollbar for clean chip scrollers */
@@ -413,4 +427,5 @@
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.12); border-radius: 9999px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(16, 185, 129, 0.4); }
+::-webkit-scrollbar-thumb:hover { background: rgba(204, 255, 0, 0.4); }
+

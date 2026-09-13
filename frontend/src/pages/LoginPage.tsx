@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Zap, Eye, EyeOff, ShieldCheck, ArrowRight, AlertCircle, CheckCircle2, Lock, Mail, User, School, BookOpen } from 'lucide-react';
+import { Eye, EyeOff, ShieldCheck, ArrowRight, AlertCircle, CheckCircle2, Lock, Mail, User, School, BookOpen } from 'lucide-react';
 
 export default function LoginPage() {
   const { login, signup, loginWithGoogle, resetPassword, isFirebaseReady } = useAuth();
@@ -72,28 +72,37 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-obsidian flex flex-col items-center justify-center p-4 sm:p-6 relative overflow-hidden">
-      {/* Background ambient lighting */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-neon/10 rounded-full blur-[100px] pointer-events-none" />
-      <div className="absolute bottom-1/4 left-1/3 w-64 h-64 bg-cyan/10 rounded-full blur-[90px] pointer-events-none" />
+    <div className="min-h-screen bg-obsidian flex flex-col items-center justify-between p-4 sm:p-6 relative overflow-hidden">
+      {/* ── Cinematic Sports Background with Diagonal Streaks ── */}
+      <div 
+        className="absolute inset-0 bg-cover bg-top pointer-events-none z-0"
+        style={{ backgroundImage: `url('/login-bg.jpg')` }}
+      />
+      
+      {/* Dark Vignette Overlay to maintain master reference contrast */}
+      <div className="absolute inset-0 bg-gradient-to-b from-obsidian/40 via-obsidian/75 to-obsidian pointer-events-none z-0" />
+      
+      {/* Ambient Neon Speed Glow */}
+      <div className="absolute top-1/4 left-1/4 w-80 h-80 bg-neon/10 rounded-full blur-[110px] pointer-events-none z-0" />
+      <div className="absolute top-1/3 right-1/4 w-72 h-72 bg-cyan/10 rounded-full blur-[100px] pointer-events-none z-0" />
 
-      {/* Brand Header */}
-      <div className="text-center mb-6 relative z-10 animate-fade-in">
-        <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-hero p-0.5 shadow-glow mb-3">
-          <div className="w-full h-full bg-obsidian rounded-[14px] flex items-center justify-center">
-            <Zap className="text-neon" size={28} />
-          </div>
+      {/* ── Master Reference Header: SportX Logo & Tagline ── */}
+      <div className="pt-6 sm:pt-10 pb-4 text-center relative z-10 animate-fade-in">
+        <div className="flex items-center justify-center tracking-tighter">
+          <span className="text-4xl sm:text-5xl font-black italic text-white drop-shadow-md">Sport</span>
+          <span className="text-4xl sm:text-5xl font-black italic text-neon drop-shadow-[0_0_15px_rgba(204,255,0,0.4)]">X</span>
         </div>
-        <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-white flex items-center justify-center gap-2">
-          SPORT<span className="text-neon">X</span>
-        </h1>
-        <p className="text-slate-400 text-xs sm:text-sm mt-1 font-medium">
-          Next-Gen AI Fitness & Telemetry for Athletes
-        </p>
+        <div className="flex items-center justify-center gap-2 text-xs sm:text-sm font-semibold text-slate-300 mt-1 tracking-wider uppercase">
+          <span>Train</span>
+          <span className="w-1.5 h-1.5 rounded-full bg-neon shadow-[0_0_6px_#CCFF00]" />
+          <span>Compete</span>
+          <span className="w-1.5 h-1.5 rounded-full bg-cyan shadow-[0_0_6px_#00F0FF]" />
+          <span>Be Better</span>
+        </div>
       </div>
 
-      {/* Main Authentication Card */}
-      <div className="card-glass w-full max-w-[420px] relative z-10 shadow-2xl border border-white/10 p-6 sm:p-7">
+      {/* ── Master Reference Card Container ── */}
+      <div className="card-glass w-full max-w-[410px] rounded-3xl p-6 sm:p-7 relative z-10 border border-white/10 shadow-2xl backdrop-blur-2xl my-auto">
         {!isFirebaseReady && (
           <div className="flex items-start gap-2.5 text-amber-300 text-xs p-3.5 mb-5 bg-amber-500/10 rounded-xl border border-amber-500/30 leading-relaxed">
             <AlertCircle size={18} className="text-amber-400 flex-shrink-0 mt-0.5" />
@@ -106,182 +115,181 @@ export default function LoginPage() {
           </div>
         )}
 
-        {/* Tab Toggle */}
-        <div className="flex rounded-xl p-1 mb-6 bg-surface/60 border border-white/5">
-          {(['login', 'signup'] as const).map(t => (
-            <button
-              key={t}
-              type="button"
-              onClick={() => { setTab(t); setError(''); setInfoMessage(''); }}
-              className={`flex-1 py-2.5 rounded-lg border-none cursor-pointer font-outfit font-bold text-xs tracking-wider uppercase transition-all duration-200 ${
-                tab === t
-                  ? 'bg-gradient-hero text-white shadow-glow-sm'
-                  : 'bg-transparent text-slate-400 hover:text-white'
-              }`}
-            >
-              {t === 'login' ? 'Sign In' : 'Create Athlete ID'}
-            </button>
-          ))}
+        {/* Card Title & Subtitle matching Master Reference */}
+        <div className="mb-5">
+          <h2 className="text-2xl sm:text-[26px] font-black tracking-tight text-white">
+            {tab === 'login' ? 'Sign In' : 'Sign Up'}
+          </h2>
+          <p className="text-slate-400 text-xs sm:text-sm mt-1 font-normal">
+            {tab === 'login' ? 'Continue your journey with SportX' : 'Create your verified Athlete ID'}
+          </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-3.5">
           {tab === 'signup' && (
             <>
-              <div className="form-group">
-                <label className="flex items-center gap-1.5">
-                  <User size={13} className="text-slate-400" />
-                  Full Name
-                </label>
+              <div className="relative">
+                <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                  <User size={18} />
+                </div>
                 <input
-                  className="input"
+                  className="input pl-11 text-sm bg-surface border-white/10 rounded-xl py-3 text-white placeholder:text-slate-500"
                   value={form.name}
                   onChange={set('name')}
-                  placeholder="e.g. Alex Rivera"
+                  placeholder="Full Name (e.g. Alex Rivera)"
                   required
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="form-group">
-                  <label className="flex items-center gap-1.5">
-                    <School size={13} className="text-slate-400" />
-                    College
-                  </label>
+              <div className="grid grid-cols-2 gap-2.5">
+                <div className="relative">
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                    <School size={16} />
+                  </div>
                   <input
-                    className="input"
+                    className="input pl-9 text-xs bg-surface border-white/10 rounded-xl py-3 text-white placeholder:text-slate-500"
                     value={form.collegeName}
                     onChange={set('collegeName')}
-                    placeholder="Campus Univ"
+                    placeholder="College"
                   />
                 </div>
-                <div className="form-group">
-                  <label className="flex items-center gap-1.5">
-                    <BookOpen size={13} className="text-slate-400" />
-                    Dept
-                  </label>
+                <div className="relative">
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                    <BookOpen size={16} />
+                  </div>
                   <input
-                    className="input"
+                    className="input pl-9 text-xs bg-surface border-white/10 rounded-xl py-3 text-white placeholder:text-slate-500"
                     value={form.department}
                     onChange={set('department')}
-                    placeholder="Kinesiology / CS"
+                    placeholder="Dept"
                   />
                 </div>
               </div>
             </>
           )}
 
-          <div className="form-group">
-            <label className="flex items-center gap-1.5">
-              <Mail size={13} className="text-slate-400" />
-              Email Address
-            </label>
+          {/* Email input with Mail prefix icon */}
+          <div className="relative">
+            <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+              <Mail size={18} />
+            </div>
             <input
-              className="input"
+              className="input pl-11 text-sm bg-surface border-white/10 rounded-xl py-3 text-white placeholder:text-slate-500"
               type="email"
               value={form.email}
               onChange={set('email')}
-              placeholder="athlete@campus.edu"
+              placeholder="Email address"
               required
             />
           </div>
 
-          <div className="form-group">
-            <div className="flex justify-between items-center mb-0.5">
-              <label className="flex items-center gap-1.5">
-                <Lock size={13} className="text-slate-400" />
-                Password
-              </label>
-              {tab === 'login' && (
-                <button
-                  type="button"
-                  onClick={() => setShowForgot(v => !v)}
-                  className="text-[11px] font-semibold text-cyan hover:underline bg-transparent border-none cursor-pointer"
-                >
-                  Forgot password?
-                </button>
-              )}
+          {/* Password input with Lock prefix and Eye suffix */}
+          <div className="relative">
+            <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+              <Lock size={18} />
             </div>
-
-            <div className="relative">
-              <input
-                className="input pr-10"
-                type={showPassword ? 'text' : 'password'}
-                value={form.password}
-                onChange={set('password')}
-                placeholder="••••••••"
-                required={!showForgot}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(v => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white bg-transparent border-none cursor-pointer p-1"
-                aria-label={showPassword ? 'Hide password' : 'Show password'}
-              >
-                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
-            </div>
+            <input
+              className="input pl-11 pr-11 text-sm bg-surface border-white/10 rounded-xl py-3 text-white placeholder:text-slate-500"
+              type={showPassword ? 'text' : 'password'}
+              value={form.password}
+              onChange={set('password')}
+              placeholder="Password"
+              required={!showForgot}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(v => !v)}
+              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white bg-transparent border-none cursor-pointer p-1"
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+            >
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
           </div>
 
-          {showForgot && (
-            <div className="p-3.5 bg-surface/80 rounded-xl border border-white/10 flex flex-col gap-2.5 animate-slide-up">
-              <p className="text-xs text-slate-300 leading-relaxed">
-                Enter your email address above and click below to receive a secure password reset link.
-              </p>
+          {/* Forgot Password Link - Only in Login mode */}
+          {tab === 'login' && !showForgot && (
+            <div className="text-center">
               <button
                 type="button"
-                onClick={handleResetPassword}
-                disabled={loading}
-                className="btn btn-outline text-xs py-2 w-full"
+                onClick={() => setShowForgot(true)}
+                className="text-xs font-semibold text-neon hover:underline bg-transparent border-none cursor-pointer"
               >
-                Send Reset Link
+                Forgot password?
               </button>
             </div>
           )}
 
+          {showForgot && (
+            <div className="p-3.5 bg-surface/90 rounded-xl border border-white/10 flex flex-col gap-2.5 animate-slide-up">
+              <p className="text-xs text-slate-300 leading-relaxed">
+                Enter your email address above and click below to receive a secure password reset link.
+              </p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={handleResetPassword}
+                  disabled={loading}
+                  className="btn btn-outline text-xs py-2 flex-1"
+                >
+                  Send Reset Link
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowForgot(false)}
+                  className="btn btn-secondary text-xs py-2 px-3"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
           {error && (
-            <div className="flex items-start gap-2 text-rose-300 text-xs p-3 bg-rose-500/10 rounded-xl border border-rose-500/30">
+            <div className="flex items-start gap-2 text-rose-300 text-xs p-3 bg-rose-500/15 rounded-xl border border-rose-500/30">
               <AlertCircle size={16} className="text-rose-400 flex-shrink-0 mt-0.5" />
               <span>{error}</span>
             </div>
           )}
 
           {infoMessage && (
-            <div className="flex items-start gap-2 text-emerald-300 text-xs p-3 bg-emerald-500/10 rounded-xl border border-emerald-500/30">
+            <div className="flex items-start gap-2 text-emerald-300 text-xs p-3 bg-emerald-500/15 rounded-xl border border-emerald-500/30">
               <CheckCircle2 size={16} className="text-emerald-400 flex-shrink-0 mt-0.5" />
               <span>{infoMessage}</span>
             </div>
           )}
 
+          {/* Primary CTA Button: Solid Neon Lime with Black Text and Right Arrow */}
           <button
             type="submit"
-            className="btn btn-primary btn-full py-3.5 mt-1"
+            className="btn btn-primary w-full py-3.5 text-base font-black rounded-xl shadow-glow text-obsidian flex items-center justify-center gap-2 mt-1 cursor-pointer transition-all hover:scale-[1.01]"
             disabled={loading}
           >
             {loading ? (
               <span className="flex items-center gap-2">
-                <span className="spinner w-4 h-4 border-white/30 border-t-white" />
+                <span className="spinner w-4 h-4 border-obsidian/30 border-t-obsidian" />
                 <span>Authenticating…</span>
               </span>
             ) : (
               <span className="flex items-center justify-center gap-2">
-                <span>{tab === 'login' ? 'Sign In to Arena' : 'Initialize Profile'}</span>
-                <ArrowRight size={16} />
+                <span>{tab === 'login' ? 'Sign In' : 'Sign Up'}</span>
+                <ArrowRight size={18} strokeWidth={2.5} />
               </span>
             )}
           </button>
         </form>
 
+        {/* OR Divider matching Master Reference */}
         <div className="flex items-center gap-3 my-4">
-          <div className="divider flex-1" />
-          <span className="text-[11px] text-slate-500 uppercase tracking-wider font-semibold">or</span>
-          <div className="divider flex-1" />
+          <div className="h-[1px] bg-white/10 flex-1" />
+          <span className="text-[11px] text-slate-400 uppercase tracking-widest font-bold">OR</span>
+          <div className="h-[1px] bg-white/10 flex-1" />
         </div>
 
-        {/* Google OAuth */}
+        {/* Google OAuth Button matching Master Reference */}
         <button
           type="button"
           onClick={handleGoogle}
-          className="btn btn-secondary btn-full flex items-center justify-center gap-2.5 py-3"
+          className="w-full py-3 px-4 rounded-xl bg-surface hover:bg-surface-light border border-slate-700/60 text-white text-sm font-semibold flex items-center justify-center gap-3 transition-all cursor-pointer shadow-md"
           disabled={loading}
         >
           <svg className="w-4 h-4" viewBox="0 0 24 24">
@@ -293,10 +301,38 @@ export default function LoginPage() {
           <span>Continue with Google</span>
         </button>
 
-        <div className="mt-5 pt-3 border-t border-white/5 flex items-center justify-center gap-1.5 text-[11px] text-slate-400">
-          <ShieldCheck size={14} className="text-emerald-400" />
-          <span>Encrypted Session • Student Athlete Privacy Guaranteed</span>
+        {/* Switch prompt matching Master Reference */}
+        <div className="mt-5 text-center text-xs text-slate-400">
+          {tab === 'login' ? (
+            <span>
+              Don’t have an account?{' '}
+              <button
+                type="button"
+                onClick={() => { setTab('signup'); setError(''); setInfoMessage(''); }}
+                className="text-neon font-bold hover:underline bg-transparent border-none cursor-pointer"
+              >
+                Sign Up
+              </button>
+            </span>
+          ) : (
+            <span>
+              Already have an account?{' '}
+              <button
+                type="button"
+                onClick={() => { setTab('login'); setError(''); setInfoMessage(''); }}
+                className="text-neon font-bold hover:underline bg-transparent border-none cursor-pointer"
+              >
+                Sign In
+              </button>
+            </span>
+          )}
         </div>
+      </div>
+
+      {/* Security note footer */}
+      <div className="pb-4 pt-2 text-center relative z-10 flex items-center justify-center gap-1.5 text-[11px] text-slate-500">
+        <ShieldCheck size={14} className="text-neon" />
+        <span>Encrypted Session • Student Athlete Privacy Guaranteed</span>
       </div>
     </div>
   );

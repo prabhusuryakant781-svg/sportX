@@ -292,9 +292,9 @@ export default function AICoachPage() {
             className={`flex flex-col animate-fade-in ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}
           >
             {msg.sender === 'user' ? (
-              <div className="max-w-[85%] rounded-2xl rounded-tr-xs bg-gradient-hero px-4 py-3 text-white text-xs sm:text-sm font-medium shadow-md">
-                <p className="text-white leading-relaxed">{msg.text}</p>
-                <span className="block text-[9px] text-white/70 text-right mt-1.5 tabular-nums">
+              <div className="max-w-[85%] rounded-2xl rounded-tr-xs bg-neon px-4 py-3 text-obsidian text-xs sm:text-sm font-bold shadow-md">
+                <p className="text-obsidian leading-relaxed">{msg.text}</p>
+                <span className="block text-[9px] text-obsidian/70 text-right mt-1.5 tabular-nums">
                   {msg.timestamp}
                 </span>
               </div>

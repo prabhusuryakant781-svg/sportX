@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { AlertCircle, RotateCcw } from 'lucide-react';
 import { api } from '../services/api';
 import { competitiveApi } from '../services/competitiveApi';
 import CameraWorkout, { type WorkoutCompletionResult } from '../components/CameraWorkout';
@@ -272,8 +273,8 @@ export default function CameraWorkoutPage() {
   if (!exercise) {
     return (
       <div className="min-h-screen bg-obsidian flex flex-col items-center justify-center p-6 text-center">
-        <div className="w-16 h-16 rounded-2xl bg-amber-500/10 text-amber-400 flex items-center justify-center mx-auto mb-4 border border-amber-500/20 text-3xl">
-          ⚠️
+        <div className="w-16 h-16 rounded-2xl bg-amber-500/10 text-amber-400 flex items-center justify-center mx-auto mb-4 border border-amber-500/20">
+          <AlertCircle size={32} />
         </div>
         <h2 className="text-lg font-bold text-white">Exercise Not Found</h2>
         <p className="text-xs text-slate-400 mt-1 max-w-[280px]">
@@ -321,16 +322,17 @@ export default function CameraWorkoutPage() {
           {completionError && (
             <div className="w-full mb-3 p-3.5 bg-rose-950/80 border border-rose-500/40 rounded-2xl text-center text-xs text-rose-200 shadow-lg animate-slide-up">
               <p className="mb-2 font-bold flex items-center justify-center gap-1.5">
-                <span>⚠️</span>
+                <AlertCircle size={15} className="text-rose-400" />
                 <span>{completionError}</span>
               </p>
               {lastResult && (
                 <button
                   onClick={() => handleComplete(lastResult)}
                   disabled={isCompleting}
-                  className="btn btn-secondary text-xs px-4 py-2 cursor-pointer shadow"
+                  className="btn btn-secondary text-xs px-4 py-2 cursor-pointer shadow inline-flex items-center gap-1.5"
                 >
-                  {isCompleting ? 'Saving Telemetry…' : '🔄 Retry Finalizing Session'}
+                  <RotateCcw size={13} />
+                  <span>{isCompleting ? 'Saving Telemetry…' : 'Retry Finalizing Session'}</span>
                 </button>
               )}
             </div>

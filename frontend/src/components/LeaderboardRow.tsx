@@ -9,11 +9,17 @@ interface LeaderboardRowProps {
 
 export default function LeaderboardRow({ entry, index, sortBy = 'xp' }: LeaderboardRowProps) {
   const rankBadge = index === 0 ? (
-    <span className="text-xl select-none" title="1st Place">🥇</span>
+    <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-amber-300 via-amber-400 to-amber-600 text-black font-black text-xs flex items-center justify-center shadow-glow-sm">
+      1
+    </div>
   ) : index === 1 ? (
-    <span className="text-xl select-none" title="2nd Place">🥈</span>
+    <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-slate-200 to-slate-400 text-black font-black text-xs flex items-center justify-center">
+      2
+    </div>
   ) : index === 2 ? (
-    <span className="text-xl select-none" title="3rd Place">🥉</span>
+    <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-amber-700 to-amber-900 text-amber-100 font-black text-xs flex items-center justify-center">
+      3
+    </div>
   ) : (
     <span className="text-xs font-black text-slate-500 tabular-nums font-outfit">
       #{index + 1}

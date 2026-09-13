@@ -10,7 +10,7 @@ interface NavItemDef {
 
 const navItems: NavItemDef[] = [
   { to: '/dashboard', icon: Home, label: 'Home', matches: ['/dashboard', '/'] },
-  { to: '/lobby', icon: Swords, label: 'Compete', matches: ['/lobby', '/leaderboard'] },
+  { to: '/lobby', icon: Swords, label: 'Compete', matches: ['/lobby', '/competitive', '/leaderboard'] },
   { to: '/workout', icon: Dumbbell, label: 'Workout', matches: ['/workout'] },
   { to: '/ai-coach', icon: Bot, label: 'AI Coach', matches: ['/ai-coach'] },
   { to: '/progress', icon: TrendingUp, label: 'Progress', matches: ['/progress'] },
@@ -35,15 +35,18 @@ export default function BottomNav() {
             aria-current={isActive ? 'page' : undefined}
           >
             <div className="nav-icon-box relative">
-              <IconComponent size={20} className="transition-transform duration-200" />
+              <IconComponent size={20} className={`transition-all duration-200 ${isActive ? 'text-neon scale-105' : 'text-slate-400 group-hover:text-slate-200'}`} />
               {isActive && (
-                <span className="absolute -bottom-1 w-1.5 h-1.5 rounded-full bg-neon shadow-[0_0_8px_#10B981]" />
+                <span className="absolute -bottom-1 w-2 h-1 rounded-full bg-neon shadow-[0_0_8px_#CCFF00]" />
               )}
             </div>
-            <span className={isActive ? 'text-white font-bold' : ''}>{item.label}</span>
+            <span className={`text-[10px] tracking-tight ${isActive ? 'text-white font-bold' : 'text-slate-400'}`}>
+              {item.label}
+            </span>
           </NavLink>
         );
       })}
     </nav>
   );
 }
+
