@@ -8,6 +8,7 @@ import {
   CompetitiveChallengeDoc,
   CompetitiveMatchDoc,
   CompetitiveRankDoc,
+  CompetitiveVerificationPayload,
   QueueTicketDoc,
 } from '../types/competitive';
 
@@ -128,12 +129,13 @@ export const competitiveApi = {
    * Authoritatively finish match and calculate placements & rewards
    */
   finishMatch: async (
-    matchId: string
+    matchId: string,
+    payload?: CompetitiveVerificationPayload
   ): Promise<{ match: CompetitiveMatchDoc; results: CompetitiveMatchDoc['results'] }> => {
     const res = await request<{
       success: boolean;
       data: { match: CompetitiveMatchDoc; results: CompetitiveMatchDoc['results'] };
-    }>('POST', `/competitive/matches/${matchId}/finish`);
+    }>('POST', `/competitive/matches/${matchId}/finish`, payload);
     return res.data;
   },
 };

@@ -16,6 +16,7 @@ import {
   CompetitiveRankTier,
   getRankTierFromRP
 } from '../types/competitive';
+import { UserRepository } from './userRepository';
 import * as logger from 'firebase-functions/logger';
 
 const CHALLENGES_COLLECTION = 'competitiveChallenges';
@@ -316,6 +317,84 @@ export class CompetitiveRepository {
       }
     }
     return updated;
+  }
+
+  /**
+   * Atomically finalize match, persist match results, update user competitive ranks and user profiles.
+   * Prevents race conditions and duplicate rewards across concurrent requests.
+   */
+  static async executeAtomicMatchFinalization(params: {
+    matchId: string;
+    completedPlayers: any[];
+    matchResults: any;
+    userRankUpdates: Array<{ userId: string; sportId: string; rankDoc: CompetitiveRankDoc }>;
+  }): Promise<CompetitiveMatchDoc | null> {
+    const { matchId, completedPlayers, matchResults, userRankUpdates } = params;
+    const existingMatch = await this.getMatchById(matchId);
+    if (!existingMatch) return null;
+
+    if (existingMatch.status === 'COMPLETED' && existingMatch.results) {
+      return existingMatch; // Idempotent guard
+    }
+
+    const finalizedDoc: CompetitiveMatchDoc = {
+      ...existingMatch,
+      status: 'COMPLETED',
+      players: completedPlayers,
+      results: matchResults,
+      updatedAt: new Date().toISOString(),
+    };
+
+    // Update in-memory caches
+    localMatchesCache.set(matchId, finalizedDoc);
+    for (const u of userRankUpdates) {
+      const docId = this.getRankDocId(u.userId, u.sportId);
+      localRanksCache.set(docId, u.rankDoc);
+      UserRepository.updateRank(u.userId, u.rankDoc.rankPoints, u.rankDoc.rankTier).catch(() => {});
+    }
+
+    if (hasFirebaseCredentials) {
+      try {
+        const matchRef = db.collection(MATCHES_COLLECTION).doc(matchId);
+        await withTimeout(
+          db.runTransaction(async (transaction) => {
+            const freshSnap = await transaction.get(matchRef);
+            if (freshSnap.exists) {
+              const freshData = freshSnap.data() as CompetitiveMatchDoc;
+              if (freshData.status === 'COMPLETED' && freshData.results) {
+                // Already finalized concurrently in Firestore
+                return;
+              }
+            }
+
+            // 1. Write match results
+            transaction.set(matchRef, finalizedDoc, { merge: true });
+
+            // 2. Write rank documents & user profile rank updates
+            for (const u of userRankUpdates) {
+              const rankRef = db.collection(RANKS_COLLECTION).doc(this.getRankDocId(u.userId, u.sportId));
+              transaction.set(rankRef, u.rankDoc, { merge: true });
+
+              const userRef = db.collection('users').doc(u.userId);
+              transaction.set(
+                userRef,
+                {
+                  rankPoints: u.rankDoc.rankPoints,
+                  rankTier: u.rankDoc.rankTier,
+                  updatedAt: new Date().toISOString(),
+                },
+                { merge: true }
+              );
+            }
+          }),
+          4000
+        );
+      } catch (err) {
+        logger.warn(`[CompetitiveRepo] Firestore atomic finalization failed for ${matchId}:`, err);
+      }
+    }
+
+    return finalizedDoc;
   }
 
   /**

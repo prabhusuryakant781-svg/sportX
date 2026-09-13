@@ -17,8 +17,11 @@ import {
   Zap, 
   CheckCircle2,
   X,
-  Edit3
+  Edit3,
+  Trophy,
+  Swords
 } from 'lucide-react';
+import { getRankTierFromRP, getNextRankTier, getRPNeededForNextTier, CompetitiveRankTier } from '../types/competitive';
 
 export default function ProfilePage() {
   const { user, logout, refreshUser } = useAuth();
@@ -68,6 +71,11 @@ export default function ProfilePage() {
         ? 'Intermediate'
         : 'Beginner')
     : 'Not set';
+
+  const userRP = user?.rankPoints ?? 0;
+  const currentRankTier = (user?.rankTier as CompetitiveRankTier) || getRankTierFromRP(userRP);
+  const nextRankTier = getNextRankTier(currentRankTier);
+  const rpNeeded = getRPNeededForNextTier(userRP);
 
   return (
     <div className="space-y-4 pb-8 animate-fade-in">
@@ -163,6 +171,9 @@ export default function ProfilePage() {
               <span className="text-sm font-black text-amber-400 font-outfit tabular-nums mt-0.5 block">
                 🔥 {user?.currentStreak ?? 0}d
               </span>
+              <span className="text-[9px] text-slate-400 font-bold block truncate">
+                Best: {user?.longestStreak || user?.bestStreak || 0}d
+              </span>
             </div>
 
             <div className="p-2 rounded-xl bg-surface/50 border border-white/5">
@@ -181,6 +192,58 @@ export default function ProfilePage() {
                 {currentLevelDisplay}
               </span>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Authoritative Competitive Ranking Standing */}
+      <div className="card-glass border border-amber-500/20 bg-gradient-to-r from-amber-500/10 via-card to-card p-4 relative overflow-hidden shadow-card">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/30">
+              <Trophy size={16} />
+            </div>
+            <div>
+              <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 block">Competitive Division</span>
+              <h3 className="text-sm font-black text-white">BGMI-Style Ranked Arena</h3>
+            </div>
+          </div>
+          <button
+            onClick={() => navigate('/competitive')}
+            className="btn btn-sm btn-primary py-1 px-2.5 text-[11px] font-bold flex items-center gap-1 shadow-glow-sm cursor-pointer"
+          >
+            <Swords size={12} />
+            <span>Enter Arena</span>
+          </button>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center pt-2 border-t border-white/5">
+          <div className="p-2 rounded-xl bg-surface/50 border border-white/5">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Current Rank</span>
+            <span className="text-sm font-black text-amber-300 font-outfit mt-0.5 block">
+              {currentRankTier}
+            </span>
+          </div>
+
+          <div className="p-2 rounded-xl bg-surface/50 border border-white/5">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">RP</span>
+            <span className="text-sm font-black text-white font-outfit tabular-nums mt-0.5 block">
+              {userRP}
+            </span>
+          </div>
+
+          <div className="p-2 rounded-xl bg-surface/50 border border-white/5">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Next Rank</span>
+            <span className="text-sm font-black text-cyan font-outfit mt-0.5 block">
+              {nextRankTier || 'None (Max)'}
+            </span>
+          </div>
+
+          <div className="p-2 rounded-xl bg-surface/50 border border-white/5">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">RP Needed</span>
+            <span className="text-sm font-black text-neon font-outfit tabular-nums mt-0.5 block">
+              {rpNeeded !== null ? rpNeeded : '0 (Max)'}
+            </span>
           </div>
         </div>
       </div>

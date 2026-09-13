@@ -34,6 +34,8 @@ export class LeaderboardRepository {
           currentStreak: u.currentStreak || 0,
           level: u.level || 1,
           rank: idx + 1,
+          rankPoints: u.rankPoints ?? 100,
+          rankTier: u.rankTier || 'Bronze',
           lastUpdated: u.updatedAt || new Date().toISOString(),
         };
       });
@@ -71,6 +73,8 @@ export class LeaderboardRepository {
           currentStreak: u.currentStreak || 0,
           level: u.level || 1,
           rank: idx + 1,
+          rankPoints: u.rankPoints ?? 100,
+          rankTier: u.rankTier || 'Bronze',
           lastUpdated: u.updatedAt || new Date().toISOString(),
         };
       });
@@ -85,13 +89,13 @@ export class LeaderboardRepository {
    */
   private static getFallbackLeaders(): LeaderboardEntryDoc[] {
     return [
-      { userId: 'lead_1', name: 'Priya Patel', collegeName: 'IIT Bombay', department: 'Computer Science', totalXp: 4850, currentStreak: 14, level: 7, rank: 1, lastUpdated: new Date().toISOString() },
-      { userId: 'lead_2', name: 'Aarav Sharma', collegeName: 'Campus University', department: 'Engineering', totalXp: 3920, currentStreak: 8, level: 6, rank: 2, lastUpdated: new Date().toISOString() },
-      { userId: 'lead_3', name: 'Neha Joshi', collegeName: 'IIT Delhi', department: 'Electrical', totalXp: 3100, currentStreak: 9, level: 5, rank: 3, lastUpdated: new Date().toISOString() },
-      { userId: 'lead_4', name: 'Rohan Verma', collegeName: 'VIT Vellore', department: 'Biotechnology', totalXp: 2600, currentStreak: 7, level: 5, rank: 4, lastUpdated: new Date().toISOString() },
-      { userId: 'lead_5', name: 'Anika Singh', collegeName: 'NIT Trichy', department: 'Mechanical', totalXp: 2150, currentStreak: 5, level: 4, rank: 5, lastUpdated: new Date().toISOString() },
-      { userId: 'lead_6', name: 'Dev Kapoor', collegeName: 'IIT Madras', department: 'Physics', totalXp: 1840, currentStreak: 3, level: 4, rank: 6, lastUpdated: new Date().toISOString() },
-      { userId: 'lead_7', name: 'Shreya Gupta', collegeName: 'Campus University', department: 'Information Tech', totalXp: 1420, currentStreak: 6, level: 3, rank: 7, lastUpdated: new Date().toISOString() },
+      { userId: 'lead_1', name: 'Priya Patel', collegeName: 'IIT Bombay', department: 'Computer Science', totalXp: 4850, currentStreak: 14, level: 7, rank: 1, rankPoints: 1750, rankTier: 'Diamond', lastUpdated: new Date().toISOString() },
+      { userId: 'lead_2', name: 'Aarav Sharma', collegeName: 'Campus University', department: 'Engineering', totalXp: 3920, currentStreak: 8, level: 6, rank: 2, rankPoints: 1320, rankTier: 'Platinum', lastUpdated: new Date().toISOString() },
+      { userId: 'lead_3', name: 'Neha Joshi', collegeName: 'IIT Delhi', department: 'Electrical', totalXp: 3100, currentStreak: 9, level: 5, rank: 3, rankPoints: 980, rankTier: 'Gold', lastUpdated: new Date().toISOString() },
+      { userId: 'lead_4', name: 'Rohan Verma', collegeName: 'VIT Vellore', department: 'Biotechnology', totalXp: 2600, currentStreak: 7, level: 5, rank: 4, rankPoints: 850, rankTier: 'Gold', lastUpdated: new Date().toISOString() },
+      { userId: 'lead_5', name: 'Anika Singh', collegeName: 'NIT Trichy', department: 'Mechanical', totalXp: 2150, currentStreak: 5, level: 4, rank: 5, rankPoints: 620, rankTier: 'Silver', lastUpdated: new Date().toISOString() },
+      { userId: 'lead_6', name: 'Dev Kapoor', collegeName: 'IIT Madras', department: 'Physics', totalXp: 1840, currentStreak: 3, level: 4, rank: 6, rankPoints: 480, rankTier: 'Silver', lastUpdated: new Date().toISOString() },
+      { userId: 'lead_7', name: 'Shreya Gupta', collegeName: 'Campus University', department: 'Information Tech', totalXp: 1420, currentStreak: 6, level: 3, rank: 7, rankPoints: 260, rankTier: 'Bronze', lastUpdated: new Date().toISOString() },
     ];
   }
 }

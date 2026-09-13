@@ -42,13 +42,18 @@ export default function LeaderboardRow({ entry, index }: LeaderboardRowProps) {
       </div>
 
       <div className="flex-1 min-w-0 pr-2">
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 flex-wrap">
           <span className="font-bold text-xs sm:text-sm text-white truncate">
             {entry.username}
           </span>
           {entry.isCurrentUser && (
             <span className="text-[9px] font-black uppercase tracking-wider text-neon bg-neon/15 px-1.5 py-0.2 rounded-full border border-neon/30">
               YOU
+            </span>
+          )}
+          {entry.rankTier && (
+            <span className="text-[9px] font-black uppercase tracking-wide px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30">
+              {entry.rankTier} {entry.rankPoints !== undefined ? `• ${entry.rankPoints} RP` : ''}
             </span>
           )}
         </div>

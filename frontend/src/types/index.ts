@@ -13,10 +13,15 @@ export interface User {
   availableTimeMinutes: number;
   selectedSports: string[];
   totalXp: number;
+  xp?: number;
   level?: number;
   currentStreak: number;
   longestStreak: number;
+  bestStreak?: number;
+  rankPoints?: number;
+  rankTier?: string;
   lastWorkoutDate: string | null;
+  lastActivityDate?: string | null;
   createdAt: string;
 }
 
@@ -82,6 +87,8 @@ export interface LeaderboardEntry {
   college: string;
   totalXp: number;
   currentStreak: number;
+  rankPoints?: number;
+  rankTier?: string;
   isCurrentUser?: boolean;
 }
 

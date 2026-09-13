@@ -29,6 +29,21 @@ export function getRankTierFromRP(rp: number): CompetitiveRankTier {
   return 'Bronze';
 }
 
+export function getNextRankTier(tier: CompetitiveRankTier): CompetitiveRankTier | null {
+  if (tier === 'Bronze') return 'Silver';
+  if (tier === 'Silver') return 'Gold';
+  if (tier === 'Gold') return 'Platinum';
+  if (tier === 'Platinum') return 'Diamond';
+  return null;
+}
+
+export function getRPNeededForNextTier(currentRP: number): number | null {
+  const tier = getRankTierFromRP(currentRP);
+  if (tier === 'Diamond') return null;
+  const nextThreshold = RANK_TIER_THRESHOLDS[tier].maxRP + 1;
+  return Math.max(0, nextThreshold - currentRP);
+}
+
 export interface ChallengeRewardConfig {
   xp: number;
   rankPoints: number;
@@ -48,6 +63,8 @@ export interface CompetitiveChallengeDoc {
   scoringFormula: string;
   minRank: CompetitiveRankTier;
   maxRank: CompetitiveRankTier;
+  exerciseId?: string; // Camera exercise: 'squat' | 'pushup' | 'jumping_jacks'
+  targetReps?: number; // Target repetitions required to satisfy challenge criteria
   rewards: {
     firstPlace: ChallengeRewardConfig;
     secondPlace: ChallengeRewardConfig;
@@ -55,6 +72,17 @@ export interface CompetitiveChallengeDoc {
   };
   createdAt: string;
   updatedAt: string;
+}
+
+export interface CompetitiveVerificationPayload {
+  sessionId?: string;
+  exerciseId?: string;
+  reps?: number;
+  validReps?: number;
+  formScore?: number;
+  durationSeconds?: number;
+  confidence?: number;
+  visionResult?: any;
 }
 
 export type QueueTicketStatus = 'QUEUED' | 'MATCHED' | 'CANCELLED';
@@ -102,13 +130,19 @@ export interface MatchPlacementResult {
   userId: string;
   displayName: string;
   placement: 1 | 2 | 3 | number;
+  outcome: 'WIN' | 'LOSS' | 'DRAW';
   score: number;
   reps: number;
   formScore: number;
   xpEarned: number;
+  previousRankPoints: number;
   rankPointsChange: number;
   newRankPoints: number;
+  previousRankTier: CompetitiveRankTier;
   newRankTier: CompetitiveRankTier;
+  isRankUp: boolean;
+  isRankDown: boolean;
+  rankTransition?: string;
 }
 
 export interface MatchResults {

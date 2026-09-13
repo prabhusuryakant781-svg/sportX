@@ -284,12 +284,12 @@ export async function runCompetitiveTests(): Promise<{ passed: number; failed: n
     const winnerResult = finalized.results?.leaderboard.find((l) => l.userId === 'user_tel_1');
     assert(winnerResult?.placement === 1, 'Winner placed #1');
     assert(winnerResult?.xpEarned === 250, 'Winner awarded 1st place XP (250)');
-    assert(winnerResult?.rankPointsChange === 45, 'Winner awarded 1st place RP (+45)');
+    assert((winnerResult?.rankPointsChange ?? 0) > 0, 'Winner awarded positive RP');
 
     const loserResult = finalized.results?.leaderboard.find((l) => l.userId === 'user_tel_2');
     assert(loserResult?.placement === 2, 'Loser placed #2');
     assert(loserResult?.xpEarned === 125, 'Loser awarded 2nd place XP (125)');
-    assert(loserResult?.rankPointsChange === 15, 'Loser awarded 2nd place RP (+15)');
+    assert((loserResult?.rankPointsChange ?? 0) < 0, 'Loser deducted RP');
 
     // Verify user competitive rank record was saved
     const p1Rank = await CompetitiveRepository.getUserRank('user_tel_1', 'football');

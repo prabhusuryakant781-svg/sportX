@@ -30,12 +30,36 @@ export const SYSTEM_BADGES: BadgeDoc[] = [
     streakRequired: 7,
   },
   {
+    id: 'streak_14',
+    name: 'Fortnight Champion',
+    description: 'Crushed a 14-day consecutive workout streak.',
+    icon: '💎',
+    category: 'streak',
+    streakRequired: 14,
+  },
+  {
     id: 'streak_30',
     name: 'Iron Will',
     description: 'Completed 30 days of consistent training without missing a day.',
     icon: '🛡️',
     category: 'streak',
     streakRequired: 30,
+  },
+  {
+    id: 'streak_60',
+    name: 'Unstoppable Force',
+    description: 'Completed 60 days of consistent training without missing a day.',
+    icon: '🚀',
+    category: 'streak',
+    streakRequired: 60,
+  },
+  {
+    id: 'streak_100',
+    name: 'Century Streak Legend',
+    description: 'Maintained a monumental 100-day workout streak.',
+    icon: '👑',
+    category: 'streak',
+    streakRequired: 100,
   },
   {
     id: 'perfect_form',
@@ -137,8 +161,21 @@ export class GamificationService {
   }
 
   /**
-   * Calculate streak progression based on workout date.
-   * Today format: YYYY-MM-DD
+   * Helper to calculate the previous calendar date (YYYY-MM-DD) from a given date string.
+   */
+  static getPreviousCalendarDate(dateStr: string): string {
+    const parts = dateStr.split('-').map(Number);
+    const year = parts[0];
+    const month = parts[1];
+    const day = parts[2];
+    const d = new Date(Date.UTC(year, month - 1, day));
+    d.setUTCDate(d.getUTCDate() - 1);
+    return d.toISOString().split('T')[0];
+  }
+
+  /**
+   * Calculate streak progression based on workout/activity date.
+   * Format: YYYY-MM-DD
    */
   static evaluateStreak(params: {
     lastWorkoutDate: string | null;
@@ -147,29 +184,30 @@ export class GamificationService {
     sessionDate?: string;
   }): { currentStreak: number; longestStreak: number; streakIncremented: boolean } {
     const today = params.sessionDate || new Date().toISOString().split('T')[0];
-    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+    const yesterday = this.getPreviousCalendarDate(today);
 
-    let streak = params.currentStreak;
+    let streak = Number(params.currentStreak) || 0;
     let streakIncremented = false;
 
     if (!params.lastWorkoutDate) {
-      // First ever workout
+      // First ever qualifying activity
       streak = 1;
       streakIncremented = true;
     } else if (params.lastWorkoutDate === today) {
-      // Already logged a workout today, keep streak as is
+      // Already logged a qualifying activity today: maintain streak without incrementing
       streakIncremented = false;
     } else if (params.lastWorkoutDate === yesterday) {
-      // Consecutive day!
+      // Consecutive calendar day: increment streak by 1
       streak += 1;
       streakIncremented = true;
     } else {
-      // Missed more than 1 day, reset to 1
+      // Missed more than 1 day: reset streak to 1 on next activity
       streak = 1;
       streakIncremented = true;
     }
 
-    const longestStreak = Math.max(params.longestStreak, streak);
+    // Longest/best streak must NEVER decrease
+    const longestStreak = Math.max(Number(params.longestStreak) || 0, streak);
 
     return {
       currentStreak: streak,

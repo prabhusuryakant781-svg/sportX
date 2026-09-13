@@ -114,8 +114,8 @@ export const api = {
   getHistory: (period = '7d') => request('GET', `/activity/history?period=${period}`),
   logManualActivity: (body: { sportId: string; durationMinutes: number; notes?: string }) =>
     request('POST', '/activity/manual', body),
-  getProgress: () => request('GET', '/progress'),
-  getProgressSummary: () => request('GET', '/progress/summary'),
+  getProgress: (period?: string) => request('GET', `/progress${period ? '?period=' + period : ''}`),
+  getProgressSummary: (period?: string) => request('GET', `/progress/summary${period ? '?period=' + period : ''}`),
 
   // ── Gamification ───────────────────────────────────────────────────────────
   getBadges: () => request('GET', '/gamification/badges'),

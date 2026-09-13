@@ -10,7 +10,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { competitiveApi } from '../services/competitiveApi';
 import {
@@ -19,6 +19,10 @@ import {
   CompetitiveRankDoc,
   CompetitiveRankTier,
   QueueTicketDoc,
+  RANK_TIER_THRESHOLDS,
+  getRankTierFromRP,
+  getNextRankTier,
+  getRPNeededForNextTier,
 } from '../types/competitive';
 import { CompetitiveMatchLoading } from '../components/CompetitiveMatchLoading';
 
@@ -58,9 +62,16 @@ const ACCOUNT_NEED_DIAGNOSTICS: Record<string, { title: string; focus: string; r
 };
 
 export default function CompetitivePage() {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const currentUserId = user?.id || (user as any)?.uid || 'athlete_user';
+
+  const navState = location.state as {
+    stage?: FlowStage;
+    match?: CompetitiveMatchDoc;
+    results?: any;
+  } | null;
 
   // User's enrolled sports from their account profile
   const rawAccountSports = user?.selectedSports && user.selectedSports.length > 0
@@ -78,7 +89,7 @@ export default function CompetitivePage() {
   const primarySport = accountSports[0] || 'cricket';
 
   // State machine
-  const [stage, setStage] = useState<FlowStage>('HOME');
+  const [stage, setStage] = useState<FlowStage>(navState?.stage || 'HOME');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -87,7 +98,19 @@ export default function CompetitivePage() {
   const [userRank, setUserRank] = useState<CompetitiveRankDoc | null>(null);
   const [selectedSport, setSelectedSport] = useState<string>(primarySport);
   const [activeTicket, setActiveTicket] = useState<QueueTicketDoc | null>(null);
-  const [activeMatch, setActiveMatch] = useState<CompetitiveMatchDoc | null>(null);
+  const [activeMatch, setActiveMatch] = useState<CompetitiveMatchDoc | null>(navState?.match || null);
+
+  // Sync state if returned from camera completion
+  useEffect(() => {
+    if (location.state?.stage === 'RESULT' && location.state?.match) {
+      setStage('RESULT');
+      setActiveMatch(location.state.match);
+      refreshUser().catch(() => null);
+      competitiveApi.getUserRank().then((res) => {
+        if (res?.rank) setUserRank(res.rank);
+      }).catch(() => null);
+    }
+  }, [location.state, refreshUser]);
 
   useEffect(() => {
     if (primarySport && (!selectedSport || selectedSport === 'all')) {
@@ -267,12 +290,37 @@ export default function CompetitivePage() {
         setCountdownValue(currentCount);
       } else {
         clearInterval(interval);
-        // Start challenge
-        setStage('CHALLENGE');
-        setTimeLeft(match.challenge.durationSeconds || 90);
-        setMyReps(0);
-        setMyQuality(92);
-        startChallengeTimer(match);
+        clearAllTimers();
+
+        // Resolve challenge exercise and target reps for camera handoff
+        const challenge = match.challenge;
+        const sportId = (challenge.sportId || '').toLowerCase();
+        let exId = challenge.exerciseId;
+        if (!exId) {
+          if (sportId.includes('crick')) exId = 'squat';
+          else if (sportId.includes('foot')) exId = 'jumping_jacks';
+          else if (sportId.includes('athle')) exId = 'pushup';
+          else exId = 'squat';
+        }
+        const targetReps = challenge.targetReps || (exId === 'jumping_jacks' ? 30 : 20);
+
+        navigate(`/camera/competitive/${exId}`, {
+          state: {
+            matchId: match.matchId,
+            challengeId: match.challengeId,
+            challenge,
+            targetReps,
+            durationSeconds: challenge.durationSeconds || 90,
+            sportId: challenge.sportId,
+            competitiveContext: {
+              matchId: match.matchId,
+              challengeTitle: challenge.title,
+              targetReps,
+              durationSeconds: challenge.durationSeconds || 90,
+              sportId: challenge.sportId,
+            },
+          },
+        });
       }
     }, 1000);
   };
@@ -314,7 +362,8 @@ export default function CompetitivePage() {
       setActiveMatch(res.match);
       setStage('RESULT');
 
-      // Refresh rank
+      // Refresh athlete profile (streak, XP) & rank
+      await refreshUser().catch(() => null);
       const rankRes = await competitiveApi.getUserRank().catch(() => null);
       if (rankRes?.rank) setUserRank(rankRes.rank);
     } catch (err: any) {
@@ -427,6 +476,39 @@ export default function CompetitivePage() {
                 </p>
               </div>
             </div>
+
+            {/* Division Progression & RP Needed */}
+            {(() => {
+              const currentRP = userRank?.rankPoints ?? 100;
+              const nextTier = getNextRankTier(currentRankTier);
+              const rpNeeded = getRPNeededForNextTier(currentRP);
+              const tierMin = RANK_TIER_THRESHOLDS[currentRankTier]?.minRP || 0;
+              const tierMax = RANK_TIER_THRESHOLDS[currentRankTier]?.maxRP || 399;
+              const percent = Math.min(100, Math.max(0, Math.round(((currentRP - tierMin) / (tierMax - tierMin + 1)) * 100)));
+
+              return nextTier ? (
+                <div className="mt-3 pt-3 border-t border-white/10">
+                  <div className="flex justify-between items-center text-[11px] mb-1.5">
+                    <span className="text-slate-400">
+                      Next Division: <strong className="text-white font-bold">{nextTier}</strong>
+                    </span>
+                    <span className="text-amber-400 font-bold tabular-nums">
+                      {rpNeeded} RP needed
+                    </span>
+                  </div>
+                  <div className="w-full bg-slate-900/80 rounded-full h-2 overflow-hidden border border-white/5">
+                    <div
+                      className="bg-gradient-to-r from-amber-500 to-yellow-400 h-full rounded-full transition-all duration-500 shadow-sm"
+                      style={{ width: `${percent}%` }}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-3 pt-2 border-t border-white/10 text-center text-[10px] text-purple-300 font-bold uppercase tracking-wider">
+                  👑 Maximum Division Reached (Diamond)
+                </div>
+              );
+            })()}
           </div>
 
           {/* Matchmaking Info Card */}
@@ -467,11 +549,7 @@ export default function CompetitivePage() {
           countdownDuration={4}
           onMatchReady={(readyMatch) => {
             setActiveMatch(readyMatch);
-            setStage('CHALLENGE');
-            setTimeLeft(readyMatch.challenge.durationSeconds || 90);
-            setMyReps(0);
-            setMyQuality(92);
-            startChallengeTimer(readyMatch);
+            startCountdown(readyMatch);
           }}
           onCancel={handleCancelSearch}
         />
@@ -683,6 +761,45 @@ export default function CompetitivePage() {
             ⚡ RECORD VERIFIED REP / CATCH
           </button>
 
+          {/* Real MediaPipe Pose Camera Action */}
+          <button
+            onClick={() => {
+              if (activeMatch) {
+                const challenge = activeMatch.challenge;
+                const sportId = (challenge.sportId || '').toLowerCase();
+                let exId = challenge.exerciseId;
+                if (!exId) {
+                  if (sportId.includes('crick')) exId = 'squat';
+                  else if (sportId.includes('foot')) exId = 'jumping_jacks';
+                  else if (sportId.includes('athle')) exId = 'pushup';
+                  else exId = 'squat';
+                }
+                const targetReps = challenge.targetReps || (exId === 'jumping_jacks' ? 30 : 20);
+                navigate(`/camera/competitive/${exId}`, {
+                  state: {
+                    matchId: activeMatch.matchId,
+                    challengeId: activeMatch.challengeId,
+                    challenge,
+                    targetReps,
+                    durationSeconds: challenge.durationSeconds || 90,
+                    sportId: challenge.sportId,
+                    competitiveContext: {
+                      matchId: activeMatch.matchId,
+                      challengeTitle: challenge.title,
+                      targetReps,
+                      durationSeconds: challenge.durationSeconds || 90,
+                      sportId: challenge.sportId,
+                    },
+                  },
+                });
+              }
+            }}
+            className="w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-sm uppercase tracking-wider shadow-lg shadow-emerald-600/30 active:scale-95 transition flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <span>📹</span>
+            <span>Launch MediaPipe Pose Camera Arena</span>
+          </button>
+
           {/* Finish Button */}
           <button
             onClick={() => handleFinishMatch()}
@@ -726,25 +843,73 @@ export default function CompetitivePage() {
           {(() => {
             const myResult = activeMatch.results.leaderboard.find((l) => l.userId === currentUserId) ||
               activeMatch.results.leaderboard[0];
-            return (
-              <div className="p-4 rounded-2xl bg-slate-900 border border-white/10">
-                <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Rewards Earned</span>
-                <div className="mt-3 grid grid-cols-2 gap-3">
-                  <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-center">
-                    <span className="text-[10px] uppercase font-bold text-emerald-400">Experience</span>
-                    <p className="text-xl font-black text-white">+{myResult?.xpEarned || 0} XP</p>
-                  </div>
-                  <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-center">
-                    <span className="text-[10px] uppercase font-bold text-amber-400">Rank Points</span>
-                    <p className="text-xl font-black text-white">+{myResult?.rankPointsChange || 0} RP</p>
-                  </div>
-                </div>
+            const rpChange = myResult?.rankPointsChange ?? 0;
+            const isRankUp = myResult?.isRankUp;
+            const isRankDown = myResult?.isRankDown;
+            const rankTransition = myResult?.rankTransition;
+            const prevRP = myResult?.previousRankPoints ?? (myResult?.newRankPoints != null ? Math.max(0, myResult.newRankPoints - rpChange) : (userRank?.rankPoints ?? 100));
+            const newRP = myResult?.newRankPoints ?? (userRank?.rankPoints ?? 100);
+            const prevTier = myResult?.previousRankTier ?? getRankTierFromRP(prevRP);
+            const newTier = myResult?.newRankTier ?? getRankTierFromRP(newRP);
 
-                <div className="mt-3 pt-3 border-t border-white/5 flex items-center justify-between text-xs">
-                  <span className="text-slate-400">New Rating:</span>
-                  <span className="font-bold text-cyan-400">
-                    {myResult?.newRankPoints || userRank?.rankPoints} RP ({myResult?.newRankTier || userRank?.rankTier})
-                  </span>
+            return (
+              <div className="space-y-3">
+                {/* Rank Promotion Banner */}
+                {isRankUp && (
+                  <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-500/20 via-yellow-500/25 to-amber-500/20 border border-amber-500/50 text-center shadow-lg shadow-amber-500/10 animate-fade-in">
+                    <span className="text-3xl block mb-1">👑</span>
+                    <h3 className="text-sm font-black text-amber-300 uppercase tracking-wider">
+                      RANK PROMOTION ACHIEVED!
+                    </h3>
+                    <p className="text-xs font-extrabold text-white mt-0.5">
+                      {rankTransition || `${prevTier} → ${newTier}`}
+                    </p>
+                  </div>
+                )}
+
+                {/* Rank Demotion Banner */}
+                {isRankDown && (
+                  <div className="p-4 rounded-2xl bg-gradient-to-r from-rose-500/20 via-red-500/25 to-rose-500/20 border border-rose-500/50 text-center shadow-lg shadow-rose-500/10 animate-fade-in">
+                    <span className="text-3xl block mb-1">⚠️</span>
+                    <h3 className="text-sm font-black text-rose-300 uppercase tracking-wider">
+                      DIVISION DEMOTION
+                    </h3>
+                    <p className="text-xs font-extrabold text-white mt-0.5">
+                      {rankTransition || `${prevTier} → ${newTier}`}
+                    </p>
+                  </div>
+                )}
+
+                <div className="p-4 rounded-2xl bg-slate-900 border border-white/10">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Rewards Earned</span>
+                  <div className="mt-3 grid grid-cols-2 gap-3">
+                    <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-center">
+                      <span className="text-[10px] uppercase font-bold text-emerald-400">Experience</span>
+                      <p className="text-xl font-black text-white">+{myResult?.xpEarned || 0} XP</p>
+                    </div>
+                    <div className={`p-3 rounded-xl border text-center ${
+                      rpChange >= 0
+                        ? 'bg-amber-500/10 border-amber-500/20'
+                        : 'bg-rose-500/10 border-rose-500/20'
+                    }`}>
+                      <span className={`text-[10px] uppercase font-bold ${rpChange >= 0 ? 'text-amber-400' : 'text-rose-400'}`}>
+                        Rank Points
+                      </span>
+                      <p className={`text-xl font-black ${rpChange >= 0 ? 'text-amber-300' : 'text-rose-300'}`}>
+                        {rpChange >= 0 ? `+${rpChange}` : `${rpChange}`} RP
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 pt-3 border-t border-white/5 flex items-center justify-between text-xs">
+                    <span className="text-slate-400">Rating Adjustment:</span>
+                    <span className="font-bold text-white flex items-center gap-1.5">
+                      <span className="text-slate-400">{prevRP} RP ({prevTier})</span>
+                      <span className="text-slate-500">→</span>
+                      <span className="text-cyan-400 font-black">{newRP} RP</span>
+                      <span className="text-slate-300 font-extrabold">({newTier})</span>
+                    </span>
+                  </div>
                 </div>
               </div>
             );

@@ -8,7 +8,7 @@ import { UserDoc } from '../types';
 import { XPRepository } from './xpRepository';
 import { StreakRepository } from './streakRepository';
 import { BadgeRepository } from './badgeRepository';
-import { SYSTEM_BADGES } from '../services/gamificationService';
+import { GamificationService, SYSTEM_BADGES } from '../services/gamificationService';
 import { FieldValue } from 'firebase-admin/firestore';
 import * as logger from 'firebase-functions/logger';
 
@@ -40,9 +40,12 @@ export class UserRepository {
         const docSnap = await withTimeout(db.collection(COLLECTION).doc(userId).get(), 2000);
         if (docSnap.exists) {
           const data = docSnap.data() as UserDoc;
-          const user = {
+          const canonicalXp = (data as any).totalXp ?? data.xp ?? (data as any).XP ?? 0;
+          const user: UserDoc = {
             ...data,
-            XP: data.xp,
+            totalXp: canonicalXp,
+            xp: canonicalXp,
+            XP: canonicalXp,
           };
           localUsersCache.set(userId, user);
           return user;
@@ -91,8 +94,9 @@ export class UserRepository {
           currentStreak: demo.currentStreak || 0,
           longestStreak: demo.longestStreak || 0,
           lastWorkoutDate: demo.lastWorkoutDate || null,
-          xp: demo.totalXp || 0,
-          XP: demo.totalXp || 0,
+          totalXp: demo.totalXp ?? demo.xp ?? 0,
+          xp: demo.totalXp ?? demo.xp ?? 0,
+          XP: demo.totalXp ?? demo.xp ?? 0,
           level: 1,
           badges: [],
           createdAt: demo.createdAt || new Date().toISOString(),
@@ -142,8 +146,9 @@ export class UserRepository {
       currentStreak: 0,
       longestStreak: 0,
       lastWorkoutDate: null,
-      xp: 0,
-      XP: 0,
+      totalXp: (data as any).totalXp ?? data.xp ?? 0,
+      xp: (data as any).totalXp ?? data.xp ?? 0,
+      XP: (data as any).totalXp ?? data.xp ?? 0,
       level: 1,
       badges: [],
       collegeName: data.collegeName || 'Campus University',
@@ -218,13 +223,15 @@ export class UserRepository {
     }
   ): Promise<void> {
     const cached = localUsersCache.get(userId);
-    let finalXP = (cached?.xp || 0) + updates.xpToAdd;
+    const currentCachedXp = (cached as any)?.totalXp ?? cached?.xp ?? (cached as any)?.XP ?? 0;
+    let finalXP = currentCachedXp + updates.xpToAdd;
     if (cached) {
       const combinedBadges = Array.from(
         new Set([...(cached.badges || []), ...(updates.newBadges || [])])
       );
       localUsersCache.set(userId, {
         ...cached,
+        totalXp: finalXP,
         xp: finalXP,
         XP: finalXP,
         level: updates.newLevel,
@@ -233,7 +240,9 @@ export class UserRepository {
         totalCalories: (cached.totalCalories || 0) + updates.caloriesBurned,
         currentStreak: updates.currentStreak,
         longestStreak: updates.longestStreak,
+        bestStreak: updates.longestStreak,
         lastWorkoutDate: updates.lastWorkoutDate,
+        lastActivityDate: updates.lastWorkoutDate,
         badges: combinedBadges,
         updatedAt: new Date().toISOString(),
       });
@@ -254,9 +263,11 @@ export class UserRepository {
               new Set([...(existingData.badges || []), ...(updates.newBadges || [])])
             );
 
-            finalXP = (existingData.xp || 0) + updates.xpToAdd;
+            const existingXp = (existingData as any)?.totalXp ?? existingData.xp ?? (existingData as any)?.XP ?? 0;
+            finalXP = existingXp + updates.xpToAdd;
 
             transaction.update(userRef, {
+              totalXp: FieldValue.increment(updates.xpToAdd),
               xp: FieldValue.increment(updates.xpToAdd),
               XP: FieldValue.increment(updates.xpToAdd),
               level: updates.newLevel,
@@ -265,7 +276,9 @@ export class UserRepository {
               totalCalories: FieldValue.increment(updates.caloriesBurned),
               currentStreak: updates.currentStreak,
               longestStreak: updates.longestStreak,
+              bestStreak: updates.longestStreak,
               lastWorkoutDate: updates.lastWorkoutDate,
+              lastActivityDate: updates.lastWorkoutDate,
               badges: combinedBadges,
               updatedAt: new Date().toISOString(),
             });
@@ -281,7 +294,7 @@ export class UserRepository {
     }
 
     // 1. Audit XP Transaction (Replay / Duplicate protection)
-    if (updates.sessionId && updates.xpToAdd > 0) {
+    if (hasFirebaseCredentials && updates.sessionId && updates.xpToAdd > 0) {
       const txId = `tx_${updates.sessionId}_workout`;
       await XPRepository.recordTransaction({
         txId,
@@ -300,7 +313,9 @@ export class UserRepository {
       updates.currentStreak,
       updates.longestStreak,
       updates.lastWorkoutDate,
-      updates.xpToAdd
+      updates.xpToAdd,
+      'workout',
+      updates.sessionId
     ).catch((err) => logger.warn('[UserRepository] Error updating streak doc:', err));
 
     // 3. Unlock badges in userBadges/{userId}_{badgeId}
@@ -314,6 +329,125 @@ export class UserRepository {
         }
       }
     }
+  }
+
+  /**
+   * Authoritatively record a qualifying activity (e.g. competitive lobby challenge, workout drill)
+   * Updates streak (consecutive, same-day idempotent, or reset), bestStreak, lastActivityDate,
+   * unlocks milestone badges, and logs into streaks/{userId}.
+   */
+  static async recordQualifyingActivity(
+    userId: string,
+    activity: {
+      activityType: 'workout' | 'lobby' | 'challenge';
+      activityId: string;
+      xpEarned?: number;
+      activityDate?: string;
+    }
+  ): Promise<{
+    currentStreak: number;
+    longestStreak: number;
+    bestStreak: number;
+    streakIncremented: boolean;
+    newBadges: string[];
+  }> {
+    let user = await this.getById(userId);
+    if (!user) {
+      user = await this.create(userId, { userId });
+    }
+
+    const todayDate = activity.activityDate || new Date().toISOString().split('T')[0];
+    const streakResult = GamificationService.evaluateStreak({
+      lastWorkoutDate: user.lastActivityDate || user.lastWorkoutDate,
+      currentStreak: user.currentStreak || 0,
+      longestStreak: user.longestStreak || user.bestStreak || 0,
+      sessionDate: todayDate,
+    });
+
+    const badgeResult = GamificationService.evaluateUnlockedBadges({
+      currentBadges: user.badges || [],
+      totalWorkouts: user.totalWorkouts || 0,
+      totalReps: (user.totalWorkouts || 0) * 15,
+      totalXP: (user.xp || 0) + (activity.xpEarned || 0),
+      currentStreak: streakResult.currentStreak,
+    });
+
+    const newBadgeIds = badgeResult.newBadges.map((b: any) => b.id);
+    const combinedBadges = Array.from(new Set([...(user.badges || []), ...newBadgeIds]));
+    const now = new Date().toISOString();
+
+    // 1. Update local cache
+    const cached = localUsersCache.get(userId);
+    if (cached) {
+      const currentXp = (cached as any).totalXp ?? cached.xp ?? (cached as any).XP ?? 0;
+      const finalXp = currentXp + (activity.xpEarned || 0);
+      localUsersCache.set(userId, {
+        ...cached,
+        totalXp: finalXp,
+        xp: finalXp,
+        XP: finalXp,
+        currentStreak: streakResult.currentStreak,
+        longestStreak: streakResult.longestStreak,
+        bestStreak: streakResult.longestStreak,
+        lastActivityDate: todayDate,
+        lastWorkoutDate: activity.activityType === 'workout' ? todayDate : (cached.lastWorkoutDate || todayDate),
+        badges: combinedBadges,
+        updatedAt: now,
+      });
+    }
+
+    // 2. Update Firestore if configured
+    if (hasFirebaseCredentials) {
+      try {
+        const userRef = db.collection(COLLECTION).doc(userId);
+        const updateData: Record<string, any> = {
+          currentStreak: streakResult.currentStreak,
+          longestStreak: streakResult.longestStreak,
+          bestStreak: streakResult.longestStreak,
+          lastActivityDate: todayDate,
+          badges: combinedBadges,
+          updatedAt: now,
+        };
+        if (activity.activityType === 'workout') {
+          updateData.lastWorkoutDate = todayDate;
+        }
+        if (activity.xpEarned && activity.xpEarned > 0) {
+          updateData.totalXp = FieldValue.increment(activity.xpEarned);
+          updateData.xp = FieldValue.increment(activity.xpEarned);
+          updateData.XP = FieldValue.increment(activity.xpEarned);
+        }
+        await withTimeout(userRef.set(updateData, { merge: true }), 3000);
+      } catch (err) {
+        logger.warn(`[UserRepository] Firestore update failed for recordQualifyingActivity ${userId}:`, err);
+        assertProductionSafe(`UserRepository.recordQualifyingActivity(${userId})`);
+      }
+    }
+
+    // 3. Record in streaks/{userId}
+    await StreakRepository.recordDay(
+      userId,
+      streakResult.currentStreak,
+      streakResult.longestStreak,
+      todayDate,
+      activity.xpEarned || 0,
+      activity.activityType,
+      activity.activityId
+    ).catch((err) => logger.warn('[UserRepository] Error updating streak doc for activity:', err));
+
+    // 4. Unlock milestone badges in userBadges/{userId}_{badgeId}
+    for (const badge of badgeResult.newBadges) {
+      await BadgeRepository.unlockBadge(userId, badge).catch((err) =>
+        logger.warn(`[UserRepository] Error unlocking badge ${badge.id}:`, err)
+      );
+    }
+
+    return {
+      currentStreak: streakResult.currentStreak,
+      longestStreak: streakResult.longestStreak,
+      bestStreak: streakResult.longestStreak,
+      streakIncremented: streakResult.streakIncremented,
+      newBadges: newBadgeIds,
+    };
   }
 
   /**
@@ -344,6 +478,32 @@ export class UserRepository {
   static async getActiveUsers(): Promise<UserDoc[]> {
     const snapshot = await db.collection(COLLECTION).limit(500).get();
     return snapshot.docs.map((doc) => doc.data() as UserDoc);
+  }
+
+  /**
+   * Update authoritative rank points and tier on user profile
+   */
+  static async updateRank(userId: string, rankPoints: number, rankTier: string): Promise<void> {
+    const cached = localUsersCache.get(userId);
+    if (cached) {
+      cached.rankPoints = rankPoints;
+      cached.rankTier = rankTier;
+      localUsersCache.set(userId, cached);
+    }
+    if (hasFirebaseCredentials) {
+      try {
+        await db.collection(COLLECTION).doc(userId).set(
+          {
+            rankPoints,
+            rankTier,
+            updatedAt: new Date().toISOString(),
+          },
+          { merge: true }
+        );
+      } catch (err) {
+        logger.warn(`[UserRepository] updateRank failed for ${userId}:`, err);
+      }
+    }
   }
 
   /**

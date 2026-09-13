@@ -28,6 +28,14 @@ interface CameraWorkoutProps {
   onUpdate?: (state: RepCounterState) => void;
   onStartWorkout?: () => void;
   targetReps?: number;
+  competitiveMode?: boolean;
+  competitiveContext?: {
+    matchId: string;
+    challengeTitle?: string;
+    targetReps: number;
+    durationSeconds?: number;
+    sportId?: string;
+  };
 }
 
 // MediaPipe 33-point pose landmark connections for full-body skeleton rendering
@@ -46,6 +54,8 @@ export default function CameraWorkout({
   onUpdate,
   onStartWorkout,
   targetReps = 20,
+  competitiveMode = false,
+  competitiveContext,
 }: CameraWorkoutProps) {
   const [isActive, setIsActive] = useState(false);
   const [repState, setRepState] = useState<RepCounterState>({
@@ -523,12 +533,18 @@ export default function CameraWorkout({
         {isActive && (
           <>
             {/* Center Massive Rep Counter */}
-            <div className="absolute top-10 left-1/2 -translate-x-1/2 text-center pointer-events-none z-20 flex flex-col items-center">
+            <div className="absolute top-8 left-1/2 -translate-x-1/2 text-center pointer-events-none z-20 flex flex-col items-center">
+              {competitiveMode && (
+                <div className="mb-1 text-[10px] font-black text-amber-300 px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/40 uppercase tracking-widest flex items-center gap-1 shadow-md">
+                  <span>⚔️</span>
+                  <span>{competitiveContext?.challengeTitle || 'Arena Match'}</span>
+                </div>
+              )}
               <div className="text-7xl font-black text-white drop-shadow-lg tracking-tight tabular-nums font-outfit">
                 {repState.reps}
               </div>
               <div className="text-xs font-bold text-slate-200 px-3 py-0.5 rounded-full bg-black/60 backdrop-blur-md border border-white/10 mt-0.5 tracking-wider uppercase tabular-nums">
-                Target: {targetReps} reps
+                {competitiveMode ? `Challenge Target: ${targetReps} reps` : `Target: ${targetReps} reps`}
               </div>
             </div>
 

@@ -21,7 +21,7 @@ import {
 export default function SessionResultPage() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { refreshUser } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [saving, setSaving] = useState(true);
   const [xpEarned, setXpEarned] = useState(0);
   const [aiAnalysis, setAiAnalysis] = useState<any>(null);
@@ -60,13 +60,24 @@ export default function SessionResultPage() {
     const saveResult = async () => {
       try {
         // Authoritative server XP from backend completion response
-        const serverXp = completionData?.xpEarned ?? completionData?.xpAdded ?? completionData?.xp;
-        if (typeof serverXp === 'number') {
+        const serverXp = completionData?.xpEarned ??
+          completionData?.xpAwarded ??
+          completionData?.data?.xpEarned ??
+          completionData?.data?.xpAwarded ??
+          completionData?.xpAdded ??
+          completionData?.xp;
+        if (typeof serverXp === 'number' && !isNaN(serverXp)) {
           setXpEarned(serverXp);
+        } else if (sessionId) {
+          try {
+            const sessRes: any = await api.getSession(sessionId);
+            const fetchedXp = sessRes?.data?.xpEarned;
+            setXpEarned(typeof fetchedXp === 'number' ? fetchedXp : 0);
+          } catch {
+            setXpEarned(0);
+          }
         } else {
-          // Fallback only if completionData was not passed
-          const calcXp = Math.floor(result.reps * (result.formScore / 100) * 10);
-          setXpEarned(calcXp);
+          setXpEarned(0);
         }
 
         await refreshUser();
@@ -178,10 +189,13 @@ export default function SessionResultPage() {
             <div className="flex flex-col items-center text-center p-3 rounded-xl bg-surface/50 border border-white/5">
               <span className="text-[11px] text-slate-400 font-semibold uppercase tracking-wider mb-1 flex items-center gap-1">
                 <Flame size={12} className="text-amber-400" />
-                <span>Best Streak</span>
+                <span>Daily Streak</span>
               </span>
               <span className="text-2xl font-black text-amber-400 tabular-nums font-outfit">
-                🔥 {result.streak}
+                🔥 {completionData?.currentStreak ?? completionData?.data?.currentStreak ?? user?.currentStreak ?? 1}d
+              </span>
+              <span className="text-[10px] text-slate-400 mt-0.5 font-medium">
+                Best: {completionData?.longestStreak ?? completionData?.bestStreak ?? completionData?.data?.longestStreak ?? user?.longestStreak ?? user?.bestStreak ?? 1}d
               </span>
             </div>
 

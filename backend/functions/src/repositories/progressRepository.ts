@@ -112,7 +112,7 @@ export class ProgressRepository {
     const totalMinutes = sessionsInPeriod.reduce((sum, s) => sum + (Number(s.durationMinutes) || 0), 0);
     const totalCalories = sessionsInPeriod.reduce((sum, s) => sum + (Number(s.caloriesBurned) || 0), 0);
     const totalXp = period === 'all'
-      ? Math.max(user?.xp || 0, sessionsInPeriod.reduce((sum, s) => sum + (Number(s.xpEarned) || 0), 0))
+      ? Math.max((user as any)?.totalXp || user?.xp || (user as any)?.XP || 0, sessionsInPeriod.reduce((sum, s) => sum + (Number(s.xpEarned) || 0), 0))
       : sessionsInPeriod.reduce((sum, s) => sum + (Number(s.xpEarned) || 0), 0);
 
     // Unique workout days in period (same-day workouts count as 1 unique active day)

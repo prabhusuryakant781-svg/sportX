@@ -145,9 +145,14 @@ export default function DashboardPage() {
                 <div className="xp-bar-fill" style={{ width: `${xpPct}%` }} />
               </div>
 
+              {/* Authoritative Competitive Rank & Level */}
               <div className="flex justify-between items-center mt-2 text-[11px] text-slate-400 font-medium">
-                <span>Rank Tier: Athlete</span>
-                <span className="text-cyan font-semibold">Level {athleteLevel}</span>
+                <span>Rank: <strong className="text-amber-400 font-bold">{user?.rankTier || (user?.rankPoints ? 'Bronze' : 'Bronze')}</strong> ({user?.rankPoints ?? 0} RP)</span>
+                <span className="text-cyan font-semibold">
+                  {(user?.rankPoints ?? 0) >= 1600 
+                    ? 'Diamond Division' 
+                    : `${Math.max(0, (user?.rankPoints ?? 0) < 400 ? 400 - (user?.rankPoints ?? 0) : (user?.rankPoints ?? 0) < 800 ? 800 - (user?.rankPoints ?? 0) : (user?.rankPoints ?? 0) < 1200 ? 1200 - (user?.rankPoints ?? 0) : 1600 - (user?.rankPoints ?? 0))} RP to Next Rank`}
+                </span>
               </div>
             </div>
           </div>

@@ -9,6 +9,7 @@ import {
   CompetitiveMatchDoc,
   CompetitiveRankDoc,
   CompetitiveRankTier,
+  CompetitiveVerificationPayload,
   MatchPlayerState,
   MatchPlacementResult,
   MatchResults,
@@ -17,6 +18,7 @@ import {
   getRankTierFromRP,
 } from '../types/competitive';
 import { CompetitiveRepository } from '../repositories/competitiveRepository';
+import { UserRepository } from '../repositories/userRepository';
 import * as logger from 'firebase-functions/logger';
 
 export const SEED_CHALLENGES: CompetitiveChallengeDoc[] = [
@@ -25,12 +27,14 @@ export const SEED_CHALLENGES: CompetitiveChallengeDoc[] = [
     sportId: 'cricket',
     activityType: 'sports_skill_drill',
     activityId: 'cricket_catches',
+    exerciseId: 'squat',
+    targetReps: 20,
     title: 'Rapid Catch Arena',
     description: 'Test your reaction speed, hand-eye coordination, and catching form under pressure.',
     minPlayers: 2,
     maxPlayers: 2,
     durationSeconds: 90,
-    goal: 'Maximum verified successful catches',
+    goal: 'Complete 20 verified squats/catches with proper depth',
     scoringFormula: 'catches × catch-quality/form score',
     minRank: 'Bronze',
     maxRank: 'Gold',
@@ -47,12 +51,13 @@ export const SEED_CHALLENGES: CompetitiveChallengeDoc[] = [
     sportId: 'football',
     activityType: 'sports_skill_drill',
     activityId: 'football_dribble_agility',
+    exerciseId: 'jumping_jacks',
     title: 'Dribble Dash',
     description: 'Execute high-speed ball-control maneuvers and agility cuts with precision.',
     minPlayers: 2,
     maxPlayers: 2,
     durationSeconds: 120,
-    goal: 'Complete verified dribble/agility repetitions with control',
+    goal: 'Complete maximum verified repetitions with agility and control',
     scoringFormula: 'successful repetitions × control/form score',
     minRank: 'Bronze',
     maxRank: 'Platinum',
@@ -69,13 +74,15 @@ export const SEED_CHALLENGES: CompetitiveChallengeDoc[] = [
     sportId: 'athletics',
     activityType: 'sports_conditioning',
     activityId: 'shuttle_run',
+    exerciseId: 'pushup',
+    targetReps: 20,
     title: 'Shuttle Sprint Clash',
     description: 'Intense deceleration, directional change, and sprint conditioning head-to-head.',
     minPlayers: 2,
     maxPlayers: 2,
     durationSeconds: 180,
-    goal: 'Maximum verified shuttle-run repetitions or distance',
-    scoringFormula: 'verified distance/repetitions × pace and technique multiplier',
+    goal: 'Complete 20 verified pushups with full extension',
+    scoringFormula: 'verified repetitions × pace and technique multiplier',
     minRank: 'Silver',
     maxRank: 'Diamond',
     rewards: {
@@ -87,6 +94,25 @@ export const SEED_CHALLENGES: CompetitiveChallengeDoc[] = [
     updatedAt: new Date('2026-01-01T00:00:00Z').toISOString(),
   },
 ];
+
+export function getChallengeExerciseId(challenge?: Partial<CompetitiveChallengeDoc> | null): string {
+  if (challenge?.exerciseId) return challenge.exerciseId;
+  if (!challenge) return 'squat';
+  const id = (challenge.challengeId || challenge.activityId || challenge.sportId || '').toLowerCase();
+  if (id.includes('cricket') || id.includes('catch') || id.includes('squat')) return 'squat';
+  if (id.includes('football') || id.includes('dribble') || id.includes('jumping_jacks') || id.includes('jack')) return 'jumping_jacks';
+  if (id.includes('athletic') || id.includes('sprint') || id.includes('pushup') || id.includes('push_up')) return 'pushup';
+  return 'squat';
+}
+
+export function getChallengeTargetReps(challenge?: Partial<CompetitiveChallengeDoc> | null): number {
+  if (challenge?.targetReps && challenge.targetReps > 0) return challenge.targetReps;
+  if (!challenge) return 0;
+  const id = (challenge.challengeId || challenge.activityId || '').toLowerCase();
+  if (id.includes('cricket') || id.includes('catch')) return 20;
+  if (id.includes('athletic') || id.includes('sprint') || id.includes('pushup')) return 20;
+  return 0; // timed challenge (highest verified reps within time limit)
+}
 
 export class CompetitiveMatchmakingService {
   /**
@@ -435,33 +461,211 @@ export class CompetitiveMatchmakingService {
   }
 
   /**
-   * Finalizes the match authoritatively:
-   * - Computes verified scores
-   * - Determines winner, loser, or draw
-   * - Calculates XP & RP awards based on placement
-   * - Updates user's rank doc
+   * Computes server-authoritative Ranking Point (RP) adjustment and rank transition.
    */
-  static async finalizeMatch(matchId: string, submittingUserId?: string): Promise<CompetitiveMatchDoc> {
-    const match = await CompetitiveRepository.getMatchById(matchId);
-    if (!match) throw new Error('Match not found');
+  static calculateRPAdjustment(params: {
+    outcome: 'WIN' | 'LOSS' | 'DRAW';
+    currentRP: number;
+    currentTier?: CompetitiveRankTier;
+    challengeRankPointsReward?: number;
+    placement?: number;
+    totalPlayers?: number;
+    formScore: number;
+  }): {
+    previousRP: number;
+    rankPointsChange: number;
+    newRP: number;
+    previousTier: CompetitiveRankTier;
+    newTier: CompetitiveRankTier;
+    isRankUp: boolean;
+    isRankDown: boolean;
+    rankTransition?: string;
+  } {
+    const { outcome, currentRP, challengeRankPointsReward = 40, formScore } = params;
+    const previousRP = Math.max(0, currentRP);
+    const previousTier = params.currentTier || getRankTierFromRP(previousRP);
 
-    // If already completed, return existing results
+    let rankPointsChange = 0;
+
+    if (outcome === 'WIN') {
+      const baseWin = (challengeRankPointsReward && challengeRankPointsReward > 0) ? challengeRankPointsReward : 40;
+      // High form accuracy bonus (+5 RP)
+      const formBonus = formScore >= 90 ? 5 : 0;
+      rankPointsChange = baseWin + formBonus;
+    } else if (outcome === 'LOSS') {
+      // Scaled loss penalty based on rank tier:
+      // Bronze: -10 RP (protection)
+      // Silver: -15 RP
+      // Gold: -20 RP
+      // Platinum: -25 RP
+      // Diamond: -30 RP
+      let basePenalty = -15;
+      if (previousTier === 'Bronze') basePenalty = -10;
+      else if (previousTier === 'Silver') basePenalty = -15;
+      else if (previousTier === 'Gold') basePenalty = -20;
+      else if (previousTier === 'Platinum') basePenalty = -25;
+      else if (previousTier === 'Diamond') basePenalty = -30;
+
+      // High form mitigation: if loser had formScore >= 85%, mitigate penalty by +5
+      const formMitigation = formScore >= 85 ? 5 : 0;
+      rankPointsChange = basePenalty + formMitigation;
+    } else {
+      // DRAW
+      rankPointsChange = 10;
+    }
+
+    const newRP = Math.max(0, previousRP + rankPointsChange);
+    const newTier = getRankTierFromRP(newRP);
+
+    const isRankUp = RANK_TIER_ORDER[newTier] > RANK_TIER_ORDER[previousTier];
+    const isRankDown = RANK_TIER_ORDER[newTier] < RANK_TIER_ORDER[previousTier];
+    const rankTransition = isRankUp || isRankDown ? `${previousTier} → ${newTier}` : undefined;
+
+    return {
+      previousRP,
+      rankPointsChange,
+      newRP,
+      previousTier,
+      newTier,
+      isRankUp,
+      isRankDown,
+      rankTransition,
+    };
+  }
+
+  /**
+   * Authoritative server verification and finalization of competitive match.
+   * Enforces:
+   * 1. Authenticated user presence and membership in match.players
+   * 2. Anti-cheat / Sanity validation on duration, cadence, valid reps, and form score
+   * 3. Challenge exercise matching
+   * 4. Challenge target satisfaction: validReps >= requiredReps
+   * 5. Idempotent finalization (returning existing match if already COMPLETED)
+   * 6. Step 4 RP computation and rank doc update
+   * 7. Step 3 streak tracking, XP awards, and badge evaluation
+   */
+  static async verifyAndFinalizeMatch(
+    matchId: string,
+    submittingUserId?: string,
+    payload?: CompetitiveVerificationPayload
+  ): Promise<CompetitiveMatchDoc> {
+    const match = await CompetitiveRepository.getMatchById(matchId);
+    if (!match) {
+      const err: any = new Error('Match not found');
+      err.status = 404;
+      throw err;
+    }
+
+    // 1. Validate participant membership
+    if (submittingUserId) {
+      const isParticipant = match.players.some((p) => p.userId === submittingUserId);
+      if (!isParticipant) {
+        const err: any = new Error('Unauthorized: User is not a participant in this match');
+        err.status = 403;
+        throw err;
+      }
+    }
+
+    // 2. Status validity
+    if (match.status === 'CANCELLED') {
+      const err: any = new Error('Cannot finalize cancelled match');
+      err.status = 400;
+      throw err;
+    }
+
+    // 3. Idempotency guard: If already completed, return existing results without re-awarding RP/XP/streaks
     if (match.status === 'COMPLETED' && match.results) {
       return match;
     }
 
+    // 3. Challenge resolution & Exercise verification
     const challenge = match.challenge;
+    const requiredExercise = challenge.exerciseId || getChallengeExerciseId(challenge);
+    const targetReps = challenge.targetReps || getChallengeTargetReps(challenge);
+
+    if (payload?.exerciseId && payload.exerciseId !== requiredExercise) {
+      const err: any = new Error(
+        `Exercise mismatch: challenge requires ${requiredExercise}, received ${payload.exerciseId}`
+      );
+      err.status = 400;
+      throw err;
+    }
+
+    // 4. Anti-Cheat / Sanity checks on payload (if provided)
+    if (payload) {
+      if (typeof payload.reps === 'number' && payload.reps < 0) {
+        const err: any = new Error('Invalid repetitions: cannot be negative');
+        err.status = 400;
+        throw err;
+      }
+      if (typeof payload.validReps === 'number') {
+        if (payload.validReps < 0) {
+          const err: any = new Error('Invalid valid repetitions: cannot be negative');
+          err.status = 400;
+          throw err;
+        }
+        if (typeof payload.reps === 'number' && payload.validReps > payload.reps) {
+          const err: any = new Error('Valid reps cannot exceed total reps');
+          err.status = 400;
+          throw err;
+        }
+      }
+      if (typeof payload.formScore === 'number' && (payload.formScore < 0 || payload.formScore > 100)) {
+        const err: any = new Error('Invalid form score: must be between 0 and 100');
+        err.status = 400;
+        throw err;
+      }
+      if (typeof payload.durationSeconds === 'number') {
+        if (payload.durationSeconds < 5 && (payload.reps || 0) > 0) {
+          const err: any = new Error('Invalid duration: minimum 5 seconds required for verified reps');
+          err.status = 400;
+          throw err;
+        }
+        if (payload.durationSeconds > 3600) {
+          const err: any = new Error('Invalid duration: exceeds maximum limit of 3600 seconds');
+          err.status = 400;
+          throw err;
+        }
+        if (payload.durationSeconds > 0 && payload.reps && (payload.reps / payload.durationSeconds > 2.5)) {
+          const err: any = new Error('Physically impossible repetition cadence detected');
+          err.status = 400;
+          throw err;
+        }
+      }
+    }
+
     const now = new Date().toISOString();
 
-    // Mark players completed
+    // 5. Update players with authoritative telemetry
     const completedPlayers = match.players.map((p) => {
       const isSubmitting = !submittingUserId || p.userId === submittingUserId;
+      let pReps = p.telemetry.reps;
+      let pForm = p.telemetry.formScore;
+
+      if (isSubmitting && payload) {
+        pReps = payload.validReps !== undefined ? payload.validReps : (payload.reps !== undefined ? payload.reps : pReps);
+        pForm = payload.formScore !== undefined ? payload.formScore : pForm;
+      }
+
+      const verifiedScore = this.calculateVerifiedScore(match.challengeId, pReps, pForm);
+
       return {
         ...p,
         completed: p.completed || isSubmitting || !!p.isSimulated,
         submittedAt: p.submittedAt || now,
+        telemetry: {
+          ...p.telemetry,
+          reps: pReps,
+          formScore: pForm,
+          verifiedScore,
+          lastUpdated: now,
+        },
       };
     });
+
+    // 6. Check target requirements
+    const submittingPlayer = completedPlayers.find((p) => p.userId === submittingUserId);
+    const userMeetsTarget = !submittingPlayer || targetReps <= 0 || (submittingPlayer.telemetry.reps >= targetReps);
 
     // Sort players descending by verified score
     const sorted = [...completedPlayers].sort(
@@ -470,82 +674,159 @@ export class CompetitiveMatchmakingService {
 
     const p1 = sorted[0];
     const p2 = sorted[1];
-    const isDraw = sorted.length > 1 && p1.telemetry.verifiedScore === p2.telemetry.verifiedScore;
+    const rawIsDraw = sorted.length > 1 && p1.telemetry.verifiedScore === p2.telemetry.verifiedScore;
 
     const leaderboard: MatchPlacementResult[] = [];
+    const userRankUpdates: Array<{ userId: string; sportId: string; rankDoc: CompetitiveRankDoc }> = [];
 
+    // If user failed the challenge target requirements, user cannot win!
+    // They are forced to LOSS / placement 2.
     for (let i = 0; i < sorted.length; i++) {
       const p = sorted[i];
+      const isThisSubmittingUser = submittingUserId && p.userId === submittingUserId;
       let placement: 1 | 2 = (i + 1) as 1 | 2;
+      let outcome: 'WIN' | 'LOSS' | 'DRAW';
       let rewardConfig = challenge.rewards.firstPlace;
 
-      if (isDraw) {
+      if (isThisSubmittingUser && !userMeetsTarget) {
+        // Failed challenge target: forced LOSS
+        placement = 2;
+        outcome = 'LOSS';
+        rewardConfig = challenge.rewards.secondPlace;
+      } else if (!isThisSubmittingUser && submittingUserId && !userMeetsTarget) {
+        // Opponent automatically wins because submitting user failed target
         placement = 1;
+        outcome = 'WIN';
+        rewardConfig = challenge.rewards.firstPlace;
+      } else if (rawIsDraw) {
+        placement = 1;
+        outcome = 'DRAW';
         rewardConfig = challenge.rewards.draw;
-      } else if (i === 1) {
+      } else if (i === 0) {
+        placement = 1;
+        outcome = 'WIN';
+        rewardConfig = challenge.rewards.firstPlace;
+      } else {
+        placement = 2;
+        outcome = 'LOSS';
         rewardConfig = challenge.rewards.secondPlace;
       }
 
-      const rankChange = rewardConfig.rankPoints;
-      const newRP = Math.max(0, p.rankPoints + rankChange);
-      const newTier = getRankTierFromRP(newRP);
+      // Fetch user's current authoritative rank points
+      let currentRP = p.rankPoints || 100;
+      let userRank: CompetitiveRankDoc | null = null;
+      if (!p.isSimulated) {
+        userRank = await CompetitiveRepository.getUserRank(p.userId, challenge.sportId);
+        // If sport rank has not yet been initialized with match history, check global rank
+        if (!userRank || (userRank.rankPoints === 100 && userRank.totalMatches === 0)) {
+          const globalRank = await CompetitiveRepository.getUserRank(p.userId, 'global');
+          if (globalRank && (globalRank.rankPoints !== 100 || globalRank.totalMatches > 0)) {
+            userRank = globalRank;
+          }
+        }
+        currentRP = userRank?.rankPoints ?? p.rankPoints ?? 100;
+      }
+
+      const rpCalc = this.calculateRPAdjustment({
+        outcome,
+        currentRP,
+        challengeRankPointsReward: rewardConfig.rankPoints,
+        formScore: p.telemetry.formScore,
+      });
 
       leaderboard.push({
         userId: p.userId,
         displayName: p.displayName,
         placement,
+        outcome,
         score: p.telemetry.verifiedScore,
         reps: p.telemetry.reps,
         formScore: p.telemetry.formScore,
         xpEarned: rewardConfig.xp,
-        rankPointsChange: rankChange,
-        newRankPoints: newRP,
-        newRankTier: newTier,
+        previousRankPoints: rpCalc.previousRP,
+        rankPointsChange: rpCalc.rankPointsChange,
+        newRankPoints: rpCalc.newRP,
+        previousRankTier: rpCalc.previousTier,
+        newRankTier: rpCalc.newTier,
+        isRankUp: rpCalc.isRankUp,
+        isRankDown: rpCalc.isRankDown,
+        rankTransition: rpCalc.rankTransition,
       });
 
-      // Update competitive rank record in Firestore/cache only for real users
-      if (!p.isSimulated) {
-        try {
-          const userRank = await CompetitiveRepository.getUserRank(p.userId, challenge.sportId);
-          const isWin = !isDraw && placement === 1;
-          const isLoss = !isDraw && placement === 2;
+      if (!p.isSimulated && userRank) {
+        const updatedRank: CompetitiveRankDoc = {
+          ...userRank,
+          rankPoints: rpCalc.newRP,
+          rankTier: rpCalc.newTier,
+          wins: userRank.wins + (outcome === 'WIN' ? 1 : 0),
+          losses: userRank.losses + (outcome === 'LOSS' ? 1 : 0),
+          draws: userRank.draws + (outcome === 'DRAW' ? 1 : 0),
+          totalMatches: userRank.totalMatches + 1,
+          highestRankPoints: Math.max(userRank.highestRankPoints || 100, rpCalc.newRP),
+          highestRankTier:
+            RANK_TIER_ORDER[rpCalc.newTier] > RANK_TIER_ORDER[userRank.highestRankTier || 'Bronze']
+              ? rpCalc.newTier
+              : (userRank.highestRankTier || 'Bronze'),
+          lastPlayedAt: now,
+          updatedAt: now,
+        };
+        userRankUpdates.push({
+          userId: p.userId,
+          sportId: challenge.sportId,
+          rankDoc: updatedRank,
+        });
 
-          const updatedRank: CompetitiveRankDoc = {
-            ...userRank,
-            rankTier: newTier,
-            rankPoints: newRP,
-            wins: userRank.wins + (isWin ? 1 : 0),
-            losses: userRank.losses + (isLoss ? 1 : 0),
-            draws: userRank.draws + (isDraw ? 1 : 0),
-            totalMatches: userRank.totalMatches + 1,
-            highestRankPoints: Math.max(userRank.highestRankPoints, newRP),
-            highestRankTier:
-              RANK_TIER_ORDER[newTier] > RANK_TIER_ORDER[userRank.highestRankTier]
-                ? newTier
-                : userRank.highestRankTier,
-            lastPlayedAt: now,
-            updatedAt: now,
-          };
-          await CompetitiveRepository.saveUserRank(updatedRank);
-        } catch (err) {
-          logger.warn(`Failed to update competitive rank for ${p.userId}:`, err);
+        // Also update the global rank document so competitiveRanks/{userId}_global stays in sync
+        if (challenge.sportId !== 'global') {
+          userRankUpdates.push({
+            userId: p.userId,
+            sportId: 'global',
+            rankDoc: {
+              ...updatedRank,
+              sportId: 'global',
+            },
+          });
         }
       }
     }
 
+    const winningEntry = leaderboard.find((l) => l.placement === 1 && l.outcome === 'WIN');
+    const isFinalDraw = leaderboard.every((l) => l.outcome === 'DRAW');
+
     const matchResults: MatchResults = {
-      winnerId: isDraw ? null : p1.userId,
-      isDraw,
+      winnerId: isFinalDraw ? null : (winningEntry ? winningEntry.userId : p1.userId),
+      isDraw: isFinalDraw,
       leaderboard,
       finalizedAt: now,
     };
 
-    const finalizedDoc = await CompetitiveRepository.updateMatch(matchId, {
-      status: 'COMPLETED',
-      players: completedPlayers,
-      results: matchResults,
+    const finalizedDoc = await CompetitiveRepository.executeAtomicMatchFinalization({
+      matchId,
+      completedPlayers,
+      matchResults,
+      userRankUpdates,
     });
 
+    // Record qualifying activity to update daily streak and award milestone badges (Step 3 & Pre-Step 5 XP)
+    for (const p of sorted) {
+      if (!p.isSimulated) {
+        const pResult = leaderboard.find((l) => l.userId === p.userId);
+        await UserRepository.recordQualifyingActivity(p.userId, {
+          activityType: 'lobby',
+          activityId: matchId,
+          xpEarned: pResult?.xpEarned || 0,
+          activityDate: now.split('T')[0],
+        }).catch((err) => logger.warn(`Failed to update daily streak for ${p.userId}:`, err));
+      }
+    }
+
     return finalizedDoc!;
+  }
+
+  /**
+   * Backwards-compatible wrapper calling verifyAndFinalizeMatch
+   */
+  static async finalizeMatch(matchId: string, submittingUserId?: string): Promise<CompetitiveMatchDoc> {
+    return this.verifyAndFinalizeMatch(matchId, submittingUserId, undefined);
   }
 }

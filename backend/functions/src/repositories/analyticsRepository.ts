@@ -6,7 +6,7 @@
  * - userAnalytics/{userId}/weekly/{weekId}
  * - userAnalytics/{userId}/monthly/{monthId}
  */
-import { db } from '../config/firebase';
+import { db, hasFirebaseCredentials } from '../config/firebase';
 import { UserStatsDoc, PeriodAnalyticsDoc } from '../types';
 import { FieldValue } from 'firebase-admin/firestore';
 import * as logger from 'firebase-functions/logger';
@@ -16,6 +16,7 @@ export class AnalyticsRepository {
    * Get overall user lifetime stats
    */
   static async getUserStats(userId: string): Promise<UserStatsDoc | null> {
+    if (!hasFirebaseCredentials) return null;
     const doc = await db.collection('userStats').doc(userId).get();
     if (!doc.exists) return null;
     return doc.data() as UserStatsDoc;
@@ -32,6 +33,7 @@ export class AnalyticsRepository {
     formAccuracy: number;
     muscleGroups?: string[];
   }): Promise<void> {
+    if (!hasFirebaseCredentials) return;
     const { userId, durationMinutes, calories, reps, formAccuracy, muscleGroups = [] } = params;
     const now = new Date();
     const dateStr = now.toISOString().split('T')[0]; // YYYY-MM-DD

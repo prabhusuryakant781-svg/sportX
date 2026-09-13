@@ -36,12 +36,13 @@ if (!admin.apps.length) {
 }
 
 export const hasFirebaseCredentials = Boolean(
-  credential ||
-  process.env.GOOGLE_APPLICATION_CREDENTIALS ||
-  process.env.K_SERVICE ||
-  process.env.FUNCTION_TARGET ||
-  process.env.FIREBASE_CONFIG ||
-  process.env.FIRESTORE_EMULATOR_HOST
+  process.env.LOCAL_TEST !== 'true' &&
+  (credential ||
+    process.env.GOOGLE_APPLICATION_CREDENTIALS ||
+    process.env.K_SERVICE ||
+    process.env.FUNCTION_TARGET ||
+    process.env.FIREBASE_CONFIG ||
+    process.env.FIRESTORE_EMULATOR_HOST)
 );
 
 // Support named database 'default' (without parentheses) configured on Google Cloud project sportx-ab55f

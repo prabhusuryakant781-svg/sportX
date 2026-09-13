@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import ProgressChart from '../components/ProgressChart';
-import { TrendingUp, Calendar, Dumbbell, Activity, Award, Clock } from 'lucide-react';
+import { TrendingUp, Calendar, Dumbbell, Activity, Award, Clock, Flame, Zap, Target } from 'lucide-react';
 
 function buildChartDataFromHistory(history: any[], period: string): Array<{ label: string; value: number }> {
   if (!Array.isArray(history) || history.length === 0) {
@@ -24,7 +24,7 @@ function buildChartDataFromHistory(history: any[], period: string): Array<{ labe
       const itemDate = (item.completedAt || item.loggedAt || item.createdAt || '').split('T')[0];
       const bucket = days.find(b => b.dateStr === itemDate);
       if (bucket) {
-        bucket.value += Number(item.xpAwarded || item.xp || 0);
+        bucket.value += Number(item.xpAwarded ?? item.xpEarned ?? item.xp ?? 0);
       }
     }
 
@@ -50,7 +50,7 @@ function buildChartDataFromHistory(history: any[], period: string): Array<{ labe
       const time = new Date(item.completedAt || item.loggedAt || item.createdAt || 0).getTime();
       const bucket = intervals.find(b => time >= b.start && time <= b.end);
       if (bucket) {
-        bucket.value += Number(item.xpAwarded || item.xp || 0);
+        bucket.value += Number(item.xpAwarded ?? item.xpEarned ?? item.xp ?? 0);
       }
     }
 
@@ -64,7 +64,7 @@ function buildChartDataFromHistory(history: any[], period: string): Array<{ labe
     if (!isNaN(date.getTime())) {
       const monthLabel = date.toLocaleDateString(undefined, { month: 'short' });
       const current = monthMap.get(monthLabel) || 0;
-      monthMap.set(monthLabel, current + Number(item.xpAwarded || item.xp || 0));
+      monthMap.set(monthLabel, current + Number(item.xpAwarded ?? item.xpEarned ?? item.xp ?? 0));
     }
   }
 
@@ -74,17 +74,33 @@ function buildChartDataFromHistory(history: any[], period: string): Array<{ labe
 export default function ProgressPage() {
   const [period, setPeriod] = useState<'7d' | '30d' | 'all'>('7d');
   const [history, setHistory] = useState<any[]>([]);
+  const [summary, setSummary] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setLoading(true);
-    api.getHistory(period)
-      .then((r: any) => setHistory(r?.data || []))
-      .catch(console.error)
+    Promise.all([
+      api.getHistory(period).then((r: any) => r?.data || []).catch(() => []),
+      api.getProgressSummary(period).then((r: any) => r?.data || null).catch(() => null),
+    ])
+      .then(([histData, sumData]) => {
+        setHistory(histData);
+        setSummary(sumData);
+      })
       .finally(() => setLoading(false));
   }, [period]);
 
   const chartData = buildChartDataFromHistory(history, period);
+
+  // Derived real summary counts
+  const totalWorkoutsCount = summary?.totalWorkouts ?? history.length;
+  const totalRepsCount = summary?.totalReps ?? history.reduce((sum, h) => sum + (Number(h.reps) || 0), 0);
+  const totalMinutesCount = summary?.totalMinutes ?? history.reduce((sum, h) => sum + (Number(h.durationMinutes) || 0), 0);
+  const avgFormScore = summary?.averageFormScore || (
+    history.length > 0
+      ? Math.round(history.reduce((sum, h) => sum + (Number(h.formScore) || 0), 0) / history.length)
+      : null
+  );
 
   return (
     <div className="space-y-4 pb-8 animate-fade-in">
@@ -119,6 +135,76 @@ export default function ProgressPage() {
           </button>
         ))}
       </div>
+
+      {/* Authoritative Server Metric KPI Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+        <div className="card p-3.5 flex flex-col justify-between">
+          <div className="flex items-center justify-between text-slate-400 mb-1">
+            <span className="text-[11px] font-bold uppercase tracking-wider">Workouts</span>
+            <Activity size={14} className="text-neon" />
+          </div>
+          <div className="text-2xl font-black text-white font-outfit tabular-nums">
+            {loading ? '—' : totalWorkoutsCount}
+          </div>
+          <span className="text-[10px] text-slate-400 mt-0.5 font-medium">
+            {period === '7d' ? 'Past 7 days' : period === '30d' ? 'Past 30 days' : 'All completed'}
+          </span>
+        </div>
+
+        <div className="card p-3.5 flex flex-col justify-between">
+          <div className="flex items-center justify-between text-slate-400 mb-1">
+            <span className="text-[11px] font-bold uppercase tracking-wider">Total Reps</span>
+            <Dumbbell size={14} className="text-cyan" />
+          </div>
+          <div className="text-2xl font-black text-white font-outfit tabular-nums">
+            {loading ? '—' : totalRepsCount.toLocaleString()}
+          </div>
+          <span className="text-[10px] text-slate-400 mt-0.5 font-medium">Verified movements</span>
+        </div>
+
+        <div className="card p-3.5 flex flex-col justify-between">
+          <div className="flex items-center justify-between text-slate-400 mb-1">
+            <span className="text-[11px] font-bold uppercase tracking-wider">Active Time</span>
+            <Clock size={14} className="text-amber-400" />
+          </div>
+          <div className="text-2xl font-black text-white font-outfit tabular-nums">
+            {loading ? '—' : `${totalMinutesCount}m`}
+          </div>
+          <span className="text-[10px] text-slate-400 mt-0.5 font-medium">Training duration</span>
+        </div>
+
+        <div className="card p-3.5 flex flex-col justify-between">
+          <div className="flex items-center justify-between text-slate-400 mb-1">
+            <span className="text-[11px] font-bold uppercase tracking-wider">Avg Form</span>
+            <Award size={14} className="text-emerald-400" />
+          </div>
+          <div className="text-2xl font-black text-white font-outfit tabular-nums">
+            {loading ? '—' : (avgFormScore ? `${avgFormScore}%` : '100%')}
+          </div>
+          <span className="text-[10px] text-slate-400 mt-0.5 font-medium">Vision precision</span>
+        </div>
+      </div>
+
+      {/* Weekly Goal Progress Bar (if summary provides it) */}
+      {summary?.weeklyProgress && (
+        <div className="card p-4 flex flex-col gap-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Target size={14} className="text-cyan" />
+              <span className="text-xs font-bold text-white uppercase tracking-wider">Weekly Target</span>
+            </div>
+            <span className="text-xs font-black text-neon font-outfit tabular-nums">
+              {summary.weeklyProgress.daysCompleted} / {summary.weeklyProgress.targetDays} Active Days ({summary.weeklyProgress.completionPercentage}%)
+            </span>
+          </div>
+          <div className="w-full bg-surface rounded-full h-2 overflow-hidden border border-white/5">
+            <div
+              className="bg-gradient-hero h-full rounded-full transition-all duration-500"
+              style={{ width: `${Math.min(100, summary.weeklyProgress.completionPercentage)}%` }}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Activity Volume Chart */}
       <section>
@@ -161,45 +247,52 @@ export default function ProgressPage() {
           </div>
         ) : (
           <div className="space-y-2">
-            {history.map((item, idx) => (
-              <div key={item.id || idx} className="card p-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-surface flex items-center justify-center text-lg text-neon flex-shrink-0">
-                    {item.sportId ? '🏅' : <Dumbbell size={18} />}
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-sm text-white capitalize">
-                      {item.sportName || item.exerciseId?.replace(/_/g, ' ') || 'Workout Session'}
-                    </h4>
-                    <div className="flex items-center gap-2 text-[11px] text-slate-400 mt-0.5">
-                      <span>
-                        {new Date(item.completedAt || item.loggedAt || Date.now()).toLocaleDateString(undefined, {
-                          month: 'short',
-                          day: 'numeric',
-                          year: 'numeric'
-                        })}
-                      </span>
-                      <span>•</span>
-                      <span className="flex items-center gap-1">
-                        <Clock size={11} />
-                        <span>{item.durationMinutes || Math.round((item.durationSeconds || 0) / 60)} min</span>
-                      </span>
+            {history.map((item, idx) => {
+              const itemXp = item.xpAwarded ?? item.xpEarned ?? item.xp ?? 0;
+              return (
+                <div key={item.id || idx} className="card p-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-surface flex items-center justify-center text-lg text-neon flex-shrink-0">
+                      {item.sportId ? '🏅' : <Dumbbell size={18} />}
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-sm text-white capitalize">
+                        {item.sportName || item.exerciseId?.replace(/_/g, ' ') || 'Workout Session'}
+                      </h4>
+                      <div className="flex items-center gap-2 text-[11px] text-slate-400 mt-0.5">
+                        <span>
+                          {new Date(item.completedAt || item.loggedAt || Date.now()).toLocaleDateString(undefined, {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric'
+                          })}
+                        </span>
+                        <span>•</span>
+                        <span className="flex items-center gap-1">
+                          <Clock size={11} />
+                          <span>{item.durationMinutes || Math.max(1, Math.round((item.durationSeconds || 60) / 60))} min</span>
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="text-right flex-shrink-0">
-                  <div className="font-black text-sm text-neon tabular-nums font-outfit">
-                    +{item.xpAwarded || item.xp || 0} XP
-                  </div>
-                  {typeof item.totalReps === 'number' && (
-                    <div className="text-[10px] text-slate-400">
-                      {item.totalReps} reps
+                  <div className="text-right flex-shrink-0">
+                    <div className="font-black text-sm text-neon tabular-nums font-outfit">
+                      +{itemXp} XP
                     </div>
-                  )}
+                    {typeof item.reps === 'number' ? (
+                      <div className="text-[10px] text-slate-400">
+                        {item.reps} reps
+                      </div>
+                    ) : typeof item.totalReps === 'number' ? (
+                      <div className="text-[10px] text-slate-400">
+                        {item.totalReps} reps
+                      </div>
+                    ) : null}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </section>

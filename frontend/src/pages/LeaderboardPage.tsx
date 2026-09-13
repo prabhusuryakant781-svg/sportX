@@ -82,6 +82,11 @@ export default function LeaderboardPage() {
               <span className="text-[10px] font-black text-neon font-outfit mt-0.5 tabular-nums">
                 {topThree[1].totalXp} XP
               </span>
+              {topThree[1].rankTier && (
+                <span className="text-[9px] font-bold text-slate-300 block">
+                  {topThree[1].rankTier}
+                </span>
+              )}
             </div>
           ) : <div className="order-1" />}
 
@@ -99,6 +104,11 @@ export default function LeaderboardPage() {
               <span className="text-xs font-black text-amber-400 font-outfit mt-0.5 tabular-nums">
                 {topThree[0].totalXp} XP
               </span>
+              {topThree[0].rankTier && (
+                <span className="text-[9px] font-black text-amber-300 block">
+                  {topThree[0].rankTier}
+                </span>
+              )}
             </div>
           )}
 
@@ -115,6 +125,11 @@ export default function LeaderboardPage() {
               <span className="text-[10px] font-black text-neon font-outfit mt-0.5 tabular-nums">
                 {topThree[2].totalXp} XP
               </span>
+              {topThree[2].rankTier && (
+                <span className="text-[9px] font-bold text-slate-300 block">
+                  {topThree[2].rankTier}
+                </span>
+              )}
             </div>
           ) : <div className="order-3" />}
         </div>

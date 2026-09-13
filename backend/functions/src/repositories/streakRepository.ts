@@ -2,28 +2,50 @@
  * SportX Streak Repository
  * Firestore Data Access for streaks/{userId}
  * Server-authoritative streak tracking and history
+ * Supports real Firestore operations with in-memory fallback for local offline testing.
  */
-import { db } from '../config/firebase';
+import { db, hasFirebaseCredentials } from '../config/firebase';
 import { StreakDoc, StreakDayRecord } from '../types';
 import * as logger from 'firebase-functions/logger';
-
 import { assertProductionSafe } from '../config/productionSafety';
 
 const COLLECTION = 'streaks';
+
+// Timeout helper to avoid hung promises when Firestore is unreachable
+async function withTimeout<T>(promise: Promise<T>, ms = 2000): Promise<T> {
+  let timer: NodeJS.Timeout;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`Operation timed out after ${ms}ms`)), ms);
+  });
+  return Promise.race([promise, timeoutPromise]).finally(() => {
+    if (timer) clearTimeout(timer);
+  });
+}
+
+// In-memory cache to support fast local testing and offline fallback
+const localStreaksCache: Map<string, StreakDoc> = new Map();
 
 export class StreakRepository {
   /**
    * Get streak record for a user
    */
   static async getByUserId(userId: string): Promise<StreakDoc | null> {
-    try {
-      const doc = await db.collection(COLLECTION).doc(userId).get();
-      if (!doc.exists) return null;
-      return doc.data() as StreakDoc;
-    } catch (err) {
-      assertProductionSafe('StreakRepository.getByUserId', err);
-      return null;
+    const cached = localStreaksCache.get(userId);
+    if (cached) return cached;
+
+    if (hasFirebaseCredentials) {
+      try {
+        const doc = await withTimeout(db.collection(COLLECTION).doc(userId).get(), 2000);
+        if (!doc.exists) return null;
+        const data = doc.data() as StreakDoc;
+        localStreaksCache.set(userId, data);
+        return data;
+      } catch (err) {
+        assertProductionSafe('StreakRepository.getByUserId', err);
+        return null;
+      }
     }
+    return null;
   }
 
   /**
@@ -34,26 +56,23 @@ export class StreakRepository {
     currentStreak: number,
     longestStreak: number,
     date: string,
-    xpEarned: number
+    xpEarned: number,
+    activityType: 'workout' | 'lobby' | 'challenge' = 'workout',
+    activityId?: string
   ): Promise<StreakDoc> {
-    const docRef = db.collection(COLLECTION).doc(userId);
-    const docSnap = await docRef.get();
+    const cached = localStreaksCache.get(userId);
+    let history: StreakDayRecord[] = cached?.history ? [...cached.history] : [];
 
     const now = new Date().toISOString();
-    let history: StreakDayRecord[] = [];
 
-    if (docSnap.exists) {
-      const data = docSnap.data() as StreakDoc;
-      history = data.history || [];
-      const existingToday = history.find((h) => h.date === date);
-      if (existingToday) {
-        existingToday.sessionCount += 1;
-        existingToday.xpEarned += xpEarned;
-      } else {
-        history.push({ date, sessionCount: 1, xpEarned });
-      }
+    const existingToday = history.find((h) => h.date === date);
+    if (existingToday) {
+      existingToday.sessionCount = (existingToday.sessionCount || 0) + 1;
+      existingToday.xpEarned = (existingToday.xpEarned || 0) + xpEarned;
+      if (activityType) existingToday.activityType = activityType;
+      if (activityId) existingToday.activityId = activityId;
     } else {
-      history = [{ date, sessionCount: 1, xpEarned }];
+      history.push({ date, sessionCount: 1, xpEarned, activityType, activityId });
     }
 
     // Keep last 60 days of daily streak history
@@ -65,12 +84,25 @@ export class StreakRepository {
       userId,
       currentStreak,
       longestStreak,
-      lastWorkoutDate: date,
+      bestStreak: longestStreak,
+      lastWorkoutDate: activityType === 'workout' ? date : (cached?.lastWorkoutDate || date),
+      lastActivityDate: date,
       history,
       updatedAt: now,
     };
 
-    await docRef.set(streakRecord, { merge: true });
+    localStreaksCache.set(userId, streakRecord);
+
+    if (hasFirebaseCredentials) {
+      try {
+        const docRef = db.collection(COLLECTION).doc(userId);
+        await withTimeout(docRef.set(streakRecord, { merge: true }), 2000);
+      } catch (err) {
+        logger.warn('[StreakRepository] Firestore write failed:', err);
+        assertProductionSafe('StreakRepository.recordDay');
+      }
+    }
+
     return streakRecord;
   }
 
@@ -78,13 +110,39 @@ export class StreakRepository {
    * Reset streak for broken continuity
    */
   static async resetStreak(userId: string): Promise<void> {
-    await db.collection(COLLECTION).doc(userId).set(
-      {
-        userId,
+    const cached = localStreaksCache.get(userId);
+    const now = new Date().toISOString();
+    if (cached) {
+      localStreaksCache.set(userId, {
+        ...cached,
         currentStreak: 0,
-        updatedAt: new Date().toISOString(),
-      },
-      { merge: true }
-    );
+        updatedAt: now,
+      });
+    }
+
+    if (hasFirebaseCredentials) {
+      try {
+        await withTimeout(
+          db.collection(COLLECTION).doc(userId).set(
+            {
+              userId,
+              currentStreak: 0,
+              updatedAt: now,
+            },
+            { merge: true }
+          ),
+          2000
+        );
+      } catch (err) {
+        assertProductionSafe('StreakRepository.resetStreak');
+      }
+    }
+  }
+
+  /**
+   * Clear local cache for unit test isolation
+   */
+  static clearLocalCache(): void {
+    localStreaksCache.clear();
   }
 }

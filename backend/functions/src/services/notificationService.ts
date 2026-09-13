@@ -3,7 +3,7 @@
  * Handles push notifications for streaks, badges, reminders, and workout milestones.
  * Also persists in-app notification records to Firestore notifications/{notificationId}.
  */
-import { messaging, db } from '../config/firebase';
+import { messaging, db, hasFirebaseCredentials } from '../config/firebase';
 import { NotificationRepository } from '../repositories/notificationRepository';
 import * as logger from 'firebase-functions/logger';
 
@@ -103,6 +103,9 @@ export class NotificationService {
       }).catch((e) => logger.warn('[FCM] Failed to write notification doc:', e));
 
       // 2. Fetch user to send FCM push if enabled
+      if (!hasFirebaseCredentials) {
+        return true;
+      }
       const userSnap = await db.collection('users').doc(userId).get();
       if (!userSnap.exists) return true;
 

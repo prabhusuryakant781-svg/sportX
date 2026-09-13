@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { api } from '../services/api';
+import { competitiveApi } from '../services/competitiveApi';
 import CameraWorkout, { type WorkoutCompletionResult } from '../components/CameraWorkout';
 import { useWorkout } from '../context/WorkoutContext';
 import { normalizeExerciseId } from '../utils/exerciseUtils';
@@ -9,6 +10,7 @@ import type { WorkoutPlan, Exercise } from '../types';
 export default function CameraWorkoutPage() {
   const params = useParams<{ planId?: string; exerciseId?: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { setSessionId, endWorkout } = useWorkout();
 
   // Resolve raw parameters
@@ -24,6 +26,16 @@ export default function CameraWorkoutPage() {
   // Canonical normalization
   const cleanPlanId = (!rawPlanId || rawPlanId === 'undefined' || rawPlanId === 'null') ? 'free' : rawPlanId;
   const cleanExerciseId = normalizeExerciseId(rawExerciseId);
+  const isCompetitive = cleanPlanId === 'competitive';
+  const competitiveState = location.state as {
+    matchId?: string;
+    challengeId?: string;
+    challenge?: any;
+    targetReps?: number;
+    durationSeconds?: number;
+    sportId?: string;
+    competitiveContext?: any;
+  } | null;
 
   // Self-heal: If route has "undefined" or was single-parameter, replace with canonical /camera/:planId/:exerciseId
   useEffect(() => {
@@ -33,9 +45,9 @@ export default function CameraWorkoutPage() {
       !params.exerciseId ||
       params.exerciseId !== cleanExerciseId
     ) {
-      navigate(`/camera/${cleanPlanId}/${cleanExerciseId}`, { replace: true });
+      navigate(`/camera/${cleanPlanId}/${cleanExerciseId}`, { replace: true, state: location.state });
     }
-  }, [params.planId, params.exerciseId, cleanPlanId, cleanExerciseId, navigate]);
+  }, [params.planId, params.exerciseId, cleanPlanId, cleanExerciseId, navigate, location.state]);
 
   const [loading, setLoading] = useState(true);
   const [exercise, setExercise] = useState<Exercise | null>(null);
@@ -163,7 +175,32 @@ export default function CameraWorkoutPage() {
 
       await api.submitVisionResult(visionPayload);
 
-      // 2. Authoritative session completion using exact same sessionId
+      if (isCompetitive && competitiveState?.matchId) {
+        // Competitive match server verification & finalization
+        const finishRes = await competitiveApi.finishMatch(competitiveState.matchId, {
+          sessionId: sId,
+          exerciseId: resolvedExId,
+          reps: result.reps,
+          validReps: result.validFormReps ?? result.reps,
+          formScore: result.formScore,
+          durationSeconds: result.duration,
+          confidence: typeof result.confidence === 'number' ? result.confidence : 0.95,
+          visionResult: visionPayload,
+        });
+
+        endWorkout();
+        navigate('/competitive', {
+          state: {
+            stage: 'RESULT',
+            match: finishRes.match,
+            results: finishRes.results,
+          },
+          replace: true,
+        });
+        return;
+      }
+
+      // 2. Authoritative session completion using exact same sessionId (Normal Workout)
       const compRes: any = await api.completeSession(sId, {
         exerciseId: resolvedExId,
         exerciseName: exercise.name,
@@ -177,7 +214,7 @@ export default function CameraWorkoutPage() {
         state: {
           sessionId: sId,
           result,
-          completionData: compRes?.data,
+          completionData: compRes?.data ?? compRes,
           exercise,
           planId: cleanPlanId !== 'free' ? cleanPlanId : undefined,
         },
@@ -189,6 +226,33 @@ export default function CameraWorkoutPage() {
       setIsCompleting(false);
     }
   };
+
+  const handleUpdate = useCallback((state: any) => {
+    if (isCompetitive && competitiveState?.matchId && state.reps > 0) {
+      competitiveApi.sendTelemetry(
+        competitiveState.matchId,
+        state.validFormReps ?? state.reps,
+        state.formScore
+      ).catch(() => {});
+    }
+  }, [isCompetitive, competitiveState?.matchId]);
+
+  if (isCompetitive && !competitiveState?.matchId) {
+    return (
+      <div className="min-h-screen bg-obsidian flex flex-col items-center justify-center p-6 text-center">
+        <div className="w-16 h-16 rounded-2xl bg-rose-500/10 text-rose-400 flex items-center justify-center mx-auto mb-4 border border-rose-500/20 text-3xl">
+          ⚠️
+        </div>
+        <h2 className="text-lg font-bold text-white">Invalid Competitive Session</h2>
+        <p className="text-xs text-slate-400 mt-1 max-w-[280px]">
+          Missing verified competitive match context. Competitive challenges must be joined through the Competitive Arena.
+        </p>
+        <button className="btn btn-primary mt-5 cursor-pointer" onClick={() => navigate('/competitive')}>
+          Back to Competitive Arena
+        </button>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -276,10 +340,21 @@ export default function CameraWorkoutPage() {
             exerciseId={cleanExerciseId as any}
             onComplete={handleComplete}
             onStartWorkout={handleStartWorkout}
+            onUpdate={handleUpdate}
+            competitiveMode={isCompetitive}
+            competitiveContext={competitiveState?.competitiveContext || (isCompetitive ? {
+              matchId: competitiveState?.matchId || '',
+              challengeTitle: competitiveState?.challenge?.title,
+              targetReps: competitiveState?.targetReps || 20,
+              durationSeconds: competitiveState?.durationSeconds || 90,
+              sportId: competitiveState?.sportId,
+            } : undefined)}
             targetReps={
-              plan?.exercises
-                ? plan.exercises.find(e => normalizeExerciseId(e.exerciseId) === cleanExerciseId)?.reps || 20
-                : 20
+              isCompetitive && competitiveState?.targetReps
+                ? competitiveState.targetReps
+                : plan?.exercises
+                  ? plan.exercises.find(e => normalizeExerciseId(e.exerciseId) === cleanExerciseId)?.reps || 20
+                  : 20
             }
           />
         </div>

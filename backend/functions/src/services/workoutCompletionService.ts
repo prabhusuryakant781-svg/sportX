@@ -67,6 +67,7 @@ export interface CompletionResult {
     level: number;
     currentStreak: number;
     longestStreak: number;
+    bestStreak?: number;
     badgesUnlocked: string[];
   };
 }
@@ -245,10 +246,11 @@ export class WorkoutCompletionService {
             durationSeconds: existingSession.durationSeconds || existingSession.durationMinutes * 60,
             caloriesBurned: existingSession.caloriesBurned,
             xpEarned: existingSession.xpEarned,
-            totalXp: user?.xp || 0,
+            totalXp: (user as any)?.totalXp ?? user?.xp ?? (user as any)?.XP ?? 0,
             level: user?.level || 1,
             currentStreak: user?.currentStreak || 0,
             longestStreak: user?.longestStreak || 0,
+            bestStreak: user?.longestStreak || (user as any)?.bestStreak || 0,
             badgesUnlocked: user?.badges || [],
           },
         };
@@ -302,7 +304,8 @@ export class WorkoutCompletionService {
         sessionDate: todayDate,
       });
 
-      const newTotalXP = (user.xp || 0) + xpEarned;
+      const currentXp = (user as any)?.totalXp ?? user?.xp ?? (user as any)?.XP ?? 0;
+      const newTotalXP = currentXp + xpEarned;
       const newLevel = GamificationService.calculateLevel(newTotalXP);
       const updatedTotalWorkouts = (user.totalWorkouts || 0) + 1;
 
@@ -377,6 +380,7 @@ export class WorkoutCompletionService {
 
             // Apply user rewards atomically
             tx.update(userRef, {
+              totalXp: FieldValue.increment(xpEarned),
               xp: FieldValue.increment(xpEarned),
               XP: FieldValue.increment(xpEarned),
               level: newLevel,
@@ -385,7 +389,9 @@ export class WorkoutCompletionService {
               totalCalories: FieldValue.increment(calories),
               currentStreak: streakResult.currentStreak,
               longestStreak: streakResult.longestStreak,
+              bestStreak: streakResult.longestStreak,
               lastWorkoutDate: todayDate,
+              lastActivityDate: todayDate,
               badges: combinedBadges,
               updatedAt: now,
             });
@@ -437,6 +443,8 @@ export class WorkoutCompletionService {
             formScore: exLog.averageFormScore || score,
             detectedErrors: [],
             calories: Math.round(calories / completedSessionDoc.exerciseLogs.length),
+            xpEarned: Math.round(xpEarned / completedSessionDoc.exerciseLogs.length),
+            xpAwarded: Math.round(xpEarned / completedSessionDoc.exerciseLogs.length),
             timestamp: now,
           });
         });
@@ -452,6 +460,8 @@ export class WorkoutCompletionService {
           formScore: score,
           detectedErrors: [],
           calories,
+          xpEarned,
+          xpAwarded: xpEarned,
           timestamp: now,
         });
       }
@@ -503,6 +513,7 @@ export class WorkoutCompletionService {
           level: newLevel,
           currentStreak: streakResult.currentStreak,
           longestStreak: streakResult.longestStreak,
+          bestStreak: streakResult.longestStreak,
           badgesUnlocked: newBadgeIds,
         },
       };

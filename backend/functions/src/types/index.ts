@@ -44,11 +44,16 @@ export interface UserDoc {
   totalCalories: number;
   currentStreak: number;
   longestStreak: number;
+  bestStreak?: number; // Alias / sync with longestStreak
   lastWorkoutDate: string | null; // YYYY-MM-DD
+  lastActivityDate?: string | null; // YYYY-MM-DD (workout or challenge)
+  totalXp?: number; // Canonical total XP
   xp: number;
   XP?: number; // Alias for XP
   level: number;
   badges: string[];
+  rankPoints?: number;
+  rankTier?: string; // Bronze, Silver, Gold, Platinum, Diamond
 
   // College / Social info
   collegeName?: string;
@@ -205,9 +210,12 @@ export interface ActivityLogDoc {
   exerciseName: string;
   reps: number;
   durationSeconds: number;
+  durationMinutes?: number;
   formScore: number;
   detectedErrors: string[];
   calories: number;
+  xpEarned?: number;
+  xpAwarded?: number;
   timestamp: string | Timestamp | FieldValue;
 }
 
@@ -216,13 +224,17 @@ export interface StreakDayRecord {
   date: string; // YYYY-MM-DD
   sessionCount: number;
   xpEarned: number;
+  activityType?: 'workout' | 'lobby' | 'challenge';
+  activityId?: string;
 }
 
 export interface StreakDoc {
   userId: string;
   currentStreak: number;
   longestStreak: number;
+  bestStreak?: number;
   lastWorkoutDate: string | null;
+  lastActivityDate?: string | null;
   history?: StreakDayRecord[];
   updatedAt: string | Timestamp | FieldValue;
 }
@@ -376,5 +388,7 @@ export interface LeaderboardEntryDoc {
   currentStreak: number;
   level: number;
   rank?: number;
+  rankPoints?: number;
+  rankTier?: string;
   lastUpdated: string | Timestamp | FieldValue;
 }

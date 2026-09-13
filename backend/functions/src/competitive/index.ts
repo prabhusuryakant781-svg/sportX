@@ -257,18 +257,19 @@ competitiveRouter.post('/matches/:id/telemetry', verifyAuth, async (req: Authent
 
 /**
  * POST /api/v1/competitive/matches/:id/finish
- * Authoritatively finalize match and compute placement, rewards, and rank points
+ * Authoritatively verify and finalize match, compute placement, rewards, and rank points
  */
 competitiveRouter.post('/matches/:id/finish', verifyAuth, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { id } = req.params;
     const userId = req.user!.uid;
+    const payload = req.body;
 
-    const finalizedMatch = await CompetitiveMatchmakingService.finalizeMatch(id, userId);
+    const finalizedMatch = await CompetitiveMatchmakingService.verifyAndFinalizeMatch(id, userId, payload);
 
     res.status(200).json({
       success: true,
-      message: 'Match finalized authoritatively',
+      message: 'Match verified and finalized authoritatively',
       data: {
         match: finalizedMatch,
         results: finalizedMatch.results,
@@ -276,6 +277,6 @@ competitiveRouter.post('/matches/:id/finish', verifyAuth, async (req: Authentica
     });
   } catch (err: any) {
     logger.error('[CompetitiveRouter] Error finalizing match:', err);
-    res.status(500).json({ success: false, error: err.message });
+    res.status(err.status || 400).json({ success: false, error: err.message });
   }
 });

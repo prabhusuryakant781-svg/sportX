@@ -4,6 +4,37 @@
 
 export type CompetitiveRankTier = 'Bronze' | 'Silver' | 'Gold' | 'Platinum' | 'Diamond';
 
+export const RANK_TIER_THRESHOLDS: Record<CompetitiveRankTier, { minRP: number; maxRP: number }> = {
+  Bronze: { minRP: 0, maxRP: 399 },
+  Silver: { minRP: 400, maxRP: 799 },
+  Gold: { minRP: 800, maxRP: 1199 },
+  Platinum: { minRP: 1200, maxRP: 1599 },
+  Diamond: { minRP: 1600, maxRP: 99999 },
+};
+
+export function getRankTierFromRP(rp: number): CompetitiveRankTier {
+  if (rp >= 1600) return 'Diamond';
+  if (rp >= 1200) return 'Platinum';
+  if (rp >= 800) return 'Gold';
+  if (rp >= 400) return 'Silver';
+  return 'Bronze';
+}
+
+export function getNextRankTier(tier: CompetitiveRankTier): CompetitiveRankTier | null {
+  if (tier === 'Bronze') return 'Silver';
+  if (tier === 'Silver') return 'Gold';
+  if (tier === 'Gold') return 'Platinum';
+  if (tier === 'Platinum') return 'Diamond';
+  return null;
+}
+
+export function getRPNeededForNextTier(currentRP: number): number | null {
+  const tier = getRankTierFromRP(currentRP);
+  if (tier === 'Diamond') return null;
+  const nextThreshold = RANK_TIER_THRESHOLDS[tier].maxRP + 1;
+  return Math.max(0, nextThreshold - currentRP);
+}
+
 export interface ChallengeRewardConfig {
   xp: number;
   rankPoints: number;
@@ -22,7 +53,8 @@ export interface CompetitiveChallengeDoc {
   goal: string;
   scoringFormula: string;
   minRank: CompetitiveRankTier;
-  maxRank: CompetitiveRankTier;
+  exerciseId?: string;
+  targetReps?: number;
   rewards: {
     firstPlace: ChallengeRewardConfig;
     secondPlace: ChallengeRewardConfig;
@@ -30,6 +62,17 @@ export interface CompetitiveChallengeDoc {
   };
   createdAt?: string;
   updatedAt?: string;
+}
+
+export interface CompetitiveVerificationPayload {
+  sessionId?: string;
+  exerciseId?: string;
+  reps?: number;
+  validReps?: number;
+  formScore?: number;
+  durationSeconds?: number;
+  confidence?: number;
+  visionResult?: any;
 }
 
 export type QueueTicketStatus = 'QUEUED' | 'MATCHED' | 'CANCELLED';
@@ -76,13 +119,19 @@ export interface MatchPlacementResult {
   userId: string;
   displayName: string;
   placement: number;
+  outcome: 'WIN' | 'LOSS' | 'DRAW';
   score: number;
   reps: number;
   formScore: number;
   xpEarned: number;
+  previousRankPoints: number;
   rankPointsChange: number;
   newRankPoints: number;
+  previousRankTier: CompetitiveRankTier;
   newRankTier: CompetitiveRankTier;
+  isRankUp: boolean;
+  isRankDown: boolean;
+  rankTransition?: string;
 }
 
 export interface MatchResults {
