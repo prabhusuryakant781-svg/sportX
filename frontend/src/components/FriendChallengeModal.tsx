@@ -117,22 +117,22 @@ export default function FriendChallengeModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-      <div className="card-glass border border-white/10 w-full max-w-lg max-h-[90vh] flex flex-col rounded-3xl overflow-hidden shadow-2xl relative">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in">
+      <div className="hud-panel-amber w-full max-w-lg max-h-[90vh] flex flex-col rounded-3xl overflow-hidden shadow-2xl relative border border-amber-500/30 bg-obsidian-card/95">
         {/* Header */}
         <div className="p-5 border-b border-white/10 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400">
+            <div className="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 shadow-glow-amber">
               <Swords size={18} />
             </div>
             <div>
-              <h2 className="text-base font-black text-white tracking-tight">Friend Challenges</h2>
+              <h2 className="text-base font-black text-white tracking-tight uppercase font-outfit">FRIEND CHALLENGES</h2>
               <p className="text-xs text-slate-400">Computer-Vision Verified Head-to-Head Battles</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg bg-surface hover:bg-surface/80 text-slate-400 hover:text-white transition cursor-pointer"
+            className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition cursor-pointer border border-white/10"
           >
             <X size={18} />
           </button>
@@ -142,20 +142,20 @@ export default function FriendChallengeModal({
         <div className="px-5 pt-3 pb-2 border-b border-white/5 flex gap-2">
           <button
             onClick={() => setTab('create')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-outfit font-black uppercase tracking-wider transition cursor-pointer ${
               tab === 'create'
-                ? 'bg-amber-500 text-obsidian shadow-glow-sm'
-                : 'bg-surface/50 text-slate-400 hover:text-white'
+                ? 'bg-amber-500 text-obsidian shadow-glow-amber'
+                : 'bg-white/5 text-slate-400 hover:text-white border border-white/5'
             }`}
           >
             Issue Challenge
           </button>
           <button
             onClick={() => setTab('active')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer relative ${
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-outfit font-black uppercase tracking-wider transition cursor-pointer relative ${
               tab === 'active'
-                ? 'bg-amber-500 text-obsidian shadow-glow-sm'
-                : 'bg-surface/50 text-slate-400 hover:text-white'
+                ? 'bg-amber-500 text-obsidian shadow-glow-amber'
+                : 'bg-white/5 text-slate-400 hover:text-white border border-white/5'
             }`}
           >
             Active Challenges ({challenges.length})
@@ -163,7 +163,7 @@ export default function FriendChallengeModal({
         </div>
 
         {error && (
-          <div className="mx-5 mt-3 p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-300 flex items-center gap-2">
+          <div className="mx-5 mt-3 p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-300 flex items-center gap-2 font-mono">
             <AlertCircle size={14} className="flex-shrink-0" />
             <span>{error}</span>
           </div>

@@ -289,10 +289,14 @@ export default function CameraWorkoutPage() {
 
   return (
     <div className="min-h-screen bg-obsidian flex flex-col relative overflow-hidden">
+      {/* Background ambient lighting matching master reference */}
+      <div className="absolute top-1/4 left-1/4 w-80 h-80 bg-neon/[0.06] rounded-full blur-[110px] pointer-events-none" />
+      <div className="absolute top-1/3 right-1/4 w-72 h-72 bg-cyan/[0.06] rounded-full blur-[100px] pointer-events-none" />
+
       {/* Studio Header Overlay */}
-      <header className="px-4 py-3.5 z-20 flex justify-between items-center bg-gradient-to-b from-obsidian/95 via-obsidian/80 to-transparent backdrop-blur-sm border-b border-white/5">
+      <header className="px-4 py-3.5 z-20 flex justify-between items-center bg-obsidian/90 backdrop-blur-md border-b border-white/10">
         <button
-          className="btn btn-sm btn-secondary flex items-center gap-1.5 py-1.5 px-3 text-xs cursor-pointer"
+          className="btn btn-sm btn-secondary flex items-center gap-1.5 py-1.5 px-3 text-xs cursor-pointer border border-white/10"
           onClick={() => navigate(-1)}
         >
           <span>✕</span>
@@ -301,8 +305,8 @@ export default function CameraWorkoutPage() {
 
         <div className="text-center">
           <div className="flex items-center justify-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-[10px] font-bold text-neon uppercase tracking-wider">AI Pose Engine</span>
+            <span className="w-2 h-2 rounded-full bg-neon shadow-[0_0_6px_#CCFF00] animate-pulse" />
+            <span className="text-[10px] font-black text-neon uppercase tracking-widest">SportX Vision HUD</span>
           </div>
           <h3 className="text-white font-black text-sm sm:text-base tracking-tight leading-tight">
             {exercise.name}
@@ -310,7 +314,7 @@ export default function CameraWorkoutPage() {
         </div>
 
         <div className="w-16 flex justify-end">
-          <span className="text-[10px] font-mono font-bold text-cyan px-2 py-0.5 rounded-full bg-cyan/10 border border-cyan/30">
+          <span className="text-[10px] font-mono font-bold text-cyan px-2.5 py-0.5 rounded-full bg-cyan/15 border border-cyan/30 shadow-sm">
             60 FPS
           </span>
         </div>

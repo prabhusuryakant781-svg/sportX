@@ -35,22 +35,22 @@ export default function ChallengeHistoryModal({ isOpen, onClose }: ChallengeHist
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-      <div className="card-glass border border-white/10 w-full max-w-lg max-h-[90vh] flex flex-col rounded-3xl overflow-hidden shadow-2xl relative">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in">
+      <div className="hud-panel-amber w-full max-w-lg max-h-[90vh] flex flex-col rounded-3xl overflow-hidden shadow-2xl relative border border-amber-500/30 bg-obsidian-card/95">
         {/* Header */}
         <div className="p-5 border-b border-white/10 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400">
+            <div className="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 shadow-glow-amber">
               <Trophy size={18} />
             </div>
             <div>
-              <h2 className="text-base font-black text-white tracking-tight">Challenge Match History</h2>
-              <p className="text-xs text-slate-400">Verified competitive and friend matches</p>
+              <h2 className="text-base font-black text-white tracking-tight uppercase font-outfit">CHALLENGE MATCH HISTORY</h2>
+              <p className="text-xs text-slate-400">Verified competitive and friend match records</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg bg-surface hover:bg-surface/80 text-slate-400 hover:text-white transition cursor-pointer"
+            className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition cursor-pointer border border-white/10"
           >
             <X size={18} />
           </button>
@@ -62,10 +62,10 @@ export default function ChallengeHistoryModal({ isOpen, onClose }: ChallengeHist
             <button
               key={f}
               onClick={() => setFilter(f)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-outfit font-black uppercase tracking-wider transition cursor-pointer ${
                 filter === f
-                  ? 'bg-amber-500 text-obsidian shadow-glow-sm'
-                  : 'bg-surface/50 text-slate-400 hover:text-white'
+                  ? 'bg-amber-500 text-obsidian shadow-glow-amber'
+                  : 'bg-white/5 text-slate-400 hover:text-white border border-white/5'
               }`}
             >
               {f === 'ALL' ? 'All Matches' : f}
@@ -77,13 +77,13 @@ export default function ChallengeHistoryModal({ isOpen, onClose }: ChallengeHist
         <div className="p-5 overflow-y-auto flex-1 space-y-2.5">
           {loading ? (
             <div className="space-y-2">
-              <div className="card skeleton h-16" />
-              <div className="card skeleton h-16" />
+              <div className="hud-panel skeleton h-16" />
+              <div className="hud-panel skeleton h-16" />
             </div>
           ) : history.length === 0 ? (
             <div className="text-center py-10 space-y-2">
               <Trophy size={36} className="mx-auto text-slate-600" />
-              <h3 className="text-sm font-bold text-white">No Matches Recorded</h3>
+              <h3 className="text-sm font-bold text-white uppercase font-outfit">No Matches Recorded</h3>
               <p className="text-xs text-slate-400 max-w-xs mx-auto">
                 Completed competitive arena matches and friend battles will appear here with authoritative telemetry.
               </p>
@@ -97,7 +97,7 @@ export default function ChallengeHistoryModal({ isOpen, onClose }: ChallengeHist
                 <div
                   key={entry.matchId}
                   onClick={() => setSelectedEntry(selectedEntry?.matchId === entry.matchId ? null : entry)}
-                  className="card p-3.5 border border-white/5 hover:border-white/20 transition cursor-pointer space-y-2"
+                  className="hud-panel p-3.5 hover:border-amber-500/40 transition cursor-pointer space-y-2"
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">

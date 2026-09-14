@@ -31,6 +31,8 @@ import {
   Users
 } from 'lucide-react';
 
+import SportxBackground from '../components/SportxBackground';
+
 export default function DashboardPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -78,7 +80,16 @@ export default function DashboardPage() {
   const firstName = user?.name?.split(' ')[0] || 'Athlete';
 
   return (
-    <div className="space-y-5 pb-8 animate-fade-in">
+    <SportxBackground imageSrc="/images/bg-dashboard.jpg" overlayOpacity="normal">
+      <div className="space-y-5 pb-8 animate-fade-in">
+        {/* Master Tagline Banner matching Master Reference */}
+        <div className="pt-2 pb-0.5 text-center flex items-center justify-center gap-2 text-[11px] font-black tracking-widest uppercase text-slate-300">
+          <span className="text-white">Train</span>
+          <span className="w-1.5 h-1.5 rounded-full bg-neon shadow-[0_0_6px_#CCFF00]" />
+          <span className="text-white">Compete</span>
+          <span className="w-1.5 h-1.5 rounded-full bg-cyan shadow-[0_0_6px_#00F0FF]" />
+          <span className="text-white">Be Better</span>
+        </div>
       {/* ── Athlete Command Center Header ───────────────────── */}
       <header className="pt-2">
         <div className="flex items-center justify-between mb-3">
@@ -248,11 +259,11 @@ export default function DashboardPage() {
         {loading ? (
           <div className="card skeleton h-44" />
         ) : todayPlan ? (
-          <div className="relative rounded-3xl overflow-hidden border border-white/10 shadow-2xl group">
+          <div className="relative rounded-3xl overflow-hidden border border-neon/30 shadow-2xl group">
             {/* Background athletic photography with dark stadium overlay */}
             <div
-              className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105 pointer-events-none opacity-40"
-              style={{ backgroundImage: `url('/hero-athletes.jpg')` }}
+              className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105 pointer-events-none opacity-50"
+              style={{ backgroundImage: `url('/images/bg-workout.jpg')` }}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-obsidian via-obsidian/85 to-obsidian/60 pointer-events-none" />
 
@@ -344,14 +355,14 @@ export default function DashboardPage() {
           {/* Pillar 2: Arena Compete */}
           <div
             onClick={() => navigate('/lobby')}
-            className="card-pillar-compete p-4 flex flex-col justify-between group shadow-card"
+            className="hud-panel-amber p-4 flex flex-col justify-between group cursor-pointer"
           >
             <div>
               <div className="flex items-center justify-between mb-2.5">
-                <div className="w-9 h-9 rounded-xl bg-amber-500/15 text-amber-400 flex items-center justify-center border border-amber-500/30">
+                <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/40 shadow-sm">
                   <Swords size={18} />
                 </div>
-                <span className="text-[9px] font-black text-amber-400 uppercase tracking-wider px-1.5 py-0.2 rounded bg-amber-500/10 border border-amber-500/20">
+                <span className="text-[9px] font-black text-amber-400 uppercase tracking-widest px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30">
                   Arena
                 </span>
               </div>
@@ -362,23 +373,23 @@ export default function DashboardPage() {
                 Synchronized multiplayer camera rep battles.
               </p>
             </div>
-            <div className="mt-3 flex items-center gap-1 text-[11px] font-bold text-amber-400">
+            <div className="mt-3 flex items-center gap-1 text-[11px] font-black text-amber-400">
               <span>Enter Arena</span>
-              <ChevronRight size={13} className="transition-transform group-hover:translate-x-0.5" />
+              <ChevronRight size={13} className="transition-transform group-hover:translate-x-1" />
             </div>
           </div>
 
           {/* Pillar 3: AI Coach */}
           <div
             onClick={() => navigate('/ai-coach')}
-            className="card-pillar-ai p-4 flex flex-col justify-between group shadow-card"
+            className="hud-panel-cyan p-4 flex flex-col justify-between group cursor-pointer"
           >
             <div>
               <div className="flex items-center justify-between mb-2.5">
-                <div className="w-9 h-9 rounded-xl bg-cyan/15 text-cyan flex items-center justify-center border border-cyan/30">
+                <div className="w-9 h-9 rounded-xl bg-cyan/20 text-cyan flex items-center justify-center border border-cyan/40 shadow-sm">
                   <Bot size={18} />
                 </div>
-                <span className="text-[9px] font-black text-cyan uppercase tracking-wider px-1.5 py-0.2 rounded bg-cyan/10 border border-cyan/20">
+                <span className="text-[9px] font-black text-cyan uppercase tracking-widest px-2 py-0.5 rounded-full bg-cyan/15 border border-cyan/30">
                   Coach
                 </span>
               </div>
@@ -389,9 +400,9 @@ export default function DashboardPage() {
                 Google Gemini biomechanical cues & chat.
               </p>
             </div>
-            <div className="mt-3 flex items-center gap-1 text-[11px] font-bold text-cyan">
+            <div className="mt-3 flex items-center gap-1 text-[11px] font-black text-cyan">
               <span>Consult Coach</span>
-              <ChevronRight size={13} className="transition-transform group-hover:translate-x-0.5" />
+              <ChevronRight size={13} className="transition-transform group-hover:translate-x-1" />
             </div>
           </div>
         </div>
@@ -399,18 +410,18 @@ export default function DashboardPage() {
         {/* Telemetry & Progress Strip */}
         <div
           onClick={() => navigate('/progress')}
-          className="card-pillar-progress p-4 flex items-center justify-between group shadow-card"
+          className="hud-panel-neon p-4 flex items-center justify-between group cursor-pointer"
         >
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-surface text-cyan flex items-center justify-center border border-white/10 flex-shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-neon/15 text-neon flex items-center justify-center border border-neon/30 flex-shrink-0 shadow-sm">
               <TrendingUp size={20} />
             </div>
             <div>
               <div className="flex items-center gap-1.5">
-                <h3 className="text-sm font-black text-white group-hover:text-cyan transition-colors">
+                <h3 className="text-sm font-black text-white group-hover:text-neon transition-colors">
                   Telemetry & Progress Center
                 </h3>
-                <span className="text-[9px] font-black text-cyan uppercase tracking-wider px-1.5 py-0.2 rounded bg-cyan/10 border border-cyan/20">
+                <span className="text-[9px] font-black text-neon uppercase tracking-widest px-2 py-0.5 rounded-full bg-neon/15 border border-neon/30">
                   Analytics
                 </span>
               </div>
@@ -419,8 +430,8 @@ export default function DashboardPage() {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-1 text-xs font-bold text-cyan flex-shrink-0 pl-2">
-            <ChevronRight size={16} className="transition-transform group-hover:translate-x-0.5" />
+          <div className="flex items-center gap-1 text-xs font-black text-neon flex-shrink-0 pl-2">
+            <ChevronRight size={16} className="transition-transform group-hover:translate-x-1" />
           </div>
         </div>
       </section>
@@ -562,5 +573,6 @@ export default function DashboardPage() {
         targetFriend={targetFriend}
       />
     </div>
+    </SportxBackground>
   );
 }

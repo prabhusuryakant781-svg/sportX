@@ -4,6 +4,7 @@ import ProgressChart from '../components/ProgressChart';
 import PerformanceScoreCard from '../components/PerformanceScoreCard';
 import ActiveGoalsCard from '../components/ActiveGoalsCard';
 import GoalsModal from '../components/GoalsModal';
+import SportxBackground from '../components/SportxBackground';
 import { TrendingUp, Calendar, Dumbbell, Activity, Award, Clock, Flame, Zap, Target } from 'lucide-react';
 
 function buildChartDataFromHistory(history: any[], period: string): Array<{ label: string; value: number }> {
@@ -107,109 +108,114 @@ export default function ProgressPage() {
   );
 
   return (
-    <div className="space-y-4 pb-8 animate-fade-in">
-      {/* Header */}
-      <header className="pt-2">
-        <div className="flex items-center gap-2 mb-1">
-          <div className="w-8 h-8 rounded-xl bg-cyan/15 text-cyan flex items-center justify-center">
-            <TrendingUp size={18} />
+    <SportxBackground src="/images/bg-progress.jpg" overlayOpacity={0.88} accentGlow="cyan">
+      <div className="space-y-4 pb-8 animate-fade-in relative z-10">
+        {/* Header with High-Tech Athlete Telemetry */}
+        <header className="pt-2">
+          <div className="flex items-center gap-2 mb-1.5">
+            <div className="w-8 h-8 rounded-xl bg-cyan/15 border border-cyan/30 text-cyan flex items-center justify-center shadow-glow-sm">
+              <TrendingUp size={18} />
+            </div>
+            <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-cyan">
+              BIOMETRIC & PERFORMANCE TELEMETRY
+            </span>
           </div>
-          <span className="text-xs font-bold uppercase tracking-wider text-cyan">Performance Telemetry</span>
+          <h1 className="text-3xl font-black text-white tracking-tight uppercase font-outfit">
+            ATHLETE PROGRESS
+          </h1>
+          <p className="text-xs text-slate-400 mt-1 max-w-xl">
+            Historical training volume, verified biomechanical form ratings and XP progression over time.
+          </p>
+        </header>
+
+        {/* ── Step 7: Performance Score & Active Goals ──────────── */}
+        <section className="space-y-3">
+          <PerformanceScoreCard />
+          <ActiveGoalsCard onOpenGoalsModal={() => setShowGoalsModal(true)} />
+        </section>
+
+        {/* Segmented Time Filter */}
+        <div className="flex rounded-xl p-1 bg-obsidian-card/90 border border-white/10 backdrop-blur-md">
+          {(['7d', '30d', 'all'] as const).map(p => (
+            <button
+              key={p}
+              type="button"
+              onClick={() => setPeriod(p)}
+              className={`flex-1 py-2.5 rounded-lg border-none cursor-pointer font-outfit font-black text-xs tracking-wider uppercase transition-all duration-200 ${
+                period === p
+                  ? 'bg-neon text-obsidian shadow-glow-sm scale-[1.01]'
+                  : 'bg-transparent text-slate-400 hover:text-white'
+              }`}
+            >
+              {p === '7d' ? 'Last 7 Days' : p === '30d' ? 'Last 30 Days' : 'All-Time'}
+            </button>
+          ))}
         </div>
-        <h1 className="text-2xl font-black text-white tracking-tight">Athlete Progress</h1>
-        <p className="text-xs text-slate-400 mt-0.5">
-          Historical volume, workout frequency and XP progression.
-        </p>
-      </header>
-
-      {/* ── Step 7: Performance Score & Active Goals ──────────── */}
-      <section className="space-y-3">
-        <PerformanceScoreCard />
-        <ActiveGoalsCard onOpenGoalsModal={() => setShowGoalsModal(true)} />
-      </section>
-
-      {/* Segmented Time Filter */}
-      <div className="flex rounded-xl p-1 bg-surface border border-white/5">
-        {(['7d', '30d', 'all'] as const).map(p => (
-          <button
-            key={p}
-            type="button"
-            onClick={() => setPeriod(p)}
-            className={`flex-1 py-2 rounded-lg border-none cursor-pointer font-outfit font-black text-xs tracking-wider uppercase transition-all duration-200 ${
-              period === p
-                ? 'bg-neon text-obsidian shadow-glow-sm'
-                : 'bg-transparent text-slate-400 hover:text-white'
-            }`}
-          >
-            {p === '7d' ? 'Last 7 Days' : p === '30d' ? 'Last 30 Days' : 'All-Time'}
-          </button>
-        ))}
-      </div>
 
       {/* Authoritative Server Metric KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-        <div className="card p-3.5 flex flex-col justify-between">
+        <div className="hud-panel p-3.5 flex flex-col justify-between group hover:border-neon/40 transition-all">
           <div className="flex items-center justify-between text-slate-400 mb-1">
-            <span className="text-[11px] font-bold uppercase tracking-wider">Workouts</span>
+            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">Workouts</span>
             <Activity size={14} className="text-neon" />
           </div>
           <div className="text-2xl font-black text-white font-outfit tabular-nums">
             {loading ? '—' : totalWorkoutsCount}
           </div>
-          <span className="text-[10px] text-slate-400 mt-0.5 font-medium">
+          <span className="text-[10px] font-mono text-slate-400 mt-0.5 font-medium">
             {period === '7d' ? 'Past 7 days' : period === '30d' ? 'Past 30 days' : 'All completed'}
           </span>
         </div>
 
-        <div className="card p-3.5 flex flex-col justify-between">
+        <div className="hud-panel p-3.5 flex flex-col justify-between group hover:border-cyan/40 transition-all">
           <div className="flex items-center justify-between text-slate-400 mb-1">
-            <span className="text-[11px] font-bold uppercase tracking-wider">Total Reps</span>
+            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">Total Reps</span>
             <Dumbbell size={14} className="text-cyan" />
           </div>
           <div className="text-2xl font-black text-white font-outfit tabular-nums">
             {loading ? '—' : totalRepsCount.toLocaleString()}
           </div>
-          <span className="text-[10px] text-slate-400 mt-0.5 font-medium">Verified movements</span>
+          <span className="text-[10px] font-mono text-slate-400 mt-0.5 font-medium">Verified movements</span>
         </div>
 
-        <div className="card p-3.5 flex flex-col justify-between">
+        <div className="hud-panel p-3.5 flex flex-col justify-between group hover:border-amber-400/40 transition-all">
           <div className="flex items-center justify-between text-slate-400 mb-1">
-            <span className="text-[11px] font-bold uppercase tracking-wider">Active Time</span>
+            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">Active Time</span>
             <Clock size={14} className="text-amber-400" />
           </div>
           <div className="text-2xl font-black text-white font-outfit tabular-nums">
             {loading ? '—' : `${totalMinutesCount}m`}
           </div>
-          <span className="text-[10px] text-slate-400 mt-0.5 font-medium">Training duration</span>
+          <span className="text-[10px] font-mono text-slate-400 mt-0.5 font-medium">Training duration</span>
         </div>
 
-        <div className="card p-3.5 flex flex-col justify-between">
+        <div className="hud-panel p-3.5 flex flex-col justify-between group hover:border-neon/40 transition-all">
           <div className="flex items-center justify-between text-slate-400 mb-1">
-            <span className="text-[11px] font-bold uppercase tracking-wider">Avg Form</span>
-            <Award size={14} className="text-emerald-400" />
+            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">Avg Form</span>
+            <Award size={14} className="text-neon" />
           </div>
           <div className="text-2xl font-black text-white font-outfit tabular-nums">
             {loading ? '—' : (avgFormScore ? `${avgFormScore}%` : '100%')}
           </div>
-          <span className="text-[10px] text-slate-400 mt-0.5 font-medium">Vision precision</span>
+          <span className="text-[10px] font-mono text-slate-400 mt-0.5 font-medium">Vision precision</span>
         </div>
       </div>
 
       {/* Weekly Goal Progress Bar (if summary provides it) */}
       {summary?.weeklyProgress && (
-        <div className="card p-4 flex flex-col gap-2">
+        <div className="hud-panel-cyan p-4 flex flex-col gap-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Target size={14} className="text-cyan" />
-              <span className="text-xs font-bold text-white uppercase tracking-wider">Weekly Target</span>
+              <span className="text-xs font-mono font-bold text-white uppercase tracking-wider">Weekly Target</span>
             </div>
             <span className="text-xs font-black text-neon font-outfit tabular-nums">
               {summary.weeklyProgress.daysCompleted} / {summary.weeklyProgress.targetDays} Active Days ({summary.weeklyProgress.completionPercentage}%)
             </span>
           </div>
-          <div className="w-full bg-surface rounded-full h-2 overflow-hidden border border-white/5">
+          <div className="w-full bg-obsidian-card rounded-full h-2.5 overflow-hidden border border-white/10 p-0.5">
             <div
-              className="bg-gradient-hero h-full rounded-full transition-all duration-500"
+              className="bg-gradient-to-r from-cyan to-neon h-full rounded-full transition-all duration-500 shadow-glow-sm"
               style={{ width: `${Math.min(100, summary.weeklyProgress.completionPercentage)}%` }}
             />
           </div>
@@ -218,41 +224,41 @@ export default function ProgressPage() {
 
       {/* Activity Volume Chart */}
       <section>
-        <h2 className="text-sm font-black text-white uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+        <h2 className="text-sm font-black text-white uppercase tracking-wider mb-2.5 flex items-center gap-1.5 font-outfit">
           <Activity size={15} className="text-cyan" />
-          <span>Activity Volume</span>
+          <span>Activity Volume Telemetry</span>
         </h2>
 
         {loading ? (
-          <div className="card skeleton h-[180px]" />
+          <div className="hud-panel skeleton h-[180px]" />
         ) : (
-          <ProgressChart data={chartData} label="XP Progression" color="#06B6D4" height={170} />
+          <ProgressChart data={chartData} label="XP Progression" color="#00F0FF" height={170} />
         )}
       </section>
 
       {/* Session History Feed */}
       <section>
         <div className="flex justify-between items-center mb-2.5">
-          <h2 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-1.5">
+          <h2 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-1.5 font-outfit">
             <Calendar size={15} className="text-neon" />
             <span>Completed Sessions ({history.length})</span>
           </h2>
-          <span className="text-[11px] text-slate-400 font-semibold">
+          <span className="text-[10px] font-mono text-slate-400 font-semibold uppercase tracking-wider">
             {period === '7d' ? 'Past Week' : period === '30d' ? 'Past Month' : 'All Recorded'}
           </span>
         </div>
 
         {loading ? (
           <div className="space-y-2">
-            <div className="card skeleton h-16" />
-            <div className="card skeleton h-16" />
+            <div className="hud-panel skeleton h-16" />
+            <div className="hud-panel skeleton h-16" />
           </div>
         ) : history.length === 0 ? (
-          <div className="card text-center py-10 border border-white/5">
-            <span className="text-3xl block mb-2">📭</span>
-            <h3 className="text-sm font-bold text-white">No Sessions in this Timeline</h3>
-            <p className="text-xs text-slate-400 mt-1">
-              Complete drills in the camera studio to record real telemetry.
+          <div className="hud-panel text-center py-10 border border-white/10">
+            <span className="text-3xl block mb-2">⚡</span>
+            <h3 className="text-sm font-bold text-white uppercase tracking-wider">No Sessions in this Timeline</h3>
+            <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
+              Complete movement drills in the camera studio to record biometric telemetry.
             </p>
           </div>
         ) : (
@@ -260,16 +266,19 @@ export default function ProgressPage() {
             {history.map((item, idx) => {
               const itemXp = item.xpAwarded ?? item.xpEarned ?? item.xp ?? 0;
               return (
-                <div key={item.id || idx} className="card p-4 flex items-center justify-between">
+                <div
+                  key={item.id || idx}
+                  className="hud-panel p-3.5 flex items-center justify-between group hover:border-cyan/40 transition-all"
+                >
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-2xl bg-surface flex items-center justify-center text-lg text-neon flex-shrink-0">
+                    <div className="w-10 h-10 rounded-xl bg-surface border border-white/10 flex items-center justify-center text-lg text-neon flex-shrink-0 group-hover:border-neon/40 group-hover:shadow-glow-sm transition-all">
                       {item.sportId ? '🏅' : <Dumbbell size={18} />}
                     </div>
                     <div>
-                      <h4 className="font-bold text-sm text-white capitalize">
+                      <h4 className="font-bold text-sm text-white capitalize tracking-wide font-outfit">
                         {item.sportName || item.exerciseId?.replace(/_/g, ' ') || 'Workout Session'}
                       </h4>
-                      <div className="flex items-center gap-2 text-[11px] text-slate-400 mt-0.5">
+                      <div className="flex items-center gap-2 text-[10px] font-mono text-slate-400 mt-0.5">
                         <span>
                           {new Date(item.completedAt || item.loggedAt || Date.now()).toLocaleDateString(undefined, {
                             month: 'short',
@@ -279,7 +288,7 @@ export default function ProgressPage() {
                         </span>
                         <span>•</span>
                         <span className="flex items-center gap-1">
-                          <Clock size={11} />
+                          <Clock size={10} />
                           <span>{item.durationMinutes || Math.max(1, Math.round((item.durationSeconds || 60) / 60))} min</span>
                         </span>
                       </div>
@@ -287,15 +296,15 @@ export default function ProgressPage() {
                   </div>
 
                   <div className="text-right flex-shrink-0">
-                    <div className="font-black text-sm text-neon tabular-nums font-outfit">
+                    <div className="font-black text-sm text-neon tabular-nums font-outfit tracking-wide">
                       +{itemXp} XP
                     </div>
                     {typeof item.reps === 'number' ? (
-                      <div className="text-[10px] text-slate-400">
+                      <div className="text-[10px] font-mono text-slate-400">
                         {item.reps} reps
                       </div>
                     ) : typeof item.totalReps === 'number' ? (
-                      <div className="text-[10px] text-slate-400">
+                      <div className="text-[10px] font-mono text-slate-400">
                         {item.totalReps} reps
                       </div>
                     ) : null}
@@ -313,5 +322,6 @@ export default function ProgressPage() {
         onClose={() => setShowGoalsModal(false)}
       />
     </div>
+  </SportxBackground>
   );
 }

@@ -34,9 +34,9 @@ export default function ActiveGoalsCard({ onOpenGoalsModal, className = '' }: Ac
   }
 
   return (
-    <div className={`card-glass border border-white/10 p-4 relative overflow-hidden shadow-card ${className}`}>
+    <div className={`hud-panel p-4 relative overflow-hidden ${className}`}>
       <div className="flex items-center justify-between mb-2.5">
-        <div className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-slate-400">
+        <div className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-slate-300">
           <Target size={14} className="text-neon" />
           <span>Active Goals</span>
           <span className="text-[10px] text-slate-500 font-semibold lowercase">
@@ -70,13 +70,13 @@ export default function ActiveGoalsCard({ onOpenGoalsModal, className = '' }: Ac
             <div key={goal.goalId}>
               <div className="flex justify-between items-center text-xs mb-1">
                 <span className="font-bold text-white truncate max-w-[200px]">{goal.title}</span>
-                <span className="text-slate-400 tabular-nums font-medium text-[11px]">
+                <span className="text-slate-300 tabular-nums font-semibold text-[11px]">
                   {goal.current}/{goal.target} {goal.unit} ({goal.progress}%)
                 </span>
               </div>
               <div className="h-1.5 rounded-full bg-surface overflow-hidden">
                 <div
-                  className="h-full bg-neon transition-all duration-500"
+                  className="h-full bg-gradient-to-r from-neon to-cyan transition-all duration-500 shadow-[0_0_8px_rgba(204,255,0,0.4)]"
                   style={{ width: `${goal.progress}%` }}
                 />
               </div>

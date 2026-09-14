@@ -7,6 +7,7 @@ import PerformanceScoreCard from '../components/PerformanceScoreCard';
 import GoalsModal from '../components/GoalsModal';
 import FriendsModal from '../components/FriendsModal';
 import FriendChallengeModal from '../components/FriendChallengeModal';
+import SportxBackground from '../components/SportxBackground';
 import { 
   User, 
   Target, 
@@ -248,135 +249,143 @@ export default function ProfilePage() {
   const activeTitleTheme = activeTitle ? (TITLE_RARITY_THEMES[activeTitle.rarity] || TITLE_RARITY_THEMES.Rare) : null;
 
   return (
-    <div className="space-y-4 pb-12 animate-fade-in">
-      {/* Header */}
-      <header className="pt-2 flex justify-between items-center">
-        <div>
-          <span className="text-xs font-bold uppercase tracking-wider text-neon">Athlete Account</span>
-          <h1 className="text-2xl font-black text-white tracking-tight mt-0.5">Profile & Progression</h1>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            className="btn btn-sm btn-primary flex items-center gap-1.5 py-1.5 px-3 text-xs font-bold shadow-glow-sm cursor-pointer"
-            onClick={openEditProfile}
-          >
-            <Edit3 size={13} />
-            <span>Edit Profile</span>
-          </button>
-          <button
-            type="button"
-            className="btn btn-sm btn-secondary flex items-center gap-1.5 py-1.5 px-3 text-xs cursor-pointer"
-            onClick={() => setShowBugModal(true)}
-          >
-            <Bug size={13} className="text-rose-400" />
-            <span>Report Bug</span>
-          </button>
-        </div>
-      </header>
+    <SportxBackground src="/images/bg-profile.jpg" overlayOpacity={0.88} accentGlow="neon">
+      <div className="space-y-4 pb-12 animate-fade-in relative z-10 max-w-4xl mx-auto">
+        {/* Header */}
+        <header className="pt-2 flex justify-between items-center">
+          <div>
+            <div className="flex items-center gap-1.5 mb-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-neon animate-pulse" />
+              <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-neon">
+                ATHLETE PASSPORT & BIOMETRICS
+              </span>
+            </div>
+            <h1 className="text-3xl font-black text-white tracking-tight uppercase font-outfit">
+              PROFILE & PROGRESSION
+            </h1>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className="btn btn-sm btn-primary flex items-center gap-1.5 py-2 px-3.5 text-xs font-outfit font-black uppercase tracking-wider shadow-glow cursor-pointer"
+              onClick={openEditProfile}
+            >
+              <Edit3 size={13} />
+              <span>Edit Profile</span>
+            </button>
+            <button
+              type="button"
+              className="btn btn-sm btn-secondary flex items-center gap-1.5 py-2 px-3 text-xs font-mono font-bold cursor-pointer border border-white/10 hover:border-rose-500/40 hover:text-rose-400"
+              onClick={() => setShowBugModal(true)}
+            >
+              <Bug size={13} className="text-rose-400" />
+              <span>Report Bug</span>
+            </button>
+          </div>
+        </header>
 
-      {/* Athlete Identity Card */}
-      <div className="card-glass border border-white/10 p-6 text-center relative overflow-hidden shadow-card">
-        {/* Glow backdrop */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-32 bg-neon/15 blur-3xl rounded-full pointer-events-none" />
+        {/* Athlete Identity Card (Passport ID) */}
+        <div className="hud-panel-neon p-6 text-center relative overflow-hidden">
+          {/* Glow backdrop */}
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-32 bg-neon/15 blur-3xl rounded-full pointer-events-none" />
 
-        <div className="relative z-10 flex flex-col items-center">
-          <div className="relative mb-3">
-            <div className="w-20 h-20 rounded-3xl bg-gradient-hero p-0.5 shadow-glow">
-              <div className="w-full h-full bg-obsidian rounded-[22px] flex items-center justify-center text-3xl font-black text-white">
-                {user?.name?.[0]?.toUpperCase() || 'A'}
+          <div className="relative z-10 flex flex-col items-center">
+            <div className="relative mb-3">
+              <div className="w-20 h-20 rounded-3xl bg-gradient-to-tr from-neon via-cyan to-blue-500 p-0.5 shadow-glow">
+                <div className="w-full h-full bg-obsidian rounded-[22px] flex items-center justify-center text-3xl font-black text-white font-outfit">
+                  {user?.name?.[0]?.toUpperCase() || 'A'}
+                </div>
+              </div>
+              <span className="absolute -bottom-1 -right-1 px-2.5 py-0.5 rounded-full bg-neon text-obsidian text-[10px] font-black border-2 border-obsidian font-mono">
+                LVL {athleteLevel}
+              </span>
+            </div>
+
+            <h2 className="text-xl font-black text-white tracking-tight uppercase font-outfit">
+              {user?.name || 'Student Athlete'}
+            </h2>
+
+            {/* Equipped Athlete Title Chip */}
+            <div className="mt-1.5 mb-1 flex items-center justify-center">
+              {user?.equippedTitle && activeTitle ? (
+                <button
+                  onClick={openTitlesModal}
+                  className={`inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-[11px] font-mono font-black uppercase tracking-wider border shadow-glow-sm hover:scale-105 transition cursor-pointer ${activeTitleTheme?.badge}`}
+                >
+                  <Crown size={13} />
+                  <span>{activeTitle.name}</span>
+                  <span className="text-[9px] text-slate-400 font-normal ml-0.5 underline">Change</span>
+                </button>
+              ) : (
+                <button
+                  onClick={openTitlesModal}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-mono font-bold text-slate-400 border border-dashed border-white/20 hover:border-neon/50 hover:text-neon transition cursor-pointer bg-white/5"
+                >
+                  <Crown size={12} />
+                  <span>+ Equip Athlete Title</span>
+                </button>
+              )}
+            </div>
+
+            <p className="text-xs font-mono text-slate-400 mt-0.5">{user?.email || 'athlete@campus.edu'}</p>
+
+            <div className="flex flex-wrap items-center justify-center gap-2 mt-3">
+              {user?.collegeName && (
+                <span className="badge-pill text-[10px] font-mono flex items-center gap-1">
+                  <School size={11} />
+                  <span>{user.collegeName}</span>
+                </span>
+              )}
+              {user?.department && (
+                <span className="badge-cyan text-[10px] font-mono">
+                  {user.department}
+                </span>
+              )}
+              <span className="badge-pill text-[10px] font-mono flex items-center gap-1 border-neon/30 text-neon bg-neon/10">
+                <Zap size={10} />
+                <span>Fitness: {currentLevelDisplay}</span>
+              </span>
+            </div>
+
+            {/* Quick Metrics Bar */}
+            <div className="grid grid-cols-4 gap-2 w-full mt-5 pt-4 border-t border-white/10">
+              <div className="p-2.5 rounded-xl bg-obsidian/70 border border-white/5">
+                <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider block">XP</span>
+                <span className="text-sm font-black text-neon font-outfit tabular-nums mt-0.5 block">
+                  {(user?.totalXp ?? 0).toLocaleString()}
+                </span>
+              </div>
+
+              <div className="p-2.5 rounded-xl bg-obsidian/70 border border-white/5">
+                <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider block">Streak</span>
+                <span className="text-sm font-black text-amber-400 font-outfit tabular-nums mt-0.5 flex items-center justify-center gap-1">
+                  <Flame size={14} className="text-amber-400 fill-amber-400/20" />
+                  <span>{user?.currentStreak ?? 0}d</span>
+                </span>
+                <span className="text-[9px] font-mono text-slate-400 font-bold block truncate">
+                  Best: {user?.longestStreak || user?.bestStreak || 0}d
+                </span>
+              </div>
+
+              <div className="p-2.5 rounded-xl bg-obsidian/70 border border-white/5">
+                <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider block">Goal</span>
+                <span className="text-xs font-black text-white font-outfit capitalize truncate mt-0.5 block">
+                  {user?.fitnessGoal || 'Fitness'}
+                </span>
+              </div>
+
+              <div 
+                onClick={openEditProfile}
+                className="p-2.5 rounded-xl bg-obsidian/70 border border-white/5 hover:border-neon/40 transition-colors cursor-pointer"
+              >
+                <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider block">Fitness</span>
+                <span className="text-xs font-black text-neon font-outfit capitalize truncate mt-0.5 block">
+                  {currentLevelDisplay}
+                </span>
               </div>
             </div>
-            <span className="absolute -bottom-1 -right-1 px-2 py-0.5 rounded-full bg-neon text-obsidian text-[10px] font-black border-2 border-obsidian">
-              L{athleteLevel}
-            </span>
-          </div>
-
-          <h2 className="text-lg font-black text-white tracking-tight">
-            {user?.name || 'Student Athlete'}
-          </h2>
-
-          {/* Equipped Athlete Title Chip */}
-          <div className="mt-1.5 mb-1 flex items-center justify-center">
-            {user?.equippedTitle && activeTitle ? (
-              <button
-                onClick={openTitlesModal}
-                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider border shadow-glow-sm hover:scale-105 transition cursor-pointer ${activeTitleTheme?.badge}`}
-              >
-                <Crown size={13} />
-                <span>{activeTitle.name}</span>
-                <span className="text-[9px] text-slate-400 font-normal ml-0.5 underline">Change</span>
-              </button>
-            ) : (
-              <button
-                onClick={openTitlesModal}
-                className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold text-slate-400 border border-dashed border-slate-700 hover:border-neon/50 hover:text-neon transition cursor-pointer"
-              >
-                <Crown size={12} />
-                <span>+ Equip Athlete Title</span>
-              </button>
-            )}
-          </div>
-
-          <p className="text-xs text-slate-400 mt-0.5">{user?.email || 'athlete@campus.edu'}</p>
-
-          <div className="flex flex-wrap items-center justify-center gap-2 mt-3">
-            {user?.collegeName && (
-              <span className="badge-pill text-[10px] flex items-center gap-1">
-                <School size={11} />
-                <span>{user.collegeName}</span>
-              </span>
-            )}
-            {user?.department && (
-              <span className="badge-cyan text-[10px]">
-                {user.department}
-              </span>
-            )}
-            <span className="badge-pill text-[10px] flex items-center gap-1 border-neon/30 text-neon bg-neon/10">
-              <Zap size={10} />
-              <span>Fitness: {currentLevelDisplay}</span>
-            </span>
-          </div>
-
-          {/* Quick Metrics Bar */}
-          <div className="grid grid-cols-4 gap-2 w-full mt-5 pt-4 border-t border-white/5">
-            <div className="p-2 rounded-xl bg-surface/50 border border-white/5">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">XP</span>
-              <span className="text-sm font-black text-neon font-outfit tabular-nums mt-0.5 block">
-                {(user?.totalXp ?? 0).toLocaleString()}
-              </span>
-            </div>
-
-            <div className="p-2 rounded-xl bg-surface/50 border border-white/5">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Streak</span>
-              <span className="text-sm font-black text-amber-400 font-outfit tabular-nums mt-0.5 flex items-center justify-center gap-1">
-                <Flame size={14} className="text-amber-400 fill-amber-400/20" />
-                <span>{user?.currentStreak ?? 0}d</span>
-              </span>
-              <span className="text-[9px] text-slate-400 font-bold block truncate">
-                Best: {user?.longestStreak || user?.bestStreak || 0}d
-              </span>
-            </div>
-
-            <div className="p-2 rounded-xl bg-surface/50 border border-white/5">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Goal</span>
-              <span className="text-xs font-black text-white font-outfit capitalize truncate mt-0.5 block">
-                {user?.fitnessGoal || 'Fitness'}
-              </span>
-            </div>
-
-            <div 
-              onClick={openEditProfile}
-              className="p-2 rounded-xl bg-surface/50 border border-white/5 hover:border-neon/30 transition-colors cursor-pointer"
-            >
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Fitness</span>
-              <span className="text-xs font-black text-neon font-outfit capitalize truncate mt-0.5 block">
-                {currentLevelDisplay}
-              </span>
-            </div>
           </div>
         </div>
-      </div>
 
       {/* ── Step 7: Performance Score ─────────────────────────── */}
       <PerformanceScoreCard />
@@ -386,24 +395,24 @@ export default function ProfilePage() {
         {/* Goals Summary Card */}
         <div
           onClick={() => setShowGoalsModal(true)}
-          className="card-glass border border-white/10 p-4 flex flex-col justify-between group shadow-card cursor-pointer hover:border-neon/40 transition"
+          className="hud-panel p-4 flex flex-col justify-between group cursor-pointer hover:border-neon/50 transition-all shadow-glow-sm"
         >
           <div>
             <div className="flex items-center justify-between mb-2">
               <div className="w-8 h-8 rounded-xl bg-neon/15 text-neon flex items-center justify-center border border-neon/30">
                 <Target size={16} />
               </div>
-              <span className="text-[10px] font-bold text-neon uppercase">Manage</span>
+              <span className="text-[10px] font-mono font-bold text-neon uppercase tracking-wider">MANAGE</span>
             </div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Athletic Goals</span>
-            <div className="flex items-baseline gap-1 mt-0.5">
-              <span className="text-xl font-black text-white tabular-nums">{goalsSummary.active}</span>
+            <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider block">ATHLETIC GOALS</span>
+            <div className="flex items-baseline gap-1 mt-1">
+              <span className="text-2xl font-black text-white font-outfit tabular-nums">{goalsSummary.active}</span>
               <span className="text-xs text-slate-400 font-medium">Active</span>
               <span className="text-[10px] text-slate-500 ml-1">({goalsSummary.completed} done)</span>
             </div>
           </div>
-          <div className="mt-2 text-[10px] text-slate-400 flex items-center gap-0.5 group-hover:text-neon transition">
-            <span>View Goals Hub</span>
+          <div className="mt-3 text-[10px] font-mono font-bold text-slate-400 flex items-center gap-0.5 group-hover:text-neon transition">
+            <span>VIEW GOALS HUB</span>
             <ChevronRight size={12} />
           </div>
         </div>
@@ -411,53 +420,53 @@ export default function ProfilePage() {
         {/* Friends Count Card */}
         <div
           onClick={() => setShowFriendsModal(true)}
-          className="card-glass border border-white/10 p-4 flex flex-col justify-between group shadow-card cursor-pointer hover:border-cyan/40 transition"
+          className="hud-panel p-4 flex flex-col justify-between group cursor-pointer hover:border-cyan/50 transition-all"
         >
           <div>
             <div className="flex items-center justify-between mb-2">
               <div className="w-8 h-8 rounded-xl bg-cyan/15 text-cyan flex items-center justify-center border border-cyan/30">
                 <Users size={16} />
               </div>
-              <span className="text-[10px] font-bold text-cyan uppercase">Social</span>
+              <span className="text-[10px] font-mono font-bold text-cyan uppercase tracking-wider">ROSTER</span>
             </div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Connected Friends</span>
-            <div className="flex items-baseline gap-1 mt-0.5">
-              <span className="text-xl font-black text-white tabular-nums">{friendsCount}</span>
+            <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider block">CONNECTED ATHLETES</span>
+            <div className="flex items-baseline gap-1 mt-1">
+              <span className="text-2xl font-black text-white font-outfit tabular-nums">{friendsCount}</span>
               <span className="text-xs text-slate-400 font-medium">Athletes</span>
             </div>
           </div>
-          <div className="mt-2 text-[10px] text-slate-400 flex items-center gap-0.5 group-hover:text-cyan transition">
-            <span>Find & Challenge</span>
+          <div className="mt-3 text-[10px] font-mono font-bold text-slate-400 flex items-center gap-0.5 group-hover:text-cyan transition">
+            <span>FIND & CHALLENGE</span>
             <ChevronRight size={12} />
           </div>
         </div>
       </div>
 
       {/* Featured Achievements Showcase */}
-      <div className="card-glass border border-white/10 p-4 relative overflow-hidden shadow-card">
+      <div className="hud-panel p-4 relative overflow-hidden">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-xl bg-neon/15 text-neon flex items-center justify-center border border-neon/30">
               <Award size={16} />
             </div>
             <div>
-              <span className="text-[10px] font-black uppercase tracking-wider text-neon block">Athlete Trophy Case</span>
-              <h3 className="text-sm font-black text-white">Featured Achievements</h3>
+              <span className="text-[10px] font-mono font-black uppercase tracking-wider text-neon block">ATHLETE TROPHY CASE</span>
+              <h3 className="text-sm font-black text-white font-outfit uppercase">FEATURED ACHIEVEMENTS</h3>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={openShowcaseModal}
-              className="btn btn-sm btn-secondary py-1 px-2.5 text-[11px] font-bold flex items-center gap-1 border border-white/10 hover:text-neon cursor-pointer"
+              className="btn btn-sm btn-secondary py-1.5 px-3 text-[11px] font-mono font-bold flex items-center gap-1 border border-white/10 hover:text-neon cursor-pointer"
             >
               <Edit3 size={11} />
-              <span>Edit Case</span>
+              <span>EDIT CASE</span>
             </button>
             <button
               onClick={() => navigate('/badges')}
-              className="btn btn-sm btn-primary py-1 px-2.5 text-[11px] font-bold flex items-center gap-1 shadow-glow-sm cursor-pointer"
+              className="btn btn-sm btn-primary py-1.5 px-3 text-[11px] font-mono font-bold flex items-center gap-1 shadow-glow-sm cursor-pointer"
             >
-              <span>All Badges</span>
+              <span>ALL BADGES</span>
               <ChevronRight size={12} />
             </button>
           </div>
@@ -471,21 +480,21 @@ export default function ProfilePage() {
               <div
                 key={idx}
                 onClick={openShowcaseModal}
-                className="group relative flex flex-col items-center justify-center p-2.5 rounded-xl border border-white/5 bg-surface/40 hover:border-neon/40 transition cursor-pointer min-h-[72px]"
+                className="group relative flex flex-col items-center justify-center p-2.5 rounded-xl border border-white/10 bg-obsidian/70 hover:border-neon/50 hover:shadow-glow-sm transition cursor-pointer min-h-[72px]"
               >
                 {badgeId ? (
                   <>
                     <Trophy size={22} className="text-amber-400 mb-1 filter drop-shadow" />
-                    <span className="text-[10px] font-bold text-slate-300 text-center truncate max-w-full">
+                    <span className="text-[10px] font-mono font-bold text-slate-300 text-center truncate max-w-full">
                       {badgeId.replace(/_/g, ' ').replace('streak', 'Day Streak').replace('reps', 'Reps')}
                     </span>
                   </>
                 ) : (
                   <>
-                    <div className="w-6 h-6 rounded-lg border border-dashed border-slate-700 flex items-center justify-center text-slate-500 group-hover:text-neon group-hover:border-neon transition">
+                    <div className="w-6 h-6 rounded-lg border border-dashed border-white/20 flex items-center justify-center text-slate-500 group-hover:text-neon group-hover:border-neon transition">
                       <Plus size={12} />
                     </div>
-                    <span className="text-[9px] text-slate-500 font-bold mt-1">Empty Slot</span>
+                    <span className="text-[9px] font-mono text-slate-500 font-bold mt-1 uppercase">Empty Slot</span>
                   </>
                 )}
               </div>
@@ -495,50 +504,50 @@ export default function ProfilePage() {
       </div>
 
       {/* Authoritative Competitive Ranking Standing */}
-      <div className="card-glass border border-amber-500/20 bg-gradient-to-r from-amber-500/10 via-card to-card p-4 relative overflow-hidden shadow-card">
+      <div className="hud-panel-amber p-4 relative overflow-hidden">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/30">
               <Trophy size={16} />
             </div>
             <div>
-              <span className="text-[10px] font-black uppercase tracking-wider text-amber-400 block">Competitive Division</span>
-              <h3 className="text-sm font-black text-white">BGMI-Style Ranked Arena</h3>
+              <span className="text-[10px] font-mono font-black uppercase tracking-wider text-amber-400 block">COMPETITIVE DIVISION</span>
+              <h3 className="text-sm font-black text-white font-outfit uppercase">RANKED ARENA TELEMETRY</h3>
             </div>
           </div>
           <button
             onClick={() => navigate('/competitive')}
-            className="btn btn-sm btn-primary py-1 px-2.5 text-[11px] font-bold flex items-center gap-1 shadow-glow-sm cursor-pointer"
+            className="btn btn-sm btn-primary py-1.5 px-3 text-[11px] font-outfit font-black uppercase tracking-wider flex items-center gap-1 shadow-glow-sm cursor-pointer"
           >
             <Swords size={12} />
             <span>Enter Arena</span>
           </button>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center pt-2 border-t border-white/5">
-          <div className="p-2 rounded-xl bg-surface/50 border border-white/5">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Current Rank</span>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center pt-2 border-t border-white/10">
+          <div className="p-2.5 rounded-xl bg-obsidian/70 border border-white/5">
+            <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider block">Current Rank</span>
             <span className="text-sm font-black text-amber-300 font-outfit mt-0.5 block">
               {currentRankTier}
             </span>
           </div>
 
-          <div className="p-2 rounded-xl bg-surface/50 border border-white/5">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">RP</span>
+          <div className="p-2.5 rounded-xl bg-obsidian/70 border border-white/5">
+            <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider block">RP</span>
             <span className="text-sm font-black text-white font-outfit tabular-nums mt-0.5 block">
               {userRP}
             </span>
           </div>
 
-          <div className="p-2 rounded-xl bg-surface/50 border border-white/5">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Next Rank</span>
+          <div className="p-2.5 rounded-xl bg-obsidian/70 border border-white/5">
+            <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider block">Next Rank</span>
             <span className="text-sm font-black text-cyan font-outfit mt-0.5 block">
               {nextRankTier || 'None (Max)'}
             </span>
           </div>
 
-          <div className="p-2 rounded-xl bg-surface/50 border border-white/5">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">RP Needed</span>
+          <div className="p-2.5 rounded-xl bg-obsidian/70 border border-white/5">
+            <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider block">RP Needed</span>
             <span className="text-sm font-black text-neon font-outfit tabular-nums mt-0.5 block">
               {rpNeeded !== null ? rpNeeded : '0 (Max)'}
             </span>
@@ -548,8 +557,8 @@ export default function ProfilePage() {
 
       {/* Settings Navigation List */}
       <section className="space-y-2">
-        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider px-1">
-          Preferences & Calibration
+        <h3 className="text-xs font-mono font-bold text-slate-400 uppercase tracking-wider px-1">
+          PREFERENCES & CALIBRATION
         </h3>
 
         <div className="space-y-2">
@@ -597,14 +606,14 @@ export default function ProfilePage() {
                 key={idx}
                 type="button"
                 onClick={item.action}
-                className="card p-4 flex items-center justify-between hover:border-neon/30 transition-all text-left w-full cursor-pointer group"
+                className="hud-panel p-3.5 flex items-center justify-between hover:border-neon/40 transition-all text-left w-full cursor-pointer group"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-surface flex items-center justify-center text-slate-300 group-hover:text-neon group-hover:bg-neon/10 transition-colors">
+                  <div className="w-10 h-10 rounded-xl bg-surface border border-white/10 flex items-center justify-center text-slate-300 group-hover:text-neon group-hover:border-neon/40 transition-all">
                     <Icon size={18} />
                   </div>
                   <div>
-                    <div className="font-bold text-sm text-white group-hover:text-neon transition-colors">
+                    <div className="font-bold text-sm text-white group-hover:text-neon transition-colors font-outfit">
                       {item.label}
                     </div>
                     <div className="text-[11px] text-slate-400 mt-0.5">{item.desc}</div>
@@ -619,21 +628,21 @@ export default function ProfilePage() {
 
       {/* Account Security / Danger Zone */}
       <section className="pt-2">
-        <h3 className="text-xs font-bold text-rose-400 uppercase tracking-wider px-1 mb-2">
-          Session Security
+        <h3 className="text-xs font-mono font-bold text-rose-400 uppercase tracking-wider px-1 mb-2">
+          SESSION SECURITY
         </h3>
-        <div className="card border-rose-500/20 bg-rose-950/10 p-4">
+        <div className="hud-panel border-rose-500/30 bg-rose-950/15 p-4">
           <button
             type="button"
             className="w-full text-left flex items-center justify-between cursor-pointer bg-transparent border-none text-rose-300 hover:text-rose-200"
             onClick={handleLogout}
           >
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-rose-500/15 flex items-center justify-center text-rose-400">
+              <div className="w-9 h-9 rounded-xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-center text-rose-400">
                 <LogOut size={16} />
               </div>
               <div>
-                <span className="font-bold text-sm text-rose-300">Sign Out of Athlete Account</span>
+                <span className="font-bold text-sm text-rose-300 font-outfit">Sign Out of Athlete Account</span>
                 <p className="text-[11px] text-slate-400 mt-0.5">End current session on this device</p>
               </div>
             </div>
@@ -996,5 +1005,6 @@ export default function ProfilePage() {
         targetFriend={targetFriend}
       />
     </div>
+  </SportxBackground>
   );
 }

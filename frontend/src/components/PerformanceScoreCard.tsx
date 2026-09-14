@@ -67,9 +67,9 @@ export default function PerformanceScoreCard({
 
   if (compact) {
     return (
-      <div className={`card-glass border border-white/10 p-3.5 relative overflow-hidden shadow-card ${className}`}>
+      <div className={`hud-panel p-3.5 relative overflow-hidden ${className}`}>
         <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider text-slate-400">
+          <div className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider text-slate-300">
             <Shield size={13} className="text-neon" />
             <span>Performance Score</span>
           </div>
@@ -118,15 +118,15 @@ export default function PerformanceScoreCard({
           <div className="grid grid-cols-5 gap-1 mt-2.5 pt-2 border-t border-white/5 text-center">
             <div>
               <div className="text-[9px] font-semibold text-slate-400">Consistency</div>
-              <div className="text-[11px] font-black text-white tabular-nums">{breakdown.consistency}</div>
+              <div className="text-[11px] font-black text-neon tabular-nums">{breakdown.consistency}</div>
             </div>
             <div>
               <div className="text-[9px] font-semibold text-slate-400">Form</div>
-              <div className="text-[11px] font-black text-emerald-400 tabular-nums">{breakdown.form}</div>
+              <div className="text-[11px] font-black text-cyan tabular-nums">{breakdown.form}</div>
             </div>
             <div>
-              <div className="text-[9px] font-semibold text-slate-400">Volume</div>
-              <div className="text-[11px] font-black text-cyan tabular-nums">{breakdown.workout}</div>
+              <div className="text-[9px] font-semibold text-slate-400">Workout</div>
+              <div className="text-[11px] font-black text-white tabular-nums">{breakdown.workout}</div>
             </div>
             <div>
               <div className="text-[9px] font-semibold text-slate-400">Arena</div>
@@ -144,7 +144,7 @@ export default function PerformanceScoreCard({
 
   // Detailed Card
   return (
-    <div className={`card-glass border border-white/10 p-5 relative overflow-hidden shadow-card ${className}`}>
+    <div className={`hud-panel p-5 relative overflow-hidden ${className}`}>
       <div className="absolute top-0 right-0 w-48 h-48 bg-neon/10 rounded-full blur-3xl pointer-events-none" />
 
       {/* Header */}

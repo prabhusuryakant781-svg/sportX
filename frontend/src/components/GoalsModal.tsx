@@ -134,22 +134,22 @@ export default function GoalsModal({ isOpen, onClose, onGoalUpdated }: GoalsModa
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-      <div className="card-glass border border-white/10 w-full max-w-xl max-h-[90vh] flex flex-col rounded-3xl overflow-hidden shadow-2xl relative">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in">
+      <div className="hud-panel-neon w-full max-w-xl max-h-[90vh] flex flex-col rounded-3xl overflow-hidden shadow-2xl relative border border-neon/30 bg-obsidian-card/95">
         {/* Header */}
         <div className="p-5 border-b border-white/10 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-neon/15 border border-neon/30 flex items-center justify-center text-neon">
+            <div className="w-9 h-9 rounded-xl bg-neon/15 border border-neon/30 flex items-center justify-center text-neon shadow-glow-sm">
               <Target size={18} />
             </div>
             <div>
-              <h2 className="text-base font-black text-white tracking-tight">Athletic Goals Hub</h2>
+              <h2 className="text-base font-black text-white tracking-tight uppercase font-outfit">ATHLETIC GOALS HUB</h2>
               <p className="text-xs text-slate-400">Measurable milestones verified from authoritative activity</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg bg-surface hover:bg-surface/80 text-slate-400 hover:text-white transition cursor-pointer"
+            className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition cursor-pointer border border-white/10"
           >
             <X size={18} />
           </button>
@@ -159,30 +159,30 @@ export default function GoalsModal({ isOpen, onClose, onGoalUpdated }: GoalsModa
         <div className="px-5 pt-3 pb-2 border-b border-white/5 flex gap-2">
           <button
             onClick={() => setTab('active')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-outfit font-black uppercase tracking-wider transition cursor-pointer ${
               tab === 'active'
                 ? 'bg-neon text-obsidian shadow-glow-sm'
-                : 'bg-surface/50 text-slate-400 hover:text-white'
+                : 'bg-white/5 text-slate-400 hover:text-white border border-white/5'
             }`}
           >
             Active ({activeGoals.length})
           </button>
           <button
             onClick={() => setTab('completed')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-outfit font-black uppercase tracking-wider transition cursor-pointer ${
               tab === 'completed'
                 ? 'bg-neon text-obsidian shadow-glow-sm'
-                : 'bg-surface/50 text-slate-400 hover:text-white'
+                : 'bg-white/5 text-slate-400 hover:text-white border border-white/5'
             }`}
           >
             Completed ({completedGoals.length})
           </button>
           <button
             onClick={() => setTab('new')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1 ${
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-outfit font-black uppercase tracking-wider transition cursor-pointer flex items-center gap-1 ${
               tab === 'new'
                 ? 'bg-neon text-obsidian shadow-glow-sm'
-                : 'bg-surface/50 text-slate-400 hover:text-white'
+                : 'bg-white/5 text-slate-400 hover:text-white border border-white/5'
             }`}
           >
             <Plus size={13} />
@@ -192,7 +192,7 @@ export default function GoalsModal({ isOpen, onClose, onGoalUpdated }: GoalsModa
 
         {/* Error Alert */}
         {error && (
-          <div className="mx-5 mt-3 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-300 flex items-center gap-2">
+          <div className="mx-5 mt-3 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-300 flex items-center gap-2 font-mono">
             <AlertCircle size={14} className="flex-shrink-0" />
             <span>{error}</span>
           </div>
@@ -231,24 +231,24 @@ export default function GoalsModal({ isOpen, onClose, onGoalUpdated }: GoalsModa
                   return (
                     <div
                       key={goal.goalId}
-                      className="card p-4 border border-white/10 hover:border-white/20 transition relative"
+                      className="hud-panel p-4 hover:border-neon/40 transition relative"
                     >
                       <div className="flex justify-between items-start mb-2">
                         <div>
                           <div className="flex items-center gap-2 mb-1">
                             <span
-                              className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider border ${getCategoryColor(
+                              className={`px-2 py-0.5 rounded text-[9px] font-mono font-black uppercase tracking-wider border ${getCategoryColor(
                                 goal.category
                               )}`}
                             >
                               {goal.category}
                             </span>
-                            <span className="text-[10px] text-slate-400 flex items-center gap-1">
+                            <span className="text-[10px] font-mono text-slate-400 flex items-center gap-1">
                               <Clock size={10} />
                               <span>{daysLeft} days left</span>
                             </span>
                           </div>
-                          <h4 className="text-sm font-bold text-white tracking-tight">{goal.title}</h4>
+                          <h4 className="text-sm font-black text-white tracking-tight font-outfit uppercase">{goal.title}</h4>
                           {goal.description && (
                             <p className="text-xs text-slate-400 mt-0.5">{goal.description}</p>
                           )}
@@ -256,7 +256,7 @@ export default function GoalsModal({ isOpen, onClose, onGoalUpdated }: GoalsModa
 
                         <button
                           onClick={() => handleCancelGoal(goal.goalId)}
-                          className="text-[10px] text-slate-500 hover:text-rose-400 font-semibold transition"
+                          className="text-[10px] font-mono text-slate-500 hover:text-rose-400 font-semibold transition cursor-pointer"
                           title="Cancel goal"
                         >
                           Cancel
@@ -266,15 +266,15 @@ export default function GoalsModal({ isOpen, onClose, onGoalUpdated }: GoalsModa
                       {/* Authoritative Progress Bar */}
                       <div className="mt-3">
                         <div className="flex justify-between items-center text-xs mb-1">
-                          <span className="text-slate-400 font-medium">
+                          <span className="text-slate-400 font-mono text-[11px]">
                             <strong className="text-white font-bold tabular-nums">{goal.current}</strong> /{' '}
                             {goal.target} {goal.unit}
                           </span>
-                          <span className="font-black text-neon tabular-nums">{goal.progress}%</span>
+                          <span className="font-black text-neon font-mono tabular-nums">{goal.progress}%</span>
                         </div>
-                        <div className="h-2 rounded-full bg-surface overflow-hidden">
+                        <div className="h-2 rounded-full bg-obsidian overflow-hidden border border-white/10 p-0.5">
                           <div
-                            className="h-full bg-neon transition-all duration-500"
+                            className="h-full bg-gradient-to-r from-neon to-cyan rounded-full transition-all duration-500 shadow-glow-sm"
                             style={{ width: `${goal.progress}%` }}
                           />
                         </div>
@@ -288,7 +288,7 @@ export default function GoalsModal({ isOpen, onClose, onGoalUpdated }: GoalsModa
             completedGoals.length === 0 ? (
               <div className="text-center py-10 space-y-2">
                 <CheckCircle2 size={36} className="mx-auto text-slate-600" />
-                <h3 className="text-sm font-bold text-white">No Completed Goals Yet</h3>
+                <h3 className="text-sm font-bold text-white uppercase font-outfit">No Completed Goals Yet</h3>
                 <p className="text-xs text-slate-400">
                   Goals you complete will be permanently celebrated here.
                 </p>
@@ -298,26 +298,26 @@ export default function GoalsModal({ isOpen, onClose, onGoalUpdated }: GoalsModa
                 {completedGoals.map((goal) => (
                   <div
                     key={goal.goalId}
-                    className="card p-4 border border-emerald-500/20 bg-emerald-950/10 flex items-center justify-between"
+                    className="hud-panel p-4 border-emerald-500/40 bg-emerald-950/20 flex items-center justify-between"
                   >
                     <div>
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                        <span className="px-2 py-0.5 rounded text-[9px] font-mono font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
                           {goal.category}
                         </span>
-                        <span className="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
+                        <span className="text-[10px] font-mono text-emerald-400 font-bold flex items-center gap-1">
                           <CheckCircle2 size={11} />
                           <span>100% Accomplished</span>
                         </span>
                       </div>
-                      <h4 className="text-sm font-bold text-white">{goal.title}</h4>
-                      <p className="text-[10px] text-slate-400 mt-0.5">
+                      <h4 className="text-sm font-black text-white font-outfit uppercase">{goal.title}</h4>
+                      <p className="text-[10px] font-mono text-slate-400 mt-0.5">
                         Achieved: {goal.target} {goal.unit} • Completed{' '}
                         {goal.completedAt ? new Date(goal.completedAt).toLocaleDateString() : 'recently'}
                       </p>
                     </div>
 
-                    <div className="w-9 h-9 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 flex-shrink-0">
+                    <div className="w-9 h-9 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 flex-shrink-0 shadow-glow-sm">
                       <Trophy size={18} />
                     </div>
                   </div>
@@ -329,8 +329,8 @@ export default function GoalsModal({ isOpen, onClose, onGoalUpdated }: GoalsModa
             <div className="space-y-5">
               {/* Quick Template Picker */}
               <div>
-                <span className="text-[11px] font-black uppercase tracking-wider text-slate-400 block mb-2">
-                  1-Click Goal Templates (Tested & Certified)
+                <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-400 block mb-2">
+                  1-CLICK GOAL TEMPLATES (TESTED & CERTIFIED)
                 </span>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto no-scrollbar p-1">
                   {templates.map((tmpl) => (
@@ -338,7 +338,7 @@ export default function GoalsModal({ isOpen, onClose, onGoalUpdated }: GoalsModa
                       key={tmpl.id}
                       type="button"
                       onClick={() => handleApplyTemplate(tmpl)}
-                      className="p-2.5 rounded-xl bg-surface/50 hover:bg-surface border border-white/5 hover:border-neon/40 text-left transition group cursor-pointer"
+                      className="hud-panel p-2.5 hover:border-neon/40 text-left transition group cursor-pointer"
                     >
                       <div className="flex justify-between items-center mb-1">
                         <span

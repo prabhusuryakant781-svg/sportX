@@ -129,6 +129,53 @@
     box-shadow: 0 12px 36px 0 rgba(0, 0, 0, 0.65);
   }
 
+  /* SportX HUD Panels & Telemetry Blocks - Source of truth: Master Login Identity */
+  .hud-panel {
+    @apply rounded-2xl p-4 sm:p-5 relative overflow-hidden transition-all duration-200;
+    background: rgba(13, 21, 39, 0.82);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.65);
+  }
+
+  .hud-panel:hover {
+    border-color: rgba(255, 255, 255, 0.16);
+  }
+
+  .hud-panel-neon {
+    @apply hud-panel;
+    border-color: rgba(204, 255, 0, 0.28);
+    background: linear-gradient(155deg, rgba(204, 255, 0, 0.07) 0%, rgba(13, 21, 39, 0.88) 55%);
+  }
+
+  .hud-panel-neon:hover {
+    border-color: rgba(204, 255, 0, 0.5);
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.75), 0 0 20px rgba(204, 255, 0, 0.15);
+  }
+
+  .hud-panel-cyan {
+    @apply hud-panel;
+    border-color: rgba(0, 240, 255, 0.28);
+    background: linear-gradient(155deg, rgba(0, 240, 255, 0.07) 0%, rgba(13, 21, 39, 0.88) 55%);
+  }
+
+  .hud-panel-cyan:hover {
+    border-color: rgba(0, 240, 255, 0.5);
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.75), 0 0 20px rgba(0, 240, 255, 0.15);
+  }
+
+  .hud-panel-amber {
+    @apply hud-panel;
+    border-color: rgba(245, 158, 11, 0.28);
+    background: linear-gradient(155deg, rgba(245, 158, 11, 0.07) 0%, rgba(13, 21, 39, 0.88) 55%);
+  }
+
+  .hud-panel-amber:hover {
+    border-color: rgba(245, 158, 11, 0.5);
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.75), 0 0 20px rgba(245, 158, 11, 0.15);
+  }
+
   /* SportX Athletic Diagonal Accent */
   .sportx-diagonal-stripes {
     background-image: repeating-linear-gradient(

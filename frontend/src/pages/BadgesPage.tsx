@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
+import SportxBackground from '../components/SportxBackground';
 import {
   Award,
   Lock,
@@ -151,277 +152,280 @@ export default function BadgesPage() {
   };
 
   return (
-    <div className="space-y-5 pb-12 animate-fade-in max-w-4xl mx-auto px-1">
-      {/* Top Navigation Bar */}
-      <div className="pt-2 flex items-center justify-between">
-        <button
-          onClick={() => navigate(-1)}
-          className="flex items-center gap-1.5 text-xs font-bold text-slate-400 hover:text-white transition py-1 px-2 rounded-lg bg-slate-900/60 border border-slate-800"
-        >
-          <ChevronLeft size={16} />
-          <span>Back</span>
-        </button>
-        <span className="text-[11px] font-black uppercase tracking-widest text-neon">
-          Progression & Trophy Room
-        </span>
-      </div>
+    <SportxBackground src="/images/bg-trophy.jpg" overlayOpacity={0.88} accentGlow="amber">
+      <div className="space-y-5 pb-12 animate-fade-in max-w-4xl mx-auto px-1 relative z-10">
+        {/* Top Navigation Bar */}
+        <div className="pt-2 flex items-center justify-between">
+          <button
+            onClick={() => navigate(-1)}
+            className="flex items-center gap-1.5 text-xs font-mono font-bold text-slate-400 hover:text-white transition py-1.5 px-3 rounded-lg bg-obsidian-card border border-white/10 hover:border-cyan/40"
+          >
+            <ChevronLeft size={16} />
+            <span>BACK</span>
+          </button>
+          <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-amber-400 flex items-center gap-1.5">
+            <Trophy size={14} />
+            <span>PROGRESSION & TROPHY CABINET</span>
+          </span>
+        </div>
 
-      {/* Hero Showcase Card */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-slate-950 to-black border border-slate-800 p-5 shadow-2xl">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-neon/5 rounded-full blur-3xl pointer-events-none" />
+        {/* Hero Showcase Card */}
+        <div className="hud-panel-amber p-5 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div>
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black tracking-wider uppercase bg-neon/10 border border-neon/30 text-neon mb-2">
-              <Sparkles size={12} />
-              <span>Athlete Trophy Cabinet</span>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative z-10">
+            <div>
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-black tracking-widest uppercase bg-amber-500/15 border border-amber-500/30 text-amber-400 mb-2">
+                <Sparkles size={12} />
+                <span>CHAMPIONSHIP TROPHY ROOM</span>
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight uppercase font-outfit">
+                ACHIEVEMENTS & MILESTONES
+              </h1>
+              <p className="text-xs sm:text-sm text-slate-300 mt-1 max-w-md">
+                Complete verified workouts, accumulate repetitions, and conquer competitive arenas to earn rare trophies and athlete titles.
+              </p>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-              Achievements & Milestones
-            </h1>
-            <p className="text-xs sm:text-sm text-slate-400 mt-1 max-w-md">
-              Complete verified workouts, accumulate repetitions, and conquer competitive arenas to earn rare trophies and athlete titles.
+
+            {/* Progress Stat Ring */}
+            <div className="flex items-center gap-3 bg-obsidian/80 border border-white/10 rounded-xl p-3 sm:p-4 shrink-0 shadow-inner">
+              <div className="relative flex items-center justify-center w-14 h-14">
+                <svg className="w-14 h-14 -rotate-90" viewBox="0 0 36 36">
+                  <path
+                    className="text-white/10"
+                    strokeWidth="3.5"
+                    stroke="currentColor"
+                    fill="none"
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                  />
+                  <path
+                    className="text-neon transition-all duration-1000 ease-out"
+                    strokeDasharray={`${summary.completionPercentage}, 100`}
+                    strokeWidth="3.5"
+                    strokeLinecap="round"
+                    stroke="currentColor"
+                    fill="none"
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                  />
+                </svg>
+                <span className="absolute text-xs font-black text-white font-outfit">
+                  {summary.completionPercentage}%
+                </span>
+              </div>
+              <div>
+                <div className="text-lg font-black text-white leading-tight font-outfit">
+                  {summary.totalUnlocked} <span className="text-xs font-normal text-slate-500">/ {summary.totalAvailable}</span>
+                </div>
+                <div className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider mt-0.5">
+                  UNLOCKED
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Filter Tabs */}
+        <div className="space-y-3">
+          {/* Status Toggle (All / Unlocked / Locked) */}
+          <div className="flex items-center gap-1.5 p-1 rounded-xl bg-obsidian-card/90 border border-white/10 w-fit backdrop-blur-md">
+            <button
+              onClick={() => setStatusFilter('all')}
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-outfit font-black uppercase tracking-wider transition ${
+                statusFilter === 'all'
+                  ? 'bg-neon text-obsidian shadow-glow-sm'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              All ({badges.length})
+            </button>
+            <button
+              onClick={() => setStatusFilter('unlocked')}
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-outfit font-black uppercase tracking-wider transition flex items-center gap-1.5 ${
+                statusFilter === 'unlocked'
+                  ? 'bg-neon text-obsidian shadow-glow-sm'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <CheckCircle2 size={13} />
+              <span>Unlocked ({summary.totalUnlocked})</span>
+            </button>
+            <button
+              onClick={() => setStatusFilter('locked')}
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-outfit font-black uppercase tracking-wider transition flex items-center gap-1.5 ${
+                statusFilter === 'locked'
+                  ? 'bg-neon text-obsidian shadow-glow-sm'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Lock size={13} />
+              <span>Locked ({Math.max(0, summary.totalAvailable - summary.totalUnlocked)})</span>
+            </button>
+          </div>
+
+          {/* Categories Horizontal Carousel */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+            {CATEGORIES.map((cat) => {
+              const Icon = cat.icon;
+              const active = selectedCategory === cat.id;
+              return (
+                <button
+                  key={cat.id}
+                  onClick={() => setSelectedCategory(cat.id)}
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-outfit font-black uppercase tracking-wider whitespace-nowrap transition border shrink-0 ${
+                    active
+                      ? 'bg-neon/10 text-neon border-neon/50 shadow-glow-sm'
+                      : 'bg-obsidian-card/80 text-slate-400 border-white/10 hover:text-white hover:border-white/20'
+                  }`}
+                >
+                  <Icon size={14} />
+                  <span>{cat.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Badges Grid */}
+        {loading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 py-6">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div
+                key={i}
+                className="hud-panel h-32 animate-pulse"
+              />
+            ))}
+          </div>
+        ) : filteredBadges.length === 0 ? (
+          <div className="hud-panel text-center py-16 px-4">
+            <Award size={40} className="mx-auto text-slate-600 mb-2" />
+            <h3 className="text-base font-bold text-white uppercase font-outfit">No Achievements Found</h3>
+            <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
+              {statusFilter === 'unlocked'
+                ? 'You have not unlocked any achievements in this category yet. Keep training!'
+                : 'No achievements match your selected filter.'}
             </p>
           </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            {filteredBadges.map((badge) => {
+              const rarity = badge.rarity || 'Common';
+              const theme = RARITY_THEMES[rarity] || RARITY_THEMES.Common;
 
-          {/* Progress Stat Ring */}
-          <div className="flex items-center gap-3 bg-slate-900/80 border border-slate-800 rounded-xl p-3 sm:p-4 shrink-0 shadow-inner">
-            <div className="relative flex items-center justify-center w-14 h-14">
-              <svg className="w-14 h-14 -rotate-90" viewBox="0 0 36 36">
-                <path
-                  className="text-slate-800"
-                  strokeWidth="3.5"
-                  stroke="currentColor"
-                  fill="none"
-                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                />
-                <path
-                  className="text-neon transition-all duration-1000 ease-out"
-                  strokeDasharray={`${summary.completionPercentage}, 100`}
-                  strokeWidth="3.5"
-                  strokeLinecap="round"
-                  stroke="currentColor"
-                  fill="none"
-                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                />
-              </svg>
-              <span className="absolute text-xs font-black text-white">
-                {summary.completionPercentage}%
-              </span>
-            </div>
-            <div>
-              <div className="text-lg font-black text-white leading-tight">
-                {summary.totalUnlocked} <span className="text-xs font-normal text-slate-500">/ {summary.totalAvailable}</span>
-              </div>
-              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">
-                Unlocked
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Filter Tabs */}
-      <div className="space-y-3">
-        {/* Status Toggle (All / Unlocked / Locked) */}
-        <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-900/90 border border-slate-800/80 w-fit">
-          <button
-            onClick={() => setStatusFilter('all')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
-              statusFilter === 'all'
-                ? 'bg-neon text-black shadow-glow-sm'
-                : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            All ({badges.length})
-          </button>
-          <button
-            onClick={() => setStatusFilter('unlocked')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
-              statusFilter === 'unlocked'
-                ? 'bg-neon text-black shadow-glow-sm'
-                : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            <CheckCircle2 size={13} />
-            <span>Unlocked ({summary.totalUnlocked})</span>
-          </button>
-          <button
-            onClick={() => setStatusFilter('locked')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
-              statusFilter === 'locked'
-                ? 'bg-neon text-black shadow-glow-sm'
-                : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            <Lock size={13} />
-            <span>Locked ({Math.max(0, summary.totalAvailable - summary.totalUnlocked)})</span>
-          </button>
-        </div>
-
-        {/* Categories Horizontal Carousel */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
-          {CATEGORIES.map((cat) => {
-            const Icon = cat.icon;
-            const active = selectedCategory === cat.id;
-            return (
-              <button
-                key={cat.id}
-                onClick={() => setSelectedCategory(cat.id)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition border shrink-0 ${
-                  active
-                    ? 'bg-slate-800 text-neon border-neon/50 shadow-glow-sm'
-                    : 'bg-slate-900/70 text-slate-400 border-slate-800 hover:text-white hover:border-slate-700'
-                }`}
-              >
-                <Icon size={14} />
-                <span>{cat.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Badges Grid */}
-      {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 py-6">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div
-              key={i}
-              className="h-32 rounded-2xl bg-slate-900/60 border border-slate-800 animate-pulse"
-            />
-          ))}
-        </div>
-      ) : filteredBadges.length === 0 ? (
-        <div className="text-center py-16 px-4 rounded-2xl bg-slate-950/60 border border-slate-800/80">
-          <Award size={40} className="mx-auto text-slate-600 mb-2" />
-          <h3 className="text-base font-bold text-white">No Achievements Found</h3>
-          <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
-            {statusFilter === 'unlocked'
-              ? 'You have not unlocked any achievements in this category yet. Keep training!'
-              : 'No achievements match your selected filter.'}
-          </p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-          {filteredBadges.map((badge) => {
-            const rarity = badge.rarity || 'Common';
-            const theme = RARITY_THEMES[rarity] || RARITY_THEMES.Common;
-
-            return (
-              <div
-                key={badge.id}
-                className={`relative overflow-hidden rounded-2xl border p-4 transition duration-200 flex flex-col justify-between bg-gradient-to-br ${
-                  badge.unlocked
-                    ? `${theme.bg} ${theme.border} hover:scale-[1.01]`
-                    : 'from-slate-950/80 to-slate-900/40 border-slate-800/70 opacity-80'
-                }`}
-                style={{
-                  boxShadow: badge.unlocked ? `0 4px 20px ${theme.glow}` : undefined,
-                }}
-              >
-                {/* Milestone Ribbon */}
-                {badge.isMilestone && (
-                  <div className="absolute top-0 right-0 bg-gradient-to-l from-amber-500 to-amber-600 text-black font-black text-[9px] uppercase tracking-wider px-2.5 py-0.5 rounded-bl-lg shadow-sm">
-                    Milestone
-                  </div>
-                )}
-
-                <div>
-                  <div className="flex items-start gap-3.5">
-                    {/* Badge Icon Frame */}
-                    <div
-                      className={`relative flex items-center justify-center w-14 h-14 rounded-xl border shrink-0 text-3xl select-none ${
-                        badge.unlocked
-                          ? `${theme.border} bg-slate-900/80 shadow-md`
-                          : 'border-slate-800 bg-slate-950 text-slate-600 grayscale'
-                      }`}
-                    >
-                      <span>{badge.icon}</span>
-                      {!badge.unlocked && (
-                        <div className="absolute inset-0 bg-black/60 rounded-xl flex items-center justify-center">
-                          <Lock size={16} className="text-slate-400" />
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Details */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5 flex-wrap mb-1">
-                        <span
-                          className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border ${
-                            badge.unlocked ? theme.badge : 'bg-slate-800 text-slate-500 border-slate-700'
-                          }`}
-                        >
-                          {rarity}
-                        </span>
-                        <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-slate-900 text-slate-400 border border-slate-800">
-                          {badge.category}
-                        </span>
-                      </div>
-
-                      <h3
-                        className={`text-sm font-black tracking-tight truncate ${
-                          badge.unlocked ? 'text-white' : 'text-slate-300'
-                        }`}
-                      >
-                        {badge.name}
-                      </h3>
-                      <p className="text-xs text-slate-400 mt-1 leading-relaxed line-clamp-2">
-                        {badge.description}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Bottom Footer: Progress Bar or Unlock Timestamp */}
-                <div className="mt-3.5 pt-2.5 border-t border-slate-800/80">
-                  {badge.unlocked ? (
-                    <div className="flex items-center justify-between text-[11px]">
-                      <span className="flex items-center gap-1 text-emerald-400 font-bold">
-                        <CheckCircle2 size={13} />
-                        <span>{badge.unlockedAt ? `Unlocked ${formatDate(badge.unlockedAt)}` : 'Completed'}</span>
-                      </span>
-                      {badge.xpReward && (
-                        <span className="text-neon font-black tracking-wider text-[10px]">
-                          +{badge.xpReward} XP
-                        </span>
-                      )}
-                    </div>
-                  ) : badge.progress ? (
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between text-[10px] font-bold">
-                        <span className="text-slate-400 uppercase tracking-wider">Progress</span>
-                        <span className="text-slate-300">
-                          {badge.progress.current} / {badge.progress.target} ({badge.progress.percentage}%)
-                        </span>
-                      </div>
-                      <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-gradient-to-r from-neon to-emerald-400 rounded-full transition-all duration-500"
-                          style={{ width: `${badge.progress.percentage}%` }}
-                        />
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-between text-[11px] text-slate-500 font-medium">
-                      <span className="flex items-center gap-1">
-                        <Lock size={12} />
-                        <span>Locked</span>
-                      </span>
-                      {badge.xpReward && (
-                        <span className="text-slate-500 font-bold text-[10px]">
-                          +{badge.xpReward} XP Reward
-                        </span>
-                      )}
+              return (
+                <div
+                  key={badge.id}
+                  className={`hud-panel relative p-4 transition duration-200 flex flex-col justify-between ${
+                    badge.unlocked
+                      ? `${theme.border} hover:scale-[1.01]`
+                      : 'border-white/5 opacity-75'
+                  }`}
+                  style={{
+                    boxShadow: badge.unlocked ? `0 4px 20px ${theme.glow}` : undefined,
+                  }}
+                >
+                  {/* Milestone Ribbon */}
+                  {badge.isMilestone && (
+                    <div className="absolute top-0 right-0 bg-gradient-to-l from-amber-500 to-amber-600 text-black font-black text-[9px] font-mono uppercase tracking-wider px-2.5 py-0.5 rounded-bl-lg shadow-sm">
+                      MILESTONE
                     </div>
                   )}
+
+                  <div>
+                    <div className="flex items-start gap-3.5">
+                      {/* Badge Icon Frame */}
+                      <div
+                        className={`relative flex items-center justify-center w-14 h-14 rounded-xl border shrink-0 text-3xl select-none ${
+                          badge.unlocked
+                            ? `${theme.border} bg-obsidian shadow-md`
+                            : 'border-white/10 bg-black/40 text-slate-600 grayscale'
+                        }`}
+                      >
+                        <span>{badge.icon}</span>
+                        {!badge.unlocked && (
+                          <div className="absolute inset-0 bg-black/70 rounded-xl flex items-center justify-center">
+                            <Lock size={16} className="text-slate-400" />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Details */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 flex-wrap mb-1">
+                          <span
+                            className={`text-[9px] font-mono font-black uppercase tracking-wider px-2 py-0.5 rounded-md border ${
+                              badge.unlocked ? theme.badge : 'bg-slate-800 text-slate-500 border-slate-700'
+                            }`}
+                          >
+                            {rarity}
+                          </span>
+                          <span className="text-[9px] font-mono font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-white/5 text-slate-400 border border-white/10">
+                            {badge.category}
+                          </span>
+                        </div>
+
+                        <h3
+                          className={`text-sm font-black tracking-tight truncate font-outfit ${
+                            badge.unlocked ? 'text-white' : 'text-slate-300'
+                          }`}
+                        >
+                          {badge.name}
+                        </h3>
+                        <p className="text-xs text-slate-400 mt-1 leading-relaxed line-clamp-2">
+                          {badge.description}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Bottom Footer: Progress Bar or Unlock Timestamp */}
+                  <div className="mt-3.5 pt-2.5 border-t border-white/10">
+                    {badge.unlocked ? (
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="flex items-center gap-1 text-neon font-bold font-mono">
+                          <CheckCircle2 size={13} />
+                          <span>{badge.unlockedAt ? `Unlocked ${formatDate(badge.unlockedAt)}` : 'Completed'}</span>
+                        </span>
+                        {badge.xpReward && (
+                          <span className="text-neon font-black tracking-wider text-[10px] font-mono">
+                            +{badge.xpReward} XP
+                          </span>
+                        )}
+                      </div>
+                    ) : badge.progress ? (
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between text-[10px] font-mono font-bold">
+                          <span className="text-slate-400 uppercase tracking-wider">Progress</span>
+                          <span className="text-slate-300">
+                            {badge.progress.current} / {badge.progress.target} ({badge.progress.percentage}%)
+                          </span>
+                        </div>
+                        <div className="w-full h-1.5 bg-obsidian rounded-full overflow-hidden border border-white/5">
+                          <div
+                            className="h-full bg-gradient-to-r from-neon to-cyan rounded-full transition-all duration-500 shadow-glow-sm"
+                            style={{ width: `${badge.progress.percentage}%` }}
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between text-[11px] text-slate-500 font-mono font-medium">
+                        <span className="flex items-center gap-1">
+                          <Lock size={12} />
+                          <span>Locked</span>
+                        </span>
+                        {badge.xpReward && (
+                          <span className="text-slate-500 font-bold text-[10px]">
+                            +{badge.xpReward} XP Reward
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </SportxBackground>
   );
 }

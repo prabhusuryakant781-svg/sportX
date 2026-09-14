@@ -8,6 +8,7 @@ import { buildCameraRoute, isCameraSupported } from '../utils/exerciseUtils';
 import { DEFAULT_WORKOUT_PLANS, DEFAULT_EXERCISES } from '../data/workoutLibraryData';
 import type { WorkoutPlan, Exercise } from '../types';
 import { Dumbbell, Search, Activity, Layers, Sparkles } from 'lucide-react';
+import SportxBackground from '../components/SportxBackground';
 
 const PLAN_CATEGORIES = [
   'All',
@@ -205,162 +206,164 @@ export default function WorkoutLibraryPage() {
   }, [exercises, searchQuery, selectedCategory]);
 
   return (
-    <div className="space-y-4 pb-8 animate-fade-in">
-      {/* Page Header */}
-      <header className="pt-2">
-        <div className="flex items-center gap-2 mb-1">
-          <div className="w-8 h-8 rounded-xl bg-neon/15 text-neon flex items-center justify-center border border-neon/30">
-            <Dumbbell size={18} />
+    <SportxBackground imageSrc="/images/bg-workout.jpg" overlayOpacity="normal">
+      <div className="space-y-4 pb-8 animate-fade-in">
+        {/* Page Header */}
+        <header className="pt-2">
+          <div className="flex items-center gap-2 mb-1">
+            <div className="w-8 h-8 rounded-xl bg-neon/15 text-neon flex items-center justify-center border border-neon/30">
+              <Dumbbell size={18} />
+            </div>
+            <span className="text-xs font-black uppercase tracking-widest text-neon">Training Hub</span>
           </div>
-          <span className="text-xs font-black uppercase tracking-widest text-neon">Training Hub</span>
-        </div>
-        <h1 className="text-2xl font-black text-white tracking-tight">Workout Library</h1>
-        <p className="text-xs text-slate-400 mt-0.5">
-          Curated training routines, running sessions, and computer-vision tracked movement drills.
-        </p>
-      </header>
+          <h1 className="text-2xl font-black text-white tracking-tight">Workout Library</h1>
+          <p className="text-xs text-slate-300 mt-0.5">
+            Curated training routines, running sessions, and computer-vision tracked movement drills.
+          </p>
+        </header>
 
-      {/* Segmented Tab Switcher with SportX design */}
-      <div className="flex rounded-xl p-1 bg-surface border border-white/5">
-        <button
-          type="button"
-          onClick={() => {
-            setTab('plans');
-            setSelectedCategory('All');
-          }}
-          className={`flex-1 py-2.5 rounded-lg border-none cursor-pointer font-outfit font-black text-xs tracking-wider uppercase transition-all duration-200 flex items-center justify-center gap-2 ${
-            tab === 'plans'
-              ? 'bg-neon text-obsidian shadow-glow-sm'
-              : 'bg-transparent text-slate-400 hover:text-white'
-          }`}
-        >
-          <Layers size={15} />
-          <span>Workout Plans</span>
-          <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${tab === 'plans' ? 'bg-obsidian/20 text-obsidian' : 'bg-surface-light text-slate-300'}`}>
-            {plans.length}
-          </span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => {
-            setTab('exercises');
-            setSelectedCategory('All');
-          }}
-          className={`flex-1 py-2.5 rounded-lg border-none cursor-pointer font-outfit font-black text-xs tracking-wider uppercase transition-all duration-200 flex items-center justify-center gap-2 ${
-            tab === 'exercises'
-              ? 'bg-neon text-obsidian shadow-glow-sm'
-              : 'bg-transparent text-slate-400 hover:text-white'
-          }`}
-        >
-          <Activity size={15} />
-          <span>Movement Drills</span>
-          <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${tab === 'exercises' ? 'bg-obsidian/20 text-obsidian' : 'bg-surface-light text-slate-300'}`}>
-            {exercises.length}
-          </span>
-        </button>
-      </div>
-
-      {/* Search Bar */}
-      <div className="relative">
-        <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={e => setSearchQuery(e.target.value)}
-          placeholder={tab === 'plans' ? 'Search workout routines…' : 'Search drills (squat, run, bench, curl)…'}
-          className="input pl-10 pr-4 py-2.5 text-xs bg-surface border border-white/5 rounded-xl"
-        />
-        {searchQuery && (
+        {/* Segmented Tab Switcher with SportX design */}
+        <div className="flex rounded-xl p-1 bg-surface/90 border border-white/10 backdrop-blur-md">
           <button
-            onClick={() => setSearchQuery('')}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-white bg-transparent border-none cursor-pointer"
+            type="button"
+            onClick={() => {
+              setTab('plans');
+              setSelectedCategory('All');
+            }}
+            className={`flex-1 py-2.5 rounded-lg border-none cursor-pointer font-outfit font-black text-xs tracking-wider uppercase transition-all duration-200 flex items-center justify-center gap-2 ${
+              tab === 'plans'
+                ? 'bg-neon text-obsidian shadow-glow-sm'
+                : 'bg-transparent text-slate-400 hover:text-white'
+            }`}
           >
-            ✕
+            <Layers size={15} />
+            <span>Workout Plans</span>
+            <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${tab === 'plans' ? 'bg-obsidian/20 text-obsidian' : 'bg-surface-light text-slate-300'}`}>
+              {plans.length}
+            </span>
           </button>
-        )}
-      </div>
 
-      {/* Category Filter Chips Bar */}
-      <div className="flex gap-1.5 overflow-x-auto no-scrollbar py-0.5 -mx-1 px-1">
-        {(tab === 'plans' ? PLAN_CATEGORIES : EXERCISE_CATEGORIES).map(cat => {
-          const isSelected = selectedCategory === cat;
-          return (
+          <button
+            type="button"
+            onClick={() => {
+              setTab('exercises');
+              setSelectedCategory('All');
+            }}
+            className={`flex-1 py-2.5 rounded-lg border-none cursor-pointer font-outfit font-black text-xs tracking-wider uppercase transition-all duration-200 flex items-center justify-center gap-2 ${
+              tab === 'exercises'
+                ? 'bg-neon text-obsidian shadow-glow-sm'
+                : 'bg-transparent text-slate-400 hover:text-white'
+            }`}
+          >
+            <Activity size={15} />
+            <span>Movement Drills</span>
+            <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${tab === 'exercises' ? 'bg-obsidian/20 text-obsidian' : 'bg-surface-light text-slate-300'}`}>
+              {exercises.length}
+            </span>
+          </button>
+        </div>
+
+        {/* Search Bar */}
+        <div className="relative">
+          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            placeholder={tab === 'plans' ? 'Search workout routines…' : 'Search drills (squat, run, bench, curl)…'}
+            className="input pl-10 pr-4 py-2.5 text-xs bg-surface/90 border border-white/10 rounded-xl"
+          />
+          {searchQuery && (
             <button
-              key={cat}
-              type="button"
-              onClick={() => setSelectedCategory(cat)}
-              className={`text-[11px] font-bold px-3 py-1.5 rounded-xl whitespace-nowrap transition-all border cursor-pointer ${
-                isSelected
-                  ? 'bg-neon text-obsidian border-neon shadow-[0_0_12px_rgba(204,255,0,0.25)] font-black'
-                  : 'bg-surface text-slate-300 border-white/5 hover:border-white/20'
-              }`}
+              onClick={() => setSearchQuery('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-white bg-transparent border-none cursor-pointer"
             >
-              {cat}
+              ✕
             </button>
-          );
-        })}
+          )}
+        </div>
+
+        {/* Category Filter Chips Bar */}
+        <div className="flex gap-1.5 overflow-x-auto no-scrollbar py-0.5 -mx-1 px-1">
+          {(tab === 'plans' ? PLAN_CATEGORIES : EXERCISE_CATEGORIES).map(cat => {
+            const isSelected = selectedCategory === cat;
+            return (
+              <button
+                key={cat}
+                type="button"
+                onClick={() => setSelectedCategory(cat)}
+                className={`text-[11px] font-bold px-3 py-1.5 rounded-xl whitespace-nowrap transition-all border cursor-pointer ${
+                  isSelected
+                    ? 'bg-neon text-obsidian border-neon shadow-[0_0_12px_rgba(204,255,0,0.25)] font-black'
+                    : 'bg-surface/80 text-slate-300 border-white/10 hover:border-white/20'
+                }`}
+              >
+                {cat}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Content Area */}
+        {loading ? (
+          <div className="space-y-3 pt-2">
+            <div className="card skeleton h-36" />
+            <div className="card skeleton h-36" />
+            <div className="card skeleton h-36" />
+          </div>
+        ) : tab === 'plans' ? (
+          <div className="space-y-3.5 pt-1">
+            {filteredPlans.map((p, idx) => (
+              <WorkoutCard
+                key={p.id || p.workoutId || p.planId || `plan-${idx}`}
+                plan={p}
+                onStart={handleStartPlan}
+              />
+            ))}
+
+            {filteredPlans.length === 0 && (
+              <div className="hud-panel text-center py-12">
+                <Layers size={36} className="mx-auto text-slate-500 mb-2" />
+                <h3 className="text-sm font-bold text-white">No plans match your query</h3>
+                <p className="text-xs text-slate-400 mt-1">
+                  {searchQuery || selectedCategory !== 'All'
+                    ? `No routines found for filter "${selectedCategory}" / "${searchQuery}".`
+                    : 'No workout routines available right now.'}
+                </p>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-3 pt-1">
+            {filteredExercises.map((ex, idx) => (
+              <ExerciseCard
+                key={ex.id || ex.exerciseId || `ex-${idx}`}
+                exercise={ex}
+                onSelect={handleSelectExercise}
+              />
+            ))}
+
+            {filteredExercises.length === 0 && (
+              <div className="hud-panel text-center py-12">
+                <Activity size={36} className="mx-auto text-slate-500 mb-2" />
+                <h3 className="text-sm font-bold text-white">No exercises found</h3>
+                <p className="text-xs text-slate-400 mt-1">
+                  {searchQuery || selectedCategory !== 'All'
+                    ? `No movement drills found for "${selectedCategory}" / "${searchQuery}".`
+                    : 'No exercises registered in library.'}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Drill Detail / Manual Activity Modal for Non-Camera Drills */}
+        <DrillDetailModal
+          exercise={activeDrillModalExercise}
+          isOpen={Boolean(activeDrillModalExercise)}
+          onClose={() => setActiveDrillModalExercise(null)}
+        />
       </div>
-
-      {/* Content Area */}
-      {loading ? (
-        <div className="space-y-3 pt-2">
-          <div className="card skeleton h-36" />
-          <div className="card skeleton h-36" />
-          <div className="card skeleton h-36" />
-        </div>
-      ) : tab === 'plans' ? (
-        <div className="space-y-3.5 pt-1">
-          {filteredPlans.map((p, idx) => (
-            <WorkoutCard
-              key={p.id || p.workoutId || p.planId || `plan-${idx}`}
-              plan={p}
-              onStart={handleStartPlan}
-            />
-          ))}
-
-          {filteredPlans.length === 0 && (
-            <div className="card text-center py-12 border border-white/5">
-              <Layers size={36} className="mx-auto text-slate-500 mb-2" />
-              <h3 className="text-sm font-bold text-white">No plans match your query</h3>
-              <p className="text-xs text-slate-400 mt-1">
-                {searchQuery || selectedCategory !== 'All'
-                  ? `No routines found for filter "${selectedCategory}" / "${searchQuery}".`
-                  : 'No workout routines available right now.'}
-              </p>
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className="space-y-3 pt-1">
-          {filteredExercises.map((ex, idx) => (
-            <ExerciseCard
-              key={ex.id || ex.exerciseId || `ex-${idx}`}
-              exercise={ex}
-              onSelect={handleSelectExercise}
-            />
-          ))}
-
-          {filteredExercises.length === 0 && (
-            <div className="card text-center py-12 border border-white/5">
-              <Activity size={36} className="mx-auto text-slate-500 mb-2" />
-              <h3 className="text-sm font-bold text-white">No exercises found</h3>
-              <p className="text-xs text-slate-400 mt-1">
-                {searchQuery || selectedCategory !== 'All'
-                  ? `No movement drills found for "${selectedCategory}" / "${searchQuery}".`
-                  : 'No exercises registered in library.'}
-              </p>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Drill Detail / Manual Activity Modal for Non-Camera Drills */}
-      <DrillDetailModal
-        exercise={activeDrillModalExercise}
-        isOpen={Boolean(activeDrillModalExercise)}
-        onClose={() => setActiveDrillModalExercise(null)}
-      />
-    </div>
+    </SportxBackground>
   );
 }

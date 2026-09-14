@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { buildCameraRoute } from '../utils/exerciseUtils';
 import GoalsModal from '../components/GoalsModal';
+import SportxBackground from '../components/SportxBackground';
 
 interface CoachMessage {
   id: string;
@@ -221,9 +222,10 @@ export default function AICoachPage() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-90px)] bg-obsidian text-white relative -mx-4 -mt-3">
-      {/* ── Top Header ────────────────────────────────────────── */}
-      <header className="sticky top-0 z-20 px-4 py-3 bg-obsidian/95 backdrop-blur-md border-b border-white/10 flex items-center justify-between shadow-md">
+    <SportxBackground imageSrc="/images/bg-coach.jpg" overlayOpacity="normal" className="h-[calc(100vh-90px)] -mx-4 -mt-3">
+      <div className="flex flex-col h-full text-white relative">
+        {/* ── Top Header ────────────────────────────────────────── */}
+        <header className="sticky top-0 z-20 px-4 py-3 bg-obsidian/90 backdrop-blur-md border-b border-white/10 flex items-center justify-between shadow-md">
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate('/dashboard')}
@@ -475,5 +477,6 @@ export default function AICoachPage() {
         }}
       />
     </div>
+    </SportxBackground>
   );
 }

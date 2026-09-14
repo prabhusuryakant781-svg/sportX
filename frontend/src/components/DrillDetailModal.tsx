@@ -60,52 +60,60 @@ export default function DrillDetailModal({
     <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onClose}>
       <div className="absolute inset-0 bg-black/80 backdrop-blur-sm animate-fade-in" />
       <div
-        className="relative w-full max-w-[480px] rounded-t-3xl sm:rounded-3xl p-6 animate-slide-up bg-card border border-white/10 shadow-2xl max-h-[90vh] overflow-y-auto no-scrollbar"
+        className="relative w-full max-w-[480px] rounded-t-3xl sm:rounded-3xl p-0 animate-slide-up bg-obsidian-navy border border-white/15 shadow-2xl max-h-[90vh] overflow-y-auto no-scrollbar"
         onClick={e => e.stopPropagation()}
       >
         {submitted ? (
-          <div className="text-center py-8 space-y-2">
-            <div className="w-14 h-14 rounded-2xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center mx-auto mb-2 border border-emerald-500/30">
-              <CheckCircle2 size={32} />
+          <div className="text-center py-12 px-6 space-y-3">
+            <div className="w-16 h-16 rounded-2xl bg-neon/15 text-neon flex items-center justify-center mx-auto mb-2 border border-neon/30 shadow-glow-sm">
+              <CheckCircle2 size={36} />
             </div>
-            <h3 className="text-lg font-black text-white">Movement Drill Verified & Logged!</h3>
-            <p className="text-xs text-slate-400">XP and workout streak progression updated.</p>
+            <h3 className="text-xl font-black text-white">Movement Drill Verified & Logged!</h3>
+            <p className="text-xs text-slate-300">XP and workout streak progression updated.</p>
           </div>
         ) : (
           <>
-            {/* Header */}
-            <div className="flex justify-between items-start mb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-surface border border-white/10 text-2xl flex items-center justify-center flex-shrink-0">
-                  {exercise.icon || '🏋️'}
-                </div>
-                <div>
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <span className="text-[10px] font-bold text-cyan uppercase tracking-wider px-1.5 py-0.2 rounded bg-cyan/10 border border-cyan/20">
-                      {exercise.category || 'Drill'}
-                    </span>
-                    <span className="text-[10px] font-bold text-slate-300 uppercase tracking-wider px-1.5 py-0.2 rounded bg-surface border border-white/5">
-                      {exercise.difficulty || 'All Levels'}
-                    </span>
-                  </div>
-                  <h3 className="text-lg font-black text-white tracking-tight">{exName}</h3>
-                </div>
-              </div>
+            {/* Athlete Demonstration Visual Hero matching PDF Page 8 */}
+            <div className="relative h-44 w-full overflow-hidden rounded-t-3xl">
+              <div
+                className="absolute inset-0 bg-cover bg-center pointer-events-none opacity-60 scale-105"
+                style={{ backgroundImage: `url('/images/bg-workout.jpg')` }}
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-obsidian-navy via-obsidian-navy/70 to-transparent" />
+              
+              {/* Close Button */}
               <button
                 onClick={onClose}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-white bg-surface border border-white/5 cursor-pointer"
+                className="absolute top-4 right-4 p-2 rounded-xl text-slate-300 hover:text-white bg-black/60 backdrop-blur-md border border-white/15 cursor-pointer z-10"
               >
                 <X size={16} />
               </button>
+
+              {/* Title and Badges inside Hero */}
+              <div className="absolute bottom-3 left-5 right-5 z-10">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="text-[10px] font-black text-neon uppercase tracking-widest px-2 py-0.5 rounded-full bg-neon/20 border border-neon/40 shadow-sm">
+                    {exercise.category || 'Movement Drill'}
+                  </span>
+                  <span className="text-[10px] font-black text-cyan uppercase tracking-widest px-2 py-0.5 rounded-full bg-cyan/20 border border-cyan/40">
+                    {exercise.difficulty || 'All Levels'}
+                  </span>
+                </div>
+                <h3 className="text-2xl font-black text-white tracking-tight flex items-center gap-2">
+                  <span>{exercise.icon || '🏋️'}</span>
+                  <span>{exName}</span>
+                </h3>
+              </div>
             </div>
 
-            {/* Non-Camera Verification Info Banner */}
-            <div className="mb-4 p-3 rounded-xl bg-surface/60 border border-white/5 flex items-center gap-2.5">
-              <ShieldCheck size={18} className="text-cyan flex-shrink-0" />
-              <p className="text-xs text-slate-300 leading-relaxed">
-                <strong className="text-white">Guided Training Drill:</strong> Practice form following the cues below, then log your session to claim verified athletic XP.
-              </p>
-            </div>
+            <div className="p-6 pt-3 space-y-4">
+              {/* Non-Camera Verification Info Banner */}
+              <div className="p-3 rounded-xl bg-surface border border-cyan/20 flex items-center gap-2.5">
+                <ShieldCheck size={18} className="text-cyan flex-shrink-0" />
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  <strong className="text-white">Guided Training Drill:</strong> Practice form following the cues below, then log your session to claim verified athletic XP.
+                </p>
+              </div>
 
             {/* Description */}
             {exercise.description && (
@@ -221,6 +229,7 @@ export default function DrillDetailModal({
                   )}
                 </button>
               </div>
+            </div>
             </div>
           </>
         )}

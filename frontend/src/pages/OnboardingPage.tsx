@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { Target, Clock, Trophy, ArrowRight, ArrowLeft, Check, Sparkles, AlertCircle, Dumbbell, Flame, Zap, Activity } from 'lucide-react';
+import SportxBackground from '../components/SportxBackground';
 
 const GOALS = [
   { id: 'fitness', label: 'General Athletic Fitness', desc: 'Stay mobile, conditioned and energized for campus life', icon: Activity },
@@ -104,10 +105,8 @@ export default function OnboardingPage() {
   };
 
   return (
-    <div className="min-h-screen max-h-screen overflow-y-auto bg-obsidian text-white flex flex-col justify-between py-6 px-4 sm:px-6 relative overflow-x-hidden">
-      {/* Background ambient lighting matching master reference */}
-      <div className="absolute top-10 left-1/2 -translate-x-1/2 w-96 h-96 bg-neon/5 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-10 right-1/4 w-80 h-80 bg-cyan/5 rounded-full blur-[110px] pointer-events-none" />
+    <SportxBackground imageSrc="/images/bg-sports.jpg" overlayOpacity="normal" className="min-h-screen">
+      <div className="min-h-screen max-h-screen overflow-y-auto text-white flex flex-col justify-between py-6 px-4 sm:px-6 relative">
 
       {/* Top Header & Step Progress Bar */}
       <div className="w-full max-w-lg mx-auto relative z-10 pt-2">
@@ -334,7 +333,7 @@ export default function OnboardingPage() {
               </div>
             </div>
 
-            <div className="chip-grid">
+            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
               {sportsCatalogue.map(s => {
                 const sId = s.id || s.sportId;
                 const sName = s.name;
@@ -345,11 +344,23 @@ export default function OnboardingPage() {
                     type="button"
                     key={sId}
                     onClick={() => toggleSport(sId)}
-                    className={`chip py-2.5 px-4 flex items-center gap-2 text-sm ${isSelected ? 'selected' : ''}`}
+                    className={`p-3 rounded-2xl flex items-center justify-between text-left transition-all duration-200 cursor-pointer border ${
+                      isSelected
+                        ? 'bg-neon/15 border-neon text-white shadow-[0_0_15px_rgba(204,255,0,0.25)]'
+                        : 'bg-surface/80 border-white/10 hover:border-white/20 text-slate-300'
+                    }`}
                   >
-                    <span>{sIcon}</span>
-                    <span>{sName}</span>
-                    {isSelected && <Check size={14} className="text-neon ml-1" />}
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span className="text-xl flex-shrink-0">{sIcon}</span>
+                      <span className="font-bold text-xs truncate text-white">{sName}</span>
+                    </div>
+                    {isSelected ? (
+                      <div className="w-5 h-5 rounded-full bg-neon text-obsidian flex items-center justify-center flex-shrink-0 ml-1">
+                        <Check size={12} strokeWidth={3} />
+                      </div>
+                    ) : (
+                      <div className="w-5 h-5 rounded-full border border-white/20 flex-shrink-0 ml-1" />
+                    )}
                   </button>
                 );
               })}
@@ -407,5 +418,6 @@ export default function OnboardingPage() {
         </p>
       </div>
     </div>
+    </SportxBackground>
   );
 }

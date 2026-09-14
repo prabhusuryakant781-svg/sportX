@@ -18,6 +18,8 @@ import {
   AlertCircle
 } from 'lucide-react';
 
+import SportxBackground from '../components/SportxBackground';
+
 export default function SessionResultPage() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -129,7 +131,8 @@ export default function SessionResultPage() {
     : 'bg-rose-500/15 text-rose-400 border-rose-500/30';
 
   return (
-    <div className="min-h-screen bg-obsidian flex flex-col p-4 sm:p-6 animate-fade-in relative overflow-hidden">
+    <SportxBackground imageSrc="/images/bg-victory.jpg" overlayOpacity="heavy">
+      <div className="min-h-screen flex flex-col p-4 sm:p-6 animate-fade-in relative overflow-y-auto">
       {/* Ambient background glow */}
       <div className="absolute top-1/6 left-1/2 -translate-x-1/2 w-80 h-80 bg-neon/10 rounded-full blur-[100px] pointer-events-none" />
 
@@ -326,5 +329,6 @@ export default function SessionResultPage() {
         </button>
       </div>
     </div>
+    </SportxBackground>
   );
 }

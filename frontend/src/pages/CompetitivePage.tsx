@@ -27,6 +27,7 @@ import {
 import { CompetitiveMatchLoading } from '../components/CompetitiveMatchLoading';
 import ChallengeHistoryModal from '../components/ChallengeHistoryModal';
 import FriendChallengeModal from '../components/FriendChallengeModal';
+import SportxBackground from '../components/SportxBackground';
 import { Swords } from 'lucide-react';
 
 type FlowStage = 'HOME' | 'SEARCHING' | 'MATCH_ROOM' | 'COUNTDOWN' | 'CHALLENGE' | 'RESULT';
@@ -403,9 +404,10 @@ export default function CompetitivePage() {
     || challenges[0];
 
   return (
-    <div className="min-h-screen bg-obsidian text-slate-100 pb-24">
-      {/* ── Top Header Bar ──────────────────────────────────────────────────────── */}
-      <div className="px-4 pt-5 pb-3 flex items-center justify-between border-b border-white/5">
+    <SportxBackground src="/images/bg-challenge.jpg" overlayOpacity={0.88} accentGlow="neon">
+      <div className="min-h-screen text-slate-100 pb-24 relative z-10">
+        {/* ── Top Header Bar ──────────────────────────────────────────────────────── */}
+        <div className="px-4 pt-5 pb-3 flex items-center justify-between border-b border-white/10 backdrop-blur-md bg-obsidian/60">
         <div className="flex items-center gap-3">
           <button
             onClick={() => (stage === 'HOME' ? navigate('/dashboard') : handleResetToHome())}
@@ -1002,5 +1004,6 @@ export default function CompetitivePage() {
         onClose={() => setShowFriendChallengeModal(false)}
       />
     </div>
+  </SportxBackground>
   );
 }

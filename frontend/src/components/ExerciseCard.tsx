@@ -24,10 +24,10 @@ export default function ExerciseCard({ exercise, onSelect, selected }: ExerciseC
     <button
       type="button"
       onClick={() => onSelect?.(exercise)}
-      className={`card text-left w-full transition-all duration-200 cursor-pointer p-4 group select-none ${
+      className={`hud-panel text-left w-full transition-all duration-200 cursor-pointer p-4 group select-none ${
         selected
-          ? 'border-neon bg-neon/10 shadow-glow-sm'
-          : 'hover:border-white/20'
+          ? 'border-neon/80 bg-neon/15 shadow-glow-sm'
+          : 'hover:border-neon/30'
       }`}
     >
       <div className="flex items-center gap-3.5">

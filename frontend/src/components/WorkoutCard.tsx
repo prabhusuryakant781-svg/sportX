@@ -21,7 +21,7 @@ export default function WorkoutCard({ plan, onStart }: WorkoutCardProps) {
   return (
     <div
       onClick={() => onStart(plan)}
-      className="card border border-white/10 p-5 rounded-2xl cursor-pointer hover:border-neon/40 transition-all duration-200 group relative overflow-hidden shadow-card hover:shadow-glow-sm bg-surface/80"
+      className="hud-panel p-5 cursor-pointer hover:border-neon/40 transition-all duration-200 group relative overflow-hidden shadow-card"
     >
       <div className="flex justify-between items-start gap-3">
         <div className="flex-1 min-w-0">

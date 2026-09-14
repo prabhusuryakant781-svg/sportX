@@ -111,22 +111,22 @@ export default function FriendsModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-      <div className="card-glass border border-white/10 w-full max-w-lg max-h-[90vh] flex flex-col rounded-3xl overflow-hidden shadow-2xl relative">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in">
+      <div className="hud-panel-cyan w-full max-w-lg max-h-[90vh] flex flex-col rounded-3xl overflow-hidden shadow-2xl relative border border-cyan/30 bg-obsidian-card/95">
         {/* Header */}
         <div className="p-5 border-b border-white/10 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-cyan/15 border border-cyan/30 flex items-center justify-center text-cyan">
+            <div className="w-9 h-9 rounded-xl bg-cyan/15 border border-cyan/30 flex items-center justify-center text-cyan shadow-glow-sm">
               <Users size={18} />
             </div>
             <div>
-              <h2 className="text-base font-black text-white tracking-tight">Athletes & Friends</h2>
-              <p className="text-xs text-slate-400">Connect, compare stats, and challenge friends</p>
+              <h2 className="text-base font-black text-white tracking-tight uppercase font-outfit">ATHLETES & FRIENDS</h2>
+              <p className="text-xs text-slate-400">Connect, compare biometric stats, and challenge friends</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg bg-surface hover:bg-surface/80 text-slate-400 hover:text-white transition cursor-pointer"
+            className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition cursor-pointer border border-white/10"
           >
             <X size={18} />
           </button>
@@ -136,20 +136,20 @@ export default function FriendsModal({
         <div className="px-5 pt-3 pb-2 border-b border-white/5 flex gap-2">
           <button
             onClick={() => setTab('friends')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-outfit font-black uppercase tracking-wider transition cursor-pointer ${
               tab === 'friends'
                 ? 'bg-cyan text-obsidian shadow-glow-sm'
-                : 'bg-surface/50 text-slate-400 hover:text-white'
+                : 'bg-white/5 text-slate-400 hover:text-white border border-white/5'
             }`}
           >
             Friends ({friends.length})
           </button>
           <button
             onClick={() => setTab('requests')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer relative ${
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-outfit font-black uppercase tracking-wider transition cursor-pointer relative ${
               tab === 'requests'
                 ? 'bg-cyan text-obsidian shadow-glow-sm'
-                : 'bg-surface/50 text-slate-400 hover:text-white'
+                : 'bg-white/5 text-slate-400 hover:text-white border border-white/5'
             }`}
           >
             Requests {requests.length > 0 && `(${requests.length})`}
@@ -159,10 +159,10 @@ export default function FriendsModal({
           </button>
           <button
             onClick={() => setTab('search')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1 ${
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-outfit font-black uppercase tracking-wider transition cursor-pointer flex items-center gap-1 ${
               tab === 'search'
                 ? 'bg-cyan text-obsidian shadow-glow-sm'
-                : 'bg-surface/50 text-slate-400 hover:text-white'
+                : 'bg-white/5 text-slate-400 hover:text-white border border-white/5'
             }`}
           >
             <Search size={12} />
@@ -172,7 +172,7 @@ export default function FriendsModal({
 
         {/* Info / Success message */}
         {message && (
-          <div className="mx-5 mt-3 p-2.5 rounded-xl bg-cyan/10 border border-cyan/20 text-xs text-cyan flex items-center gap-2">
+          <div className="mx-5 mt-3 p-2.5 rounded-xl bg-cyan/10 border border-cyan/20 text-xs text-cyan flex items-center gap-2 font-mono">
             <Check size={13} className="flex-shrink-0" />
             <span>{message}</span>
           </div>
@@ -182,20 +182,20 @@ export default function FriendsModal({
         <div className="p-5 overflow-y-auto flex-1 space-y-3">
           {loading ? (
             <div className="space-y-2">
-              <div className="card skeleton h-16" />
-              <div className="card skeleton h-16" />
+              <div className="hud-panel skeleton h-16" />
+              <div className="hud-panel skeleton h-16" />
             </div>
           ) : tab === 'friends' ? (
             friends.length === 0 ? (
               <div className="text-center py-10 space-y-3">
                 <Users size={36} className="mx-auto text-slate-500" />
-                <h3 className="text-sm font-bold text-white">No Friends Yet</h3>
+                <h3 className="text-sm font-bold text-white uppercase font-outfit">No Friends Yet</h3>
                 <p className="text-xs text-slate-400 max-w-xs mx-auto">
                   Find teammates and rivals to challenge in live camera battles!
                 </p>
                 <button
                   onClick={() => setTab('search')}
-                  className="btn btn-primary btn-sm mx-auto flex items-center gap-1.5"
+                  className="btn btn-primary btn-sm mx-auto flex items-center gap-1.5 font-outfit uppercase font-bold"
                 >
                   <Search size={14} />
                   <span>Search Athletes</span>
@@ -206,17 +206,17 @@ export default function FriendsModal({
                 {friends.map((f) => (
                   <div
                     key={f.friendshipId}
-                    className="card p-3.5 flex items-center justify-between border border-white/5 hover:border-white/15 transition"
+                    className="hud-panel p-3.5 flex items-center justify-between hover:border-cyan/40 transition-all"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-2xl bg-gradient-hero p-0.5 shadow-glow-sm">
-                        <div className="w-full h-full bg-obsidian rounded-[14px] flex items-center justify-center text-sm font-black text-white">
+                      <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-cyan to-neon p-0.5 shadow-glow-sm">
+                        <div className="w-full h-full bg-obsidian rounded-[14px] flex items-center justify-center text-sm font-black text-white font-outfit">
                           {f.friendName?.[0]?.toUpperCase() || 'A'}
                         </div>
                       </div>
                       <div>
-                        <h4 className="text-xs font-bold text-white tracking-tight">{f.friendName}</h4>
-                        <div className="flex items-center gap-1.5 text-[10px] text-slate-400 mt-0.5">
+                        <h4 className="text-xs font-bold text-white tracking-tight font-outfit uppercase">{f.friendName}</h4>
+                        <div className="flex items-center gap-1.5 text-[10px] font-mono text-slate-400 mt-0.5">
                           <span className="text-amber-400 font-semibold">{f.friendRankTier || 'Bronze'}</span>
                           <span>•</span>
                           <span className="tabular-nums">{f.friendPoints ?? 0} RP</span>
@@ -231,7 +231,7 @@ export default function FriendsModal({
                             onClose();
                             onChallengeFriend(f);
                           }}
-                          className="px-2.5 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+                          className="px-3 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 text-xs font-outfit font-black uppercase tracking-wider transition flex items-center gap-1 cursor-pointer"
                         >
                           <Swords size={12} />
                           <span>Challenge</span>
