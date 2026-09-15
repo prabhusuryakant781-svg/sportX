@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import BottomNav from './components/BottomNav';
+import SportxLogo from './components/SportxLogo';
 
 // Pages
 import LoginPage from './pages/LoginPage';
@@ -24,9 +25,10 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     return (
       <div className="min-h-screen bg-obsidian flex flex-col items-center justify-center gap-4">
         <div className="relative flex items-center justify-center">
-          <div className="absolute w-20 h-20 bg-neon/20 rounded-full blur-xl animate-pulse" />
-          <div className="spinner w-10 h-10 border-[3px] border-neon/20 border-t-neon" />
+          <div className="absolute w-24 h-24 bg-neon/20 rounded-full blur-xl animate-pulse" />
+          <SportxLogo size="md" glow priority className="relative z-10 animate-fade-in" />
         </div>
+        <div className="spinner w-8 h-8 border-[3px] border-neon/20 border-t-neon" />
         <p className="text-slate-400 text-xs font-semibold tracking-wider uppercase animate-pulse">
           Calibrating SportX Telemetry…
         </p>

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Eye, EyeOff, ShieldCheck, ArrowRight, AlertCircle, CheckCircle2, Lock, Mail, User, School, BookOpen } from 'lucide-react';
+import SportxLogo from '../components/SportxLogo';
 
 export default function LoginPage() {
   const { login, signup, loginWithGoogle, resetPassword, isFirebaseReady } = useAuth();
@@ -86,19 +87,9 @@ export default function LoginPage() {
       <div className="absolute top-1/4 left-1/4 w-80 h-80 bg-neon/10 rounded-full blur-[110px] pointer-events-none z-0" />
       <div className="absolute top-1/3 right-1/4 w-72 h-72 bg-cyan/10 rounded-full blur-[100px] pointer-events-none z-0" />
 
-      {/* ── Master Reference Header: SportX Logo & Tagline ── */}
-      <div className="pt-6 sm:pt-10 pb-4 text-center relative z-10 animate-fade-in">
-        <div className="flex items-center justify-center tracking-tighter">
-          <span className="text-4xl sm:text-5xl font-black italic text-white drop-shadow-md">Sport</span>
-          <span className="text-4xl sm:text-5xl font-black italic text-neon drop-shadow-[0_0_15px_rgba(204,255,0,0.4)]">X</span>
-        </div>
-        <div className="flex items-center justify-center gap-2 text-xs sm:text-sm font-semibold text-slate-300 mt-1 tracking-wider uppercase">
-          <span>Train</span>
-          <span className="w-1.5 h-1.5 rounded-full bg-neon shadow-[0_0_6px_#CCFF00]" />
-          <span>Compete</span>
-          <span className="w-1.5 h-1.5 rounded-full bg-cyan shadow-[0_0_6px_#00F0FF]" />
-          <span>Be Better</span>
-        </div>
+      {/* ── Master Reference Header: SportX Official Logo ── */}
+      <div className="pt-6 sm:pt-8 pb-3 text-center relative z-10 animate-fade-in flex flex-col items-center justify-center">
+        <SportxLogo size="lg" glow priority className="shadow-2xl" />
       </div>
 
       {/* ── Master Reference Card Container ── */}

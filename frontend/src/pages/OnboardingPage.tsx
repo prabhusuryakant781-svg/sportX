@@ -4,6 +4,7 @@ import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { Target, Clock, Trophy, ArrowRight, ArrowLeft, Check, Sparkles, AlertCircle, Dumbbell, Flame, Zap, Activity } from 'lucide-react';
 import SportxBackground from '../components/SportxBackground';
+import SportxLogo from '../components/SportxLogo';
 
 const GOALS = [
   { id: 'fitness', label: 'General Athletic Fitness', desc: 'Stay mobile, conditioned and energized for campus life', icon: Activity },
@@ -112,6 +113,7 @@ export default function OnboardingPage() {
       <div className="w-full max-w-lg mx-auto relative z-10 pt-2">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
+            <SportxLogo size="xs" glow className="shadow-sm" />
             <span className="text-xs font-black tracking-widest text-neon uppercase">Athlete Calibration</span>
             <span className="text-slate-600">•</span>
             <span className="text-xs text-slate-400 font-semibold">Step {step + 1} of 3</span>

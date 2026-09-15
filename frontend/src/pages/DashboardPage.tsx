@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 
 import SportxBackground from '../components/SportxBackground';
+import SportxLogo from '../components/SportxLogo';
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -93,8 +94,8 @@ export default function DashboardPage() {
       {/* ── Athlete Command Center Header ───────────────────── */}
       <header className="pt-2">
         <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-1.5 text-xs font-black tracking-widest text-slate-400 uppercase">
-            <Zap size={15} className="text-neon fill-neon shadow-[0_0_8px_#CCFF00]" />
+          <div className="flex items-center gap-2 text-xs font-black tracking-widest text-slate-400 uppercase">
+            <SportxLogo size="sm" glow className="shadow-sm" />
             <span className="tracking-wider">SPORT<span className="text-neon">X</span> COMMAND</span>
           </div>
 

@@ -6,6 +6,7 @@ import { competitiveApi } from '../services/competitiveApi';
 import CameraWorkout, { type WorkoutCompletionResult } from '../components/CameraWorkout';
 import { useWorkout } from '../context/WorkoutContext';
 import { normalizeExerciseId } from '../utils/exerciseUtils';
+import SportxLogo from '../components/SportxLogo';
 import type { WorkoutPlan, Exercise } from '../types';
 
 export default function CameraWorkoutPage() {
@@ -260,8 +261,9 @@ export default function CameraWorkoutPage() {
       <div className="min-h-screen bg-obsidian flex flex-col items-center justify-center gap-4 p-6">
         <div className="relative flex items-center justify-center">
           <div className="absolute w-24 h-24 bg-neon/20 rounded-full blur-2xl animate-pulse" />
-          <div className="spinner w-10 h-10 border-[3px] border-neon/20 border-t-neon" />
+          <SportxLogo size="md" glow priority className="relative z-10 animate-fade-in" />
         </div>
+        <div className="spinner w-8 h-8 border-[3px] border-neon/20 border-t-neon" />
         <div className="text-center">
           <h3 className="text-base font-bold text-white tracking-tight">Initializing Vision Studio</h3>
           <p className="text-xs text-slate-400 mt-1">Calibrating MediaPipe biomechanical models…</p>
